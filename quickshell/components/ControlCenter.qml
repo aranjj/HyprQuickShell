@@ -1937,21 +1937,30 @@ Scope {
                         Layout.fillWidth: true
                         spacing: 10
 
+                        // Back button with generous hit area & hover scale
                         Rectangle {
-                            width: 30
-                            height: 30
-                            radius: 15
-                            color: backBM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: backBM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (backBM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
+                            border.color: backBM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1)
+                            border.width: 1
+                            scale: backBM.pressed ? 0.92 : (backBM.containsMouse ? 1.06 : 1.0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
                             Text {
                                 anchors.centerIn: parent
                                 text: "‹"
-                                color: root.theme.textPrimary
+                                color: backBM.containsMouse ? "#ffffff" : root.theme.textPrimary
                                 font.pixelSize: 18
                                 font.family: root.font
                             }
                             MouseArea {
                                 id: backBM
                                 anchors.fill: parent
+                                anchors.margins: -4
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: Services.SystemService.controlCenterSubView = "main"
@@ -1968,30 +1977,34 @@ Scope {
 
                         Item { Layout.fillWidth: true }
 
-                        // Discoverable pill toggle
+                        // Discoverable pill toggle with hover & press
                         Rectangle {
-                            height: 26
-                            implicitWidth: discRow.implicitWidth + 16
-                            radius: 13
+                            height: 28
+                            implicitWidth: discRow.implicitWidth + 20
+                            radius: 14
                             visible: Services.SystemService.bluetoothEnabled
-                            color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22) : Qt.rgba(1, 1, 1, 0.07)
-                            border.color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.5) : Qt.rgba(1, 1, 1, 0.1)
+                            color: discHeaderMouse.pressed ? (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35) : Qt.rgba(1, 1, 1, 0.16)) : (discHeaderMouse.containsMouse ? (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.28) : Qt.rgba(1, 1, 1, 0.12)) : (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18) : Qt.rgba(1, 1, 1, 0.06)))
+                            border.color: discHeaderMouse.containsMouse ? (Services.SystemService.bluetoothDiscoverable ? root.theme.accent : Qt.rgba(1, 1, 1, 0.25)) : (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1))
                             border.width: 1
+                            scale: discHeaderMouse.pressed ? 0.94 : (discHeaderMouse.containsMouse ? 1.04 : 1.0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                             Row {
                                 id: discRow
                                 anchors.centerIn: parent
-                                spacing: 5
+                                spacing: 6
                                 Text {
                                     text: Services.SystemService.bluetoothDiscoverable ? "󰂰" : "󰂲"
-                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : root.theme.textMuted
-                                    font.pixelSize: 11
+                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : (discHeaderMouse.containsMouse ? "#ffffff" : root.theme.textMuted)
+                                    font.pixelSize: 12
                                     font.family: root.font
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Text {
                                     text: Services.SystemService.bluetoothDiscoverable ? "Visible" : "Hidden"
-                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.textPrimary : root.theme.textMuted
+                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.textPrimary : (discHeaderMouse.containsMouse ? "#ffffff" : root.theme.textMuted)
                                     font.pixelSize: 10
                                     font.family: root.font
                                     font.weight: Font.Medium
@@ -2000,24 +2013,34 @@ Scope {
                             }
 
                             MouseArea {
+                                id: discHeaderMouse
                                 anchors.fill: parent
+                                anchors.margins: -3
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: Services.SystemService.toggleBluetoothDiscoverable()
                             }
                         }
 
-                        // Rescan button with spinning animation
+                        // Rescan button with rotation & hover/press scale
                         Rectangle {
-                            width: 28
-                            height: 28
-                            radius: 14
+                            width: 30
+                            height: 30
+                            radius: 15
                             visible: Services.SystemService.bluetoothEnabled
-                            color: rescBM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                            color: rescBM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (rescBM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Qt.rgba(1, 1, 1, 0.08))
+                            border.color: rescBM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1)
+                            border.width: 1
+                            scale: rescBM.pressed ? 0.90 : (rescBM.containsMouse ? 1.08 : 1.0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
                             Text {
                                 id: scanIcon
                                 anchors.centerIn: parent
                                 text: "󰑐"
-                                color: Services.SystemService.bluetoothDiscovering ? root.theme.accentGreen : root.theme.accent
+                                color: Services.SystemService.bluetoothDiscovering ? root.theme.accentGreen : (rescBM.containsMouse ? "#ffffff" : root.theme.accent)
                                 font.pixelSize: 13
                                 font.family: root.font
                                 transformOrigin: Item.Center
@@ -2033,19 +2056,22 @@ Scope {
                             MouseArea {
                                 id: rescBM
                                 anchors.fill: parent
+                                anchors.margins: -3
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: Services.SystemService.rescanBluetooth()
                             }
                         }
 
-                        // Switch
+                        // Switch with hover track effect & press scale
                         Rectangle {
                             width: 44
                             height: 24
                             radius: 12
-                            color: Services.SystemService.bluetoothEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.15)
+                            color: Services.SystemService.bluetoothEnabled ? (pwrSwMouse.containsMouse ? Qt.lighter(root.theme.accent, 1.1) : root.theme.accent) : (pwrSwMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.15))
+                            scale: pwrSwMouse.pressed ? 0.94 : 1.0
                             Behavior on color { ColorAnimation { duration: 150 } }
+                            Behavior on scale { NumberAnimation { duration: 120 } }
 
                             Rectangle {
                                 width: 20
@@ -2058,7 +2084,10 @@ Scope {
                             }
 
                             MouseArea {
+                                id: pwrSwMouse
                                 anchors.fill: parent
+                                anchors.margins: -4
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: Services.SystemService.toggleBluetooth()
                             }
@@ -2112,10 +2141,13 @@ Scope {
 
                             Rectangle {
                                 Layout.alignment: Qt.AlignHCenter
-                                width: 90
-                                height: 30
-                                radius: 15
-                                color: root.theme.accent
+                                width: 96
+                                height: 32
+                                radius: 16
+                                color: turnOnM.pressed ? Qt.darker(root.theme.accent, 1.15) : (turnOnM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)
+                                scale: turnOnM.pressed ? 0.94 : (turnOnM.containsMouse ? 1.06 : 1.0)
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                                 Text {
                                     anchors.centerIn: parent
@@ -2127,7 +2159,10 @@ Scope {
                                 }
 
                                 MouseArea {
+                                    id: turnOnM
                                     anchors.fill: parent
+                                    anchors.margins: -3
+                                    hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: Services.SystemService.toggleBluetooth()
                                 }
@@ -2189,9 +2224,24 @@ Scope {
                                     implicitHeight: 52
                                     radius: 10
                                     color: pDevMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.color: pDevMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
                                     border.width: 1
+                                    scale: pDevMouse.pressed ? 0.985 : 1.0
                                     Behavior on color { ColorAnimation { duration: 100 } }
+                                    Behavior on border.color { ColorAnimation { duration: 100 } }
+                                    Behavior on scale { NumberAnimation { duration: 100 } }
+
+                                    // Whole row is clickable to connect / disconnect
+                                    MouseArea {
+                                        id: pDevMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (modelData.connected) Services.SystemService.disconnectBluetooth(modelData.mac);
+                                            else Services.SystemService.connectBluetooth(modelData.mac);
+                                        }
+                                    }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -2259,27 +2309,34 @@ Scope {
                                             }
                                         }
 
-                                        // Connect / Disconnect button
+                                        // Connect / Disconnect button with tactile hover & scale
                                         Rectangle {
-                                            height: 26
-                                            implicitWidth: connTxt.implicitWidth + 16
-                                            radius: 7
-                                            color: modelData.connected ? Qt.rgba(1, 1, 1, 0.08) : root.theme.accent
-                                            border.color: modelData.connected ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                                            height: 28
+                                            implicitWidth: Math.max(76, connTxt.implicitWidth + 18)
+                                            radius: 8
+                                            color: modelData.connected ? (connBtnMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2) : Qt.rgba(1, 1, 1, 0.08)) : (connBtnMouse.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)
+                                            border.color: modelData.connected ? (connBtnMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.45) : Qt.rgba(1, 1, 1, 0.15)) : (connBtnMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.35) : "transparent")
                                             border.width: 1
+                                            scale: connBtnMouse.pressed ? 0.93 : (connBtnMouse.containsMouse ? 1.05 : 1.0)
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+                                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                                             Text {
                                                 id: connTxt
                                                 anchors.centerIn: parent
-                                                text: modelData.connected ? "Disconnect" : "Connect"
-                                                color: modelData.connected ? root.theme.textPrimary : "#ffffff"
+                                                text: modelData.connected ? (connBtnMouse.containsMouse ? "Disconnect" : "Connected") : "Connect"
+                                                color: modelData.connected ? (connBtnMouse.containsMouse ? root.theme.accentRed : root.theme.textPrimary) : "#ffffff"
                                                 font.pixelSize: 10
                                                 font.family: root.font
                                                 font.weight: Font.DemiBold
                                             }
 
                                             MouseArea {
+                                                id: connBtnMouse
                                                 anchors.fill: parent
+                                                anchors.margins: -2
+                                                hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: {
                                                     if (modelData.connected) Services.SystemService.disconnectBluetooth(modelData.mac);
@@ -2288,38 +2345,36 @@ Scope {
                                             }
                                         }
 
-                                        // Forget / Remove Device button
+                                        // Forget / Remove Device button with generous hit target & hover scale
                                         Rectangle {
-                                            width: 26
-                                            height: 26
-                                            radius: 13
-                                            color: forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2) : Qt.rgba(1, 1, 1, 0.06)
-                                            border.color: forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.4) : Qt.rgba(1, 1, 1, 0.08)
+                                            width: 28
+                                            height: 28
+                                            radius: 14
+                                            color: forgetMouse.pressed ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.35) : (forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.22) : Qt.rgba(1, 1, 1, 0.06))
+                                            border.color: forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.5) : Qt.rgba(1, 1, 1, 0.08)
                                             border.width: 1
+                                            scale: forgetMouse.pressed ? 0.88 : (forgetMouse.containsMouse ? 1.1 : 1.0)
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+                                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: "󰩹"
                                                 color: forgetMouse.containsMouse ? root.theme.accentRed : root.theme.textMuted
-                                                font.pixelSize: 12
+                                                font.pixelSize: 13
                                                 font.family: root.font
                                             }
 
                                             MouseArea {
                                                 id: forgetMouse
                                                 anchors.fill: parent
+                                                anchors.margins: -4
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: Services.SystemService.removeBluetooth(modelData.mac)
                                             }
                                         }
-                                    }
-
-                                    MouseArea {
-                                        id: pDevMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        acceptedButtons: Qt.NoButton
                                     }
                                 }
                             }
@@ -2340,7 +2395,7 @@ Scope {
 
                                 Item { Layout.fillWidth: true }
 
-                                // Searching indicator or Scan button
+                                // Searching indicator
                                 Row {
                                     spacing: 4
                                     visible: Services.SystemService.bluetoothDiscovering
@@ -2353,15 +2408,46 @@ Scope {
                                     }
                                 }
 
-                                Text {
+                                // Dedicated Scan Button Pill
+                                Rectangle {
                                     visible: !Services.SystemService.bluetoothDiscovering
-                                    text: "󰑐 Scan"
-                                    color: root.theme.accent
-                                    font.pixelSize: 10
-                                    font.family: root.font
+                                    height: 24
+                                    implicitWidth: scanBtnTxt.implicitWidth + 20
+                                    radius: 7
+                                    color: scanBtnM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3) : (scanBtnM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2) : Qt.rgba(1, 1, 1, 0.08))
+                                    border.color: scanBtnM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1)
+                                    border.width: 1
+                                    scale: scanBtnM.pressed ? 0.93 : (scanBtnM.containsMouse ? 1.05 : 1.0)
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                    Behavior on border.color { ColorAnimation { duration: 120 } }
+                                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 5
+                                        Text {
+                                            text: "󰑐"
+                                            color: scanBtnM.containsMouse ? "#ffffff" : root.theme.accent
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Text {
+                                            id: scanBtnTxt
+                                            text: "Scan"
+                                            color: scanBtnM.containsMouse ? "#ffffff" : root.theme.accent
+                                            font.pixelSize: 10
+                                            font.family: root.font
+                                            font.weight: Font.DemiBold
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
 
                                     MouseArea {
+                                        id: scanBtnM
                                         anchors.fill: parent
+                                        anchors.margins: -3
+                                        hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: Services.SystemService.startBluetoothScan()
                                     }
@@ -2371,19 +2457,62 @@ Scope {
                             // Empty Available Placeholder
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 44
+                                implicitHeight: Services.SystemService.bluetoothDiscovering ? 46 : 54
                                 radius: 10
                                 visible: Services.SystemService.bluetoothAvailableDevices.length === 0
                                 color: Qt.rgba(1, 1, 1, 0.03)
                                 border.color: Qt.rgba(1, 1, 1, 0.06)
                                 border.width: 1
 
-                                Text {
+                                ColumnLayout {
                                     anchors.centerIn: parent
-                                    text: Services.SystemService.bluetoothDiscovering ? "Searching for nearby devices..." : "No nearby devices found. Tap Scan to search."
-                                    color: root.theme.textMuted
-                                    font.pixelSize: 11
-                                    font.family: root.font
+                                    spacing: 4
+                                    visible: !Services.SystemService.bluetoothDiscovering
+
+                                    Text {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        text: "No nearby devices found"
+                                        color: root.theme.textMuted
+                                        font.pixelSize: 11
+                                        font.family: root.font
+                                    }
+
+                                    Text {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        text: "Tap Scan above to search for nearby accessories."
+                                        color: Qt.rgba(1, 1, 1, 0.35)
+                                        font.pixelSize: 9
+                                        font.family: root.font
+                                    }
+                                }
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 8
+                                    visible: Services.SystemService.bluetoothDiscovering
+
+                                    Text {
+                                        text: "󰑐"
+                                        color: root.theme.accent
+                                        font.pixelSize: 12
+                                        font.family: root.font
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        NumberAnimation on rotation {
+                                            running: Services.SystemService.bluetoothDiscovering
+                                            loops: Animation.Infinite
+                                            from: 0
+                                            to: 360
+                                            duration: 900
+                                        }
+                                    }
+
+                                    Text {
+                                        text: "Searching for nearby devices..."
+                                        color: root.theme.textMuted
+                                        font.pixelSize: 11
+                                        font.family: root.font
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
                                 }
                             }
 
@@ -2397,9 +2526,21 @@ Scope {
                                     implicitHeight: 48
                                     radius: 10
                                     color: aDevMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.color: aDevMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
                                     border.width: 1
+                                    scale: aDevMouse.pressed ? 0.985 : 1.0
                                     Behavior on color { ColorAnimation { duration: 100 } }
+                                    Behavior on border.color { ColorAnimation { duration: 100 } }
+                                    Behavior on scale { NumberAnimation { duration: 100 } }
+
+                                    // Whole row is clickable to pair
+                                    MouseArea {
+                                        id: aDevMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: Services.SystemService.pairBluetooth(modelData.mac)
+                                    }
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -2442,37 +2583,38 @@ Scope {
                                             }
                                         }
 
+                                        // Pair button with tactile hover & scale
                                         Rectangle {
-                                            height: 26
-                                            implicitWidth: pairTxt.implicitWidth + 16
-                                            radius: 7
-                                            color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)
-                                            border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4)
+                                            height: 28
+                                            implicitWidth: Math.max(68, pairTxt.implicitWidth + 18)
+                                            radius: 8
+                                            color: pairBtnMouse.pressed ? Qt.darker(root.theme.accent, 1.15) : (pairBtnMouse.containsMouse ? root.theme.accent : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2))
+                                            border.color: pairBtnMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.4) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4)
                                             border.width: 1
+                                            scale: pairBtnMouse.pressed ? 0.93 : (pairBtnMouse.containsMouse ? 1.05 : 1.0)
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+                                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                                             Text {
                                                 id: pairTxt
                                                 anchors.centerIn: parent
                                                 text: "Pair"
-                                                color: root.theme.accent
+                                                color: pairBtnMouse.containsMouse ? "#ffffff" : root.theme.accent
                                                 font.pixelSize: 10
                                                 font.family: root.font
                                                 font.weight: Font.DemiBold
                                             }
 
                                             MouseArea {
+                                                id: pairBtnMouse
                                                 anchors.fill: parent
+                                                anchors.margins: -2
+                                                hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: Services.SystemService.pairBluetooth(modelData.mac)
                                             }
                                         }
-                                    }
-
-                                    MouseArea {
-                                        id: aDevMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        acceptedButtons: Qt.NoButton
                                     }
                                 }
                             }
@@ -2482,12 +2624,22 @@ Scope {
                     // ── NATIVE FOOTER: ADAPTER DISCOVERABILITY ─────────
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: 38
+                        implicitHeight: 40
                         radius: 10
                         visible: Services.SystemService.bluetoothEnabled
-                        color: Qt.rgba(1, 1, 1, 0.04)
-                        border.color: Qt.rgba(1, 1, 1, 0.08)
+                        color: footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.04)
+                        border.color: footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
                         border.width: 1
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                        MouseArea {
+                            id: footerCardM
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Services.SystemService.toggleBluetoothDiscoverable()
+                        }
 
                         RowLayout {
                             anchors.fill: parent
@@ -2505,34 +2657,34 @@ Scope {
                             Text {
                                 Layout.fillWidth: true
                                 text: "Now discoverable as \"" + Services.SystemService.bluetoothAdapterName + "\""
-                                color: root.theme.textMuted
+                                color: footerCardM.containsMouse ? root.theme.textPrimary : root.theme.textMuted
                                 font.pixelSize: 10
                                 font.family: root.font
                                 elide: Text.ElideRight
+                                Behavior on color { ColorAnimation { duration: 120 } }
                             }
 
                             Rectangle {
-                                height: 22
-                                implicitWidth: footerDiscTxt.implicitWidth + 12
-                                radius: 11
-                                color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2) : Qt.rgba(1, 1, 1, 0.08)
-                                border.color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4) : Qt.rgba(1, 1, 1, 0.1)
+                                height: 24
+                                implicitWidth: footerDiscTxt.implicitWidth + 14
+                                radius: 12
+                                color: Services.SystemService.bluetoothDiscoverable ? (footerCardM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)) : (footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
+                                border.color: Services.SystemService.bluetoothDiscoverable ? (footerCardM.containsMouse ? root.theme.accent : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4)) : (footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1))
                                 border.width: 1
+                                scale: footerCardM.pressed ? 0.94 : 1.0
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                                Behavior on scale { NumberAnimation { duration: 120 } }
 
                                 Text {
                                     id: footerDiscTxt
                                     anchors.centerIn: parent
                                     text: Services.SystemService.bluetoothDiscoverable ? "Visible" : "Hidden"
-                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : root.theme.textMuted
+                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : (footerCardM.containsMouse ? "#ffffff" : root.theme.textMuted)
                                     font.pixelSize: 9
                                     font.family: root.font
                                     font.weight: Font.Medium
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: Services.SystemService.toggleBluetoothDiscoverable()
+                                    Behavior on color { ColorAnimation { duration: 120 } }
                                 }
                             }
                         }
