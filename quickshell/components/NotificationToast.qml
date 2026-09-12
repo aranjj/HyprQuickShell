@@ -59,10 +59,10 @@ Scope {
 
                         width: 350
                         implicitHeight: contentCol.implicitHeight + 24
-                        radius: 16
-                        color: Qt.rgba(0.12, 0.12, 0.18, 0.78)
-                        border.color: Qt.rgba(1, 1, 1, 0.16)
-                        border.width: 1
+                        radius: Services.Aesthetic.cardRadius
+                        color: Services.Aesthetic.cardBg
+                        border.color: Services.Aesthetic.cardBorder
+                        border.width: Services.Aesthetic.borderWidth
                         clip: true
 
                         // Slide & Fade entrance

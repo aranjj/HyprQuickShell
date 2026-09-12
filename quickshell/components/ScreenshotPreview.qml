@@ -45,10 +45,10 @@ Scope {
             Rectangle {
                 id: card
                 anchors.fill: parent
-                radius: 16
-                color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.80)
-                border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
-                border.width: 1
+                radius: Services.Aesthetic.cardRadius
+                color: Services.Aesthetic.cardBg
+                border.color: Services.Aesthetic.cardBorder
+                border.width: Services.Aesthetic.borderWidth
                 clip: true
 
                 // Scale / entrance animation

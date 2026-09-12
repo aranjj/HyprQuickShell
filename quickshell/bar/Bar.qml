@@ -49,8 +49,8 @@ Scope {
     readonly property int currentWorkspaceId: Hyprland.focusedWorkspace?.id ?? 1
     readonly property string currentWorkspaceName: Hyprland.focusedWorkspace?.name ?? ("" + currentWorkspaceId)
 
-    // ── Adaptive Contrast Tokens (follows wallpaper luminance) ──
-    readonly property bool barContentLightMode: root.theme.barIsLight
+    // ── Adaptive Contrast Tokens (follows wallpaper luminance, always dark on OLED) ──
+    readonly property bool barContentLightMode: Services.Aesthetic.preset !== "oled" && root.theme.barIsLight
 
     property color barFgPrimary: barContentLightMode ? "#1a1b20" : "#ffffff"
     Behavior on barFgPrimary { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
@@ -222,7 +222,7 @@ Scope {
             implicitHeight: 34
             color: "transparent"
 
-            BackgroundEffect.blurRegion: Region { item: Services.Aesthetic.preset === "crystal" ? null : barGlassBg }
+            BackgroundEffect.blurRegion: Region { item: (Services.Aesthetic.preset === "crystal" || Services.Aesthetic.preset === "oled") ? null : barGlassBg }
 
             // ── Dynamic Glass Background & Micro Scrim ──
             Rectangle {
@@ -234,7 +234,7 @@ Scope {
                 // Top subtle micro-scrim (improves text contrast over busy wallpapers for standard presets)
                 Rectangle {
                     anchors.fill: parent
-                    visible: Services.Aesthetic.preset !== "crystal"
+                    visible: Services.Aesthetic.preset !== "crystal" && Services.Aesthetic.preset !== "oled"
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: root.theme.barIsLight ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.22) }
                         GradientStop { position: 1.0; color: "transparent" }

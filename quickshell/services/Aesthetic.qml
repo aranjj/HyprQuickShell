@@ -21,7 +21,7 @@ Singleton {
     // ── Hardcoded Opacities & Design Tokens by Preset ────────
     readonly property real cardOpacity: {
         switch (preset) {
-            case "oled": return 0.96;
+            case "oled": return 1.0;
             case "crystal": return 0.45;
             case "solid": return 0.96;
             case "frosted":
@@ -31,7 +31,7 @@ Singleton {
 
     readonly property real barFloatingOpacity: {
         switch (preset) {
-            case "oled": return 0.88;
+            case "oled": return 1.0;
             case "crystal": return 0.22;
             case "solid": return 0.94;
             case "frosted":
@@ -41,7 +41,7 @@ Singleton {
 
     readonly property real borderOpacity: {
         switch (preset) {
-            case "oled": return 0.14;
+            case "oled": return 0.12;
             case "crystal": return 0.32;
             case "solid": return 0.18;
             case "frosted":
@@ -51,7 +51,7 @@ Singleton {
 
     readonly property real backdropOpacity: {
         switch (preset) {
-            case "oled": return 0.60;
+            case "oled": return 0.70;
             case "crystal": return 0.35;
             case "solid": return 0.65;
             case "frosted":
@@ -62,7 +62,7 @@ Singleton {
     // ── Inner Tile / Sub-Widget Glass Tokens ─────────
     readonly property real innerCardOpacity: {
         switch (preset) {
-            case "oled": return 0.45;
+            case "oled": return 0.07;
             case "crystal": return 0.12;
             case "solid": return 0.75;
             case "frosted":
@@ -72,7 +72,7 @@ Singleton {
 
     readonly property real innerCardHoverOpacity: {
         switch (preset) {
-            case "oled": return 0.60;
+            case "oled": return 0.14;
             case "crystal": return 0.20;
             case "solid": return 0.88;
             case "frosted":
@@ -82,7 +82,7 @@ Singleton {
 
     readonly property color innerCardBg: {
         if (preset === "oled") {
-            return Qt.rgba(0.08, 0.08, 0.12, innerCardOpacity);
+            return Qt.rgba(1, 1, 1, innerCardOpacity);
         }
         return Qt.rgba(
             Services.ThemeService.colSurfaceContainer.r,
@@ -94,7 +94,7 @@ Singleton {
 
     readonly property color innerCardHover: {
         if (preset === "oled") {
-            return Qt.rgba(0.12, 0.12, 0.18, innerCardHoverOpacity);
+            return Qt.rgba(1, 1, 1, innerCardHoverOpacity);
         }
         return Qt.rgba(
             Services.ThemeService.colSurfaceContainerHigh.r,
@@ -104,16 +104,16 @@ Singleton {
         );
     }
 
-    readonly property color innerCardBorder: Qt.rgba(1, 1, 1, preset === "crystal" ? 0.08 : (preset === "oled" ? 0.08 : 0.06))
+    readonly property color innerCardBorder: Qt.rgba(1, 1, 1, preset === "oled" ? 0.09 : (preset === "crystal" ? 0.08 : 0.06))
 
     // ── Slider Tokens (Soft Translucent Tahoe Design) ──
-    readonly property color sliderTrackBg: Qt.rgba(0, 0, 0, preset === "crystal" ? 0.14 : 0.20)
-    readonly property color sliderFill: Qt.rgba(1, 1, 1, 0.82)
+    readonly property color sliderTrackBg: Qt.rgba(1, 1, 1, preset === "oled" ? 0.10 : (preset === "crystal" ? 0.14 : 0.20))
+    readonly property color sliderFill: Qt.rgba(1, 1, 1, preset === "oled" ? 0.95 : 0.82)
 
     // ── Computed Card Colors ────────────────────────
     property color cardBg: {
         if (preset === "oled") {
-            return Qt.rgba(0.04, 0.04, 0.06, cardOpacity);
+            return "#000000";
         }
         return Qt.rgba(
             Services.ThemeService.colSurface.r,
@@ -143,7 +143,7 @@ Singleton {
             return "transparent";
         }
         if (preset === "oled") {
-            return Qt.rgba(0.02, 0.02, 0.03, barFloatingOpacity);
+            return "#000000";
         }
         if (isLight) {
             return Qt.rgba(1, 1, 1, 0.25);

@@ -147,9 +147,9 @@ Scope {
                 width: 250
                 height: 52
                 radius: 26
-                color: Qt.rgba(0.09, 0.09, 0.14, 0.78)
-                border.color: Qt.rgba(1, 1, 1, 0.16)
-                border.width: 1
+                color: Services.Aesthetic.cardBg
+                border.color: Services.Aesthetic.cardBorder
+                border.width: Services.Aesthetic.borderWidth
 
                 opacity: Services.OsdService.visible ? 1 : 0
                 scale: Services.OsdService.visible ? 1 : 0.92
