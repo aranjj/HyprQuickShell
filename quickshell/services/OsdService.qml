@@ -2,25 +2,26 @@ pragma Singleton
 
 import Quickshell
 import QtQuick
+import "." as Services
 
 Singleton {
     id: root
 
     property bool visible: false
     property string icon: "󰕾"
-    property color iconColor: "#89b4fa"
+    property color iconColor: Services.ThemeService.accent
     property string title: "Volume"
     property string valueText: "50%"
     property real progress: 0.5 // 0.0 to 1.0, or -1 to hide progress bar
-    property color barColor: "#89b4fa"
+    property color barColor: Services.ThemeService.accent
 
     function show(iconStr, iconCol, titleStr, textStr, progressVal, barCol) {
         icon = iconStr;
-        iconColor = iconCol;
+        iconColor = iconCol || Services.ThemeService.accent;
         title = titleStr;
         valueText = textStr;
         progress = progressVal;
-        barColor = barCol || iconCol;
+        barColor = barCol || iconCol || Services.ThemeService.accent;
         visible = true;
         hideTimer.restart();
     }
@@ -30,14 +31,14 @@ Singleton {
 
     function showVolume(vol, muted) {
         const ic = muted ? "󰖁" : (vol > 60 ? "󰕾" : (vol > 20 ? "󰖀" : "󰕿"));
-        const col = muted ? "#f38ba8" : "#89b4fa";
+        const col = muted ? Services.ThemeService.accentRed : Services.ThemeService.accent;
         show(ic, col, "Volume", muted ? "Muted" : vol + "%", muted ? 0 : Math.min(1.0, vol / 100), col);
         volumeUpdated(vol, muted);
     }
 
     function showMic(vol, muted) {
         const ic = muted ? "󰍭" : "󰍬";
-        const col = muted ? "#f38ba8" : "#89b4fa";
+        const col = muted ? Services.ThemeService.accentRed : Services.ThemeService.accent;
         show(ic, col, "Microphone", muted ? "Muted" : vol + "%", muted ? 0 : Math.min(1.0, vol / 100), col);
     }
 
@@ -46,21 +47,22 @@ Singleton {
     function showBrightness(pct) {
         if (suppressBrightness) return;
         const ic = pct > 70 ? "󰃠" : (pct > 30 ? "󰃟" : "󰃞");
-        show(ic, "#f9e2af", "Brightness", pct + "%", Math.min(1.0, pct / 100), "#f9e2af");
+        const col = Services.ThemeService.accentYellow;
+        show(ic, col, "Brightness", pct + "%", Math.min(1.0, pct / 100), col);
         brightnessUpdated(pct);
     }
 
     function showPowerProfile(profile) {
         let ic = "󰾅";
-        let col = "#89b4fa";
+        let col = Services.ThemeService.accent;
         let name = "Balanced";
         if (profile === "performance") {
             ic = "󰓅";
-            col = "#fab387";
+            col = Services.ThemeService.accentOrange;
             name = "Performance";
         } else if (profile === "power-saver") {
             ic = "󰌪";
-            col = "#a6e3a1";
+            col = Services.ThemeService.accentGreen;
             name = "Power Saver";
         }
         show(ic, col, "Power Profile", name, -1, col);
@@ -68,7 +70,7 @@ Singleton {
 
     function showPowerSupply(plugged, level) {
         const ic = plugged ? "󰂄" : "󰁹";
-        const col = plugged ? "#a6e3a1" : "#89b4fa";
+        const col = plugged ? Services.ThemeService.accentGreen : Services.ThemeService.accent;
         const text = plugged ? "Plugged In (" + level + "%)" : "On Battery (" + level + "%)";
         show(ic, col, "Power Source", text, Math.min(1.0, level / 100), col);
     }

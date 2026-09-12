@@ -1136,10 +1136,13 @@ Scope {
                             width: 32
                             height: 32
                             radius: 16
-                            color: Qt.rgba(1, 1, 1, 0.08)
-                            border.color: Qt.rgba(1, 1, 1, 0.14)
+                            color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, 0.14)
+                            border.color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, 0.28)
                             border.width: 1
                             Layout.alignment: Qt.AlignVCenter
+
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on border.color { ColorAnimation { duration: 200 } }
 
                             Text {
                                 anchors.centerIn: parent
