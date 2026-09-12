@@ -988,7 +988,10 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Services.SystemService.openControlCenter("controls", "main")
+                            onClicked: {
+                                Services.ClockService.calendarOpen = false;
+                                Services.SystemService.openControlCenter("controls", "main");
+                            }
                         }
                     }
 
@@ -1027,7 +1030,10 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Services.SystemService.openControlCenter("notifications", "main")
+                            onClicked: {
+                                Services.ClockService.calendarOpen = false;
+                                Services.SystemService.openControlCenter("notifications", "main");
+                            }
                         }
                     }
 
@@ -1062,7 +1068,10 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Services.ClockService.toggleCalendar()
+                            onClicked: {
+                                Services.SystemService.controlCenterOpen = false;
+                                Services.ClockService.toggleCalendar();
+                            }
                         }
                     }
                 }

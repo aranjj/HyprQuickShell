@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
@@ -13,6 +14,22 @@ Scope {
 
     property int viewYear: new Date().getFullYear()
     property int viewMonth: new Date().getMonth() // 0-11
+
+    IpcHandler {
+        target: "calendar"
+
+        function toggle(): void {
+            Services.ClockService.toggleCalendar();
+        }
+
+        function open(): void {
+            Services.ClockService.calendarOpen = true;
+        }
+
+        function close(): void {
+            Services.ClockService.calendarOpen = false;
+        }
+    }
 
     readonly property var monthNames: [
         "January", "February", "March", "April", "May", "June",
@@ -94,6 +111,12 @@ Scope {
                 left: true
             }
 
+            onVisibleChanged: {
+                if (visible) {
+                    Services.SystemService.controlCenterOpen = false;
+                }
+            }
+
             // Click backdrop to dismiss
             MouseArea {
                 anchors.fill: parent
@@ -111,9 +134,14 @@ Scope {
                 width: 320
                 height: 380
                 radius: 18
-                color: Qt.rgba(0.11, 0.11, 0.16, 0.78)
-                border.color: Qt.rgba(1, 1, 1, 0.16)
+                color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.78)
+                border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
                 border.width: 1
+
+                opacity: Services.ClockService.calendarOpen ? 1.0 : 0.0
+                scale: Services.ClockService.calendarOpen ? 1.0 : 0.95
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack } }
 
                 MouseArea {
                     anchors.fill: parent
