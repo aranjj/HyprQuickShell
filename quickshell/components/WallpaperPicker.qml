@@ -55,6 +55,8 @@ Scope {
         WlrLayershell.namespace: "quickshell-wallpaper-picker"
         exclusionMode: ExclusionMode.Ignore
 
+        BackgroundEffect.blurRegion: Region { item: mainModal }
+
         anchors {
             top: true
             bottom: true
@@ -136,7 +138,7 @@ Scope {
             width: Math.min(pickerWin.width * 0.88, 1040)
             height: 500
             radius: 20
-            color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.94)
+            color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.78)
             border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
             border.width: 1
             clip: true

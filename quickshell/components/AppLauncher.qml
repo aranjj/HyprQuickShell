@@ -138,6 +138,8 @@ Scope {
         WlrLayershell.namespace: "quickshell-spotlight"
         exclusionMode: ExclusionMode.Ignore
 
+        BackgroundEffect.blurRegion: Region { item: spotlightBox }
+
         anchors {
             top: true
             bottom: true
@@ -148,7 +150,7 @@ Scope {
         // Dark Blurred Backdrop (click to dismiss)
         Rectangle {
             anchors.fill: parent
-            color: Qt.rgba(0, 0, 0, 0.55)
+            color: Qt.rgba(0, 0, 0, 0.45)
 
             MouseArea {
                 anchors.fill: parent
@@ -174,7 +176,7 @@ Scope {
                 return Math.min(520, Math.min(6, filteredApps.values.length) * 48 + (hasSpecial ? 180 : 130));
             }
             radius: 18
-            color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.94)
+            color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.78)
             border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
             border.width: 1
             clip: true

@@ -127,6 +127,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-osd"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: osdPill }
+
             anchors {
                 bottom: true
             }
@@ -145,8 +147,8 @@ Scope {
                 width: 250
                 height: 52
                 radius: 26
-                color: Qt.rgba(0.09, 0.09, 0.14, 0.94)
-                border.color: Qt.rgba(1, 1, 1, 0.14)
+                color: Qt.rgba(0.09, 0.09, 0.14, 0.78)
+                border.color: Qt.rgba(1, 1, 1, 0.16)
                 border.width: 1
 
                 opacity: Services.OsdService.visible ? 1 : 0

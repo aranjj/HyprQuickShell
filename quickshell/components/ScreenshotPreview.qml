@@ -27,6 +27,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-screenshot-preview"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: card }
+
             anchors {
                 bottom: true
                 right: true
@@ -44,7 +46,7 @@ Scope {
                 id: card
                 anchors.fill: parent
                 radius: 16
-                color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.94)
+                color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.80)
                 border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
                 border.width: 1
                 clip: true

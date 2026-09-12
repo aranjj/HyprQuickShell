@@ -235,12 +235,15 @@ Scope {
             implicitHeight: 34
             color: "transparent"
 
+            BackgroundEffect.blurRegion: Region { item: barGlassBg }
+
             // ── Apple-Style Dynamic Glass Background & Micro Scrim ──
             Rectangle {
+                id: barGlassBg
                 anchors.fill: parent
                 color: root.hasTopWindow
                     ? Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.82)
-                    : "transparent"
+                    : (root.barContentLightMode ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(0.04, 0.04, 0.07, 0.40))
                 Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                 // Top subtle micro-scrim (improves text contrast over busy wallpapers in transparent mode)
@@ -1086,6 +1089,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-apple-menu"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: appleMenuCard }
+
             anchors {
                 top: true
                 left: true
@@ -1101,6 +1106,7 @@ Scope {
 
             // Dropdown Menu Card (macOS Tahoe Glass)
             Rectangle {
+                id: appleMenuCard
                 anchors.top: parent.top
                 anchors.topMargin: 38
                 anchors.left: parent.left
@@ -1109,8 +1115,8 @@ Scope {
                 width: 232
                 height: menuCol.implicitHeight + 14
                 radius: 14
-                color: Qt.rgba(0.11, 0.12, 0.16, 0.95)
-                border.color: Qt.rgba(1, 1, 1, 0.12)
+                color: Qt.rgba(0.11, 0.12, 0.16, 0.78)
+                border.color: Qt.rgba(1, 1, 1, 0.16)
                 border.width: 1
 
                 MouseArea {

@@ -132,7 +132,7 @@ hl.config({
 
         blur = {
             enabled   = true,
-            size      = 3,
+            size      = 7,
             passes    = 3,
             vibrancy  = 0.420,
         },
@@ -293,6 +293,16 @@ hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
 
+
+-- Move window with mainMod + arrow keys
+
+-- Move windows with mainMod + Shift + arrow keys
+hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.move({ direction = "l" }))
+hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "r" }))
+hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.move({ direction = "u" }))
+hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "d" }))
+
+
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
 for i = 1, 10 do
@@ -385,3 +395,29 @@ hl.window_rule({
     move  = "20 monitor_h-120",
     float = true,
 })
+
+-- ── Quickshell Frosted Glass Blur ─────────────────────────
+local quickshell_layers = {
+    "quickshell-bar",
+    "quickshell-control-center",
+    "quickshell-dynamic-island",
+    "quickshell-calendar",
+    "quickshell-spotlight",
+    "quickshell-clipboard",
+    "quickshell-power-menu",
+    "quickshell-notification-popups",
+    "quickshell-about-dialog",
+    "quickshell-wallpaper-picker",
+    "quickshell-osd",
+    "quickshell-screenshot-toolbar",
+    "quickshell-screenshot-preview",
+}
+
+for _, ns in ipairs(quickshell_layers) do
+    hl.layer_rule({
+        match        = { namespace = ns },
+        blur         = true,
+        ignore_alpha = 0.2,
+    })
+end
+

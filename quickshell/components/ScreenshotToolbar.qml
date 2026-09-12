@@ -27,6 +27,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-screenshot-toolbar"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: toolbarCard }
+
             anchors {
                 bottom: true
             }
@@ -53,7 +55,7 @@ Scope {
                 implicitHeight: 48
                 implicitWidth: contentRow.implicitWidth + 20
                 radius: 18
-                color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.94)
+                color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.78)
                 border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
                 border.width: 1
 

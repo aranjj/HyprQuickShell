@@ -29,6 +29,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-notification-popups"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: toastCol }
+
             anchors {
                 top: true
                 right: true
@@ -58,8 +60,8 @@ Scope {
                         width: 350
                         implicitHeight: contentCol.implicitHeight + 24
                         radius: 16
-                        color: Qt.rgba(0.12, 0.12, 0.18, 0.96)
-                        border.color: Qt.rgba(1, 1, 1, 0.14)
+                        color: Qt.rgba(0.12, 0.12, 0.18, 0.78)
+                        border.color: Qt.rgba(1, 1, 1, 0.16)
                         border.width: 1
                         clip: true
 

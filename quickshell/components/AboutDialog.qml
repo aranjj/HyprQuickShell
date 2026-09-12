@@ -28,6 +28,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-about-dialog"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: dialogCard }
+
             anchors {
                 top: true
                 bottom: true
@@ -48,8 +50,8 @@ Scope {
                 implicitHeight: cardContent.implicitHeight + 42
                 anchors.centerIn: parent
                 radius: 18
-                color: Qt.rgba(0.11, 0.12, 0.16, 0.95)
-                border.color: Qt.rgba(1, 1, 1, 0.12)
+                color: Qt.rgba(0.11, 0.12, 0.16, 0.78)
+                border.color: Qt.rgba(1, 1, 1, 0.16)
                 border.width: 1
                 clip: true
 

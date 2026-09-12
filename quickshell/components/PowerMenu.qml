@@ -27,6 +27,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-power-menu"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: powerCard }
+
             anchors {
                 top: true
                 right: true
@@ -37,7 +39,7 @@ Scope {
             // Darkened backdrop (click to dismiss)
             Rectangle {
                 anchors.fill: parent
-                color: Qt.rgba(0, 0, 0, 0.6)
+                color: Qt.rgba(0, 0, 0, 0.45)
 
                 MouseArea {
                     anchors.fill: parent
@@ -47,12 +49,13 @@ Scope {
 
             // Power Menu Card
             Rectangle {
+                id: powerCard
                 anchors.centerIn: parent
                 width: 440
                 height: 180
                 radius: 20
-                color: Qt.rgba(0.09, 0.09, 0.14, 0.96)
-                border.color: Qt.rgba(1, 1, 1, 0.12)
+                color: Qt.rgba(0.09, 0.09, 0.14, 0.78)
+                border.color: Qt.rgba(1, 1, 1, 0.16)
                 border.width: 1
 
                 // Stop dismissal click from propagating

@@ -85,6 +85,8 @@ Scope {
             WlrLayershell.namespace: "quickshell-calendar"
             exclusionMode: ExclusionMode.Ignore
 
+            BackgroundEffect.blurRegion: Region { item: calCard }
+
             anchors {
                 top: true
                 right: true
@@ -100,6 +102,7 @@ Scope {
 
             // Floating Calendar Card
             Rectangle {
+                id: calCard
                 anchors.top: parent.top
                 anchors.topMargin: 46
                 anchors.right: parent.right
@@ -108,8 +111,8 @@ Scope {
                 width: 320
                 height: 380
                 radius: 18
-                color: Qt.rgba(0.11, 0.11, 0.16, 0.95)
-                border.color: Qt.rgba(1, 1, 1, 0.13)
+                color: Qt.rgba(0.11, 0.11, 0.16, 0.78)
+                border.color: Qt.rgba(1, 1, 1, 0.16)
                 border.width: 1
 
                 MouseArea {

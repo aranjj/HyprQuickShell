@@ -228,6 +228,10 @@ Scope {
                 item: islandContainer
             }
 
+            BackgroundEffect.blurRegion: Region {
+                item: islandContainer
+            }
+
             // ── Main Morphing Island Pill ─────────────────
             Rectangle {
                 id: islandContainer
