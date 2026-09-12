@@ -50,10 +50,21 @@ Singleton {
         }
     }
 
-    // ── Dedicated Process ──────────────────────────────
+    // ── Dedicated Process for Hyprland Dispatch ────────
+    // We invoke screenshot.sh and GUI actions via Hyprland's native
+    // dispatcher (hl.dsp.exec_cmd) just like Hyprland keybindings do.
+    // hyprctl dispatch executes in ~5ms, detaching the process completely
+    // into the compositor session. This avoids QProcess lifecycle bugs,
+    // hanging pipe locks, and ensures 100% identical behavior to keybinds.
     Process {
-        id: captureProc
+        id: dispatchProc
         command: ["sh", "-c", ""]
+    }
+
+    function _runCommand(cmd) {
+        dispatchProc.running = false;
+        dispatchProc.command = ["hyprctl", "dispatch", "hl.dsp.exec_cmd(\"" + cmd.replace(/"/g, '\\"') + "\")"];
+        dispatchProc.running = true;
     }
 
     // ── Preview Functions ──────────────────────────────
@@ -76,42 +87,34 @@ Singleton {
     // ── Post-Capture Actions ───────────────────────────
     function openLastScreenshot() {
         if (!lastScreenshotPath) return;
-        captureProc.running = false;
-        captureProc.command = ["sh", "-c",
+        _runCommand(
             "spectacle -E '" + lastScreenshotPath + "' 2>/dev/null || " +
             "gwenview '" + lastScreenshotPath + "' 2>/dev/null || " +
             "xdg-open '" + lastScreenshotPath + "'"
-        ];
-        captureProc.running = true;
+        );
         dismissPreview();
     }
 
     function openScreenshotsFolder() {
         if (!lastScreenshotPath) return;
-        captureProc.running = false;
-        captureProc.command = ["sh", "-c",
+        _runCommand(
             "dolphin --select '" + lastScreenshotPath + "' 2>/dev/null || " +
             "xdg-open /home/aran/Pictures/Screenshots"
-        ];
-        captureProc.running = true;
+        );
         dismissPreview();
     }
 
     function copyLastToClipboard() {
         if (!lastScreenshotPath) return;
-        captureProc.running = false;
-        captureProc.command = ["sh", "-c", "wl-copy --type image/png < '" + lastScreenshotPath + "'"];
-        captureProc.running = true;
+        _runCommand("wl-copy --type image/png < '" + lastScreenshotPath + "'");
     }
 
     function deleteLastScreenshot() {
         if (!lastScreenshotPath) return;
-        captureProc.running = false;
-        captureProc.command = ["sh", "-c",
+        _runCommand(
             "gio trash '" + lastScreenshotPath + "' 2>/dev/null || " +
             "rm -f '" + lastScreenshotPath + "'"
-        ];
-        captureProc.running = true;
+        );
         dismissPreview();
     }
 
@@ -141,13 +144,8 @@ Singleton {
 
     // ── Internal: Execute Capture ──────────────────────
     function _runCapture(mode, delaySecs) {
-        captureProc.running = false;
-        captureProc.command = [
-            "/home/aran/.config/quickshell/scripts/screenshot.sh",
-            mode,
-            delaySecs.toString()
-        ];
-        captureProc.running = true;
+        const cmd = "/home/aran/.config/quickshell/scripts/screenshot.sh " + mode + " " + delaySecs;
+        _runCommand(cmd);
     }
 
     // ── CLI / Keybinding IPC Interface ─────────────────

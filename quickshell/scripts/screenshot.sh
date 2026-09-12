@@ -92,6 +92,7 @@ case "$MODE" in
         ;;
 
     region)
+        pkill -9 -x slurp 2>/dev/null || true
         # Interactive region selection
         GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 2>/dev/null) || exit 0
         [ -z "$GEOM" ] && exit 0
