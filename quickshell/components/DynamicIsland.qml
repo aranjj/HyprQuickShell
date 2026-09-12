@@ -289,7 +289,7 @@ Scope {
                     width: {
                         if (root.islandMode === "notification") return 410;
                         if (root.islandMode === "mediaExpanded") return 410;
-                        if (root.islandMode === "osd") return 240;
+                        if (root.islandMode === "osd") return 340;
                         if (root.islandMode === "mediaCompact") return Math.max(200, Math.min(350, compactContent.implicitWidth + 24));
                         return 0;
                     }
@@ -297,7 +297,7 @@ Scope {
                     height: {
                         if (root.islandMode === "notification") return 74;
                         if (root.islandMode === "mediaExpanded") return 190;
-                        if (root.islandMode === "osd") return 28;
+                        if (root.islandMode === "osd") return 50;
                         if (root.islandMode === "mediaCompact") return 28;
                         return 0;
                     }
@@ -305,7 +305,7 @@ Scope {
                     radius: {
                         if (root.islandMode === "notification") return 24;
                         if (root.islandMode === "mediaExpanded") return 24;
-                        if (root.islandMode === "osd") return 14;
+                        if (root.islandMode === "osd") return 22;
                         if (root.islandMode === "mediaCompact") return 14;
                         return 0;
                     }
@@ -1121,67 +1121,110 @@ Scope {
                     anchors.fill: parent
                     visible: root.islandMode === "osd" || opacity > 0.0
                     opacity: root.islandMode === "osd" ? 1.0 : 0.0
+                    scale: root.islandMode === "osd" ? 1.0 : 0.96
                     Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 12
-                        anchors.rightMargin: 12
-                        spacing: 8
+                        anchors.rightMargin: 16
+                        spacing: 12
 
-                        // Hardware Icon
-                        Text {
-                            text: Services.OsdService.icon
-                            color: Services.OsdService.iconColor
-                            font.pixelSize: 13
-                            font.family: root.font
+                        // Circular Hardware Badge (32x32 circle)
+                        Rectangle {
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: Qt.rgba(1, 1, 1, 0.08)
+                            border.color: Qt.rgba(1, 1, 1, 0.14)
+                            border.width: 1
                             Layout.alignment: Qt.AlignVCenter
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: Services.OsdService.icon
+                                color: Services.OsdService.iconColor
+                                font.pixelSize: 15
+                                font.family: root.font
+                            }
                         }
 
+                        // Middle Content Area
                         // Case A: Progress bar exists (Volume, Brightness, Battery level)
-                        Rectangle {
-                            visible: Services.OsdService.progress >= 0
+                        ColumnLayout {
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
-                            height: 6
-                            radius: 3
-                            color: Qt.rgba(1, 1, 1, 0.18)
-                            clip: true
+                            spacing: 4
+                            visible: Services.OsdService.progress >= 0
 
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                Text {
+                                    text: Services.OsdService.title
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    font.family: root.font
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Text {
+                                    text: Services.OsdService.valueText
+                                    color: "#ffffff"
+                                    font.pixelSize: 11
+                                    font.weight: Font.DemiBold
+                                    font.family: root.font
+                                }
+                            }
+
+                            // Capsule Slider Bar
                             Rectangle {
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
+                                Layout.fillWidth: true
+                                height: 6
                                 radius: 3
-                                color: Services.OsdService.barColor
-                                width: Services.OsdService.progress >= 0 ? parent.width * Math.max(0, Math.min(1.0, Services.OsdService.progress)) : 0
+                                color: Qt.rgba(1, 1, 1, 0.16)
+                                clip: true
 
-                                Behavior on width {
-                                    NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    radius: 3
+                                    color: Services.OsdService.barColor
+                                    width: Services.OsdService.progress >= 0 ? parent.width * Math.max(0, Math.min(1.0, Services.OsdService.progress)) : 0
+
+                                    Behavior on width {
+                                        NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
+                                    }
                                 }
                             }
                         }
 
                         // Case B: No progress bar (Power Profile, etc.)
-                        Text {
-                            visible: Services.OsdService.progress < 0
+                        ColumnLayout {
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
-                            text: Services.OsdService.title
-                            color: root.theme.textMuted
-                            font.pixelSize: 11
-                            font.family: root.font
-                            elide: Text.ElideRight
-                        }
+                            spacing: 2
+                            visible: Services.OsdService.progress < 0
 
-                        // Numeric percentage or mode text
-                        Text {
-                            text: Services.OsdService.valueText
-                            color: "#ffffff"
-                            font.pixelSize: 11
-                            font.weight: Font.DemiBold
-                            font.family: root.font
-                            Layout.alignment: Qt.AlignVCenter
+                            Text {
+                                text: Services.OsdService.title
+                                color: root.theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                                font.family: root.font
+                            }
+
+                            Text {
+                                text: Services.OsdService.valueText
+                                color: "#ffffff"
+                                font.pixelSize: 12
+                                font.weight: Font.Bold
+                                font.family: root.font
+                            }
                         }
                     }
                 }
