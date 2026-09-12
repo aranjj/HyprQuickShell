@@ -30,13 +30,15 @@ Singleton {
             powerMenuOpen = false;
             if (targetTab === "controls") {
                 if (targetSub === "wifi") rescanWifi();
-                else if (targetSub === "bluetooth") rescanBluetooth();
-                else if (targetSub === "audio") {
+                else if (targetSub === "bluetooth") {
+                    refreshBluetooth();
+                    startBluetoothScan();
+                } else if (targetSub === "audio") {
                     rescanAudioSinks();
                     rescanAudioSources();
                 } else {
                     rescanWifi();
-                    rescanBluetooth();
+                    refreshBluetooth();
                     rescanAudioSinks();
                     rescanAudioSources();
                 }
@@ -630,64 +632,107 @@ Singleton {
 
     // ── Bluetooth ───────────────────────────────────
     property bool bluetoothEnabled: false
+    property bool bluetoothDiscovering: false
+    property bool bluetoothDiscoverable: false
+    property string bluetoothAdapterName: "Bluetooth"
     property var bluetoothDevices: []
+    property var bluetoothAvailableDevices: []
 
     Process {
         id: btStatusProc
-        command: ["sh", "-c", "bluetoothctl show 2>/dev/null | grep 'Powered:' | awk '{print $2}'"]
+        command: ["/home/aran/.config/quickshell/scripts/bluetooth.sh", "status"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
-                root.bluetoothEnabled = text.trim() === "yes";
+                try {
+                    const data = JSON.parse(text.trim());
+                    root.bluetoothEnabled = !!data.enabled;
+                    root.bluetoothDiscovering = !!data.discovering;
+                    root.bluetoothDiscoverable = !!data.discoverable;
+                    if (data.name) root.bluetoothAdapterName = data.name;
+                    root.bluetoothDevices = data.paired || [];
+                    root.bluetoothAvailableDevices = data.available || [];
+                } catch(e) {}
             }
         }
     }
 
     Process {
-        id: btDevicesProc
-        command: ["sh", "-c", "bluetoothctl devices 2>/dev/null | while read -r _ mac name; do connected=$(bluetoothctl info \"$mac\" 2>/dev/null | grep 'Connected:' | awk '{print $2}'); echo \"$mac|$name|$connected\"; done"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = text.trim().split("\n");
-                const list = [];
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    const parts = line.split("|");
-                    if (parts.length >= 2 && parts[0]) {
-                        list.push({
-                            mac: parts[0],
-                            name: parts[1] || parts[0],
-                            connected: parts[2] === "yes"
-                        });
-                    }
-                }
-                root.bluetoothDevices = list;
-            }
-        }
+        id: btActionProc
+        command: ["sh", "-c", ""]
+    }
+
+    Timer {
+        id: btRefreshTimer
+        interval: 350
+        repeat: false
+        onTriggered: btStatusProc.running = true
+    }
+
+    // Faster polling when bluetooth view is open & scanning
+    Timer {
+        id: btScanPollTimer
+        interval: 1800
+        running: root.controlCenterOpen && root.controlCenterSubView === "bluetooth" && root.bluetoothDiscovering
+        repeat: true
+        onTriggered: btStatusProc.running = true
+    }
+
+    function runBtAction(action, arg) {
+        let cmd = "/home/aran/.config/quickshell/scripts/bluetooth.sh " + action;
+        if (arg) cmd += " '" + arg + "'";
+        btActionProc.command = ["sh", "-c", "(" + cmd + ") &"];
+        btActionProc.running = true;
+        btRefreshTimer.start();
     }
 
     function toggleBluetooth() {
         const next = !bluetoothEnabled;
-        runCmd("bluetoothctl power " + (next ? "on" : "off"));
         bluetoothEnabled = next;
-        btStatusProc.running = true;
+        runBtAction(next ? "on" : "off");
     }
 
     function rescanBluetooth() {
+        runBtAction("scan-toggle");
+    }
+
+    function refreshBluetooth() {
         btStatusProc.running = true;
-        btDevicesProc.running = true;
+    }
+
+    function startBluetoothScan() {
+        runBtAction("scan-start");
+    }
+
+    function stopBluetoothScan() {
+        runBtAction("scan-stop");
+    }
+
+    function toggleBluetoothDiscoverable() {
+        bluetoothDiscoverable = !bluetoothDiscoverable;
+        runBtAction("discoverable-toggle");
     }
 
     function connectBluetooth(mac) {
-        runCmd("bluetoothctl connect " + mac);
-        btDevicesProc.running = true;
+        runBtAction("connect", mac);
     }
 
     function disconnectBluetooth(mac) {
-        runCmd("bluetoothctl disconnect " + mac);
-        btDevicesProc.running = true;
+        runBtAction("disconnect", mac);
+    }
+
+    function pairBluetooth(mac) {
+        runBtAction("pair", mac);
+    }
+
+    function removeBluetooth(mac) {
+        runBtAction("remove", mac);
+    }
+
+    onControlCenterOpenChanged: {
+        if (!controlCenterOpen && bluetoothDiscovering) {
+            stopBluetoothScan();
+        }
     }
 
     // ── Main Polling Loop ───────────────────────────
@@ -707,7 +752,6 @@ Singleton {
             btStatusProc.running = true;
             if (controlCenterOpen) {
                 wifiScanProc.running = true;
-                btDevicesProc.running = true;
             }
         }
     }

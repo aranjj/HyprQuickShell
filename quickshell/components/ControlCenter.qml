@@ -29,6 +29,10 @@ Scope {
             Services.SystemService.openControlCenter("controls", "main");
         }
 
+        function openSub(sub: string): void {
+            Services.SystemService.openControlCenter("controls", sub || "main");
+        }
+
         function close(): void {
             Services.SystemService.controlCenterOpen = false;
         }
@@ -100,6 +104,22 @@ Scope {
         if (!root.activePlayer) return;
         const cur = root.activePlayer.position ?? 0;
         seekTo(cur + deltaSecs);
+    }
+
+    function getBtIcon(iconType) {
+        if (!iconType) return "󰂯";
+        switch (iconType) {
+            case "headphones": return "󰋋";
+            case "speaker": return "󰓃";
+            case "mouse": return "󰍽";
+            case "keyboard": return "󰌌";
+            case "controller": return "󰊴";
+            case "phone": return "󰏲";
+            case "laptop": return "󰌢";
+            case "tv": return "󰍹";
+            case "watch": return "󰱱";
+            default: return "󰂯";
+        }
     }
 
     property bool isUserScrubbing: false
@@ -516,7 +536,14 @@ Scope {
                                                     elide: Text.ElideRight
                                                 }
                                                 Text {
-                                                    text: Services.SystemService.bluetoothEnabled ? (Services.SystemService.bluetoothDevices.length > 0 ? (Services.SystemService.bluetoothDevices[0].name || "Connected") : "On") : "Off"
+                                                    text: {
+                                                        if (!Services.SystemService.bluetoothEnabled) return "Off";
+                                                        const devs = Services.SystemService.bluetoothDevices || [];
+                                                        for (let i = 0; i < devs.length; i++) {
+                                                            if (devs[i].connected) return devs[i].name || "Connected";
+                                                        }
+                                                        return "On";
+                                                    }
                                                     color: root.theme.textMuted
                                                     font.pixelSize: 9
                                                     font.family: root.font
@@ -539,7 +566,7 @@ Scope {
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                Services.SystemService.rescanBluetooth();
+                                                Services.SystemService.startBluetoothScan();
                                                 Services.SystemService.controlCenterSubView = "bluetooth";
                                             }
                                         }
@@ -1899,6 +1926,7 @@ Scope {
                 // VIEW 3: macOS STYLE BLUETOOTH DETAILS
                 // ═══════════════════════════════════════════
                 ColumnLayout {
+                    id: btDetailsView
                     visible: root.activeView === "bluetooth"
                     anchors.fill: parent
                     anchors.margins: 16
@@ -1907,6 +1935,7 @@ Scope {
                     // Back & Title Header
                     RowLayout {
                         Layout.fillWidth: true
+                        spacing: 10
 
                         Rectangle {
                             width: 30
@@ -1939,18 +1968,67 @@ Scope {
 
                         Item { Layout.fillWidth: true }
 
-                        // Rescan button
+                        // Discoverable pill toggle
+                        Rectangle {
+                            height: 26
+                            implicitWidth: discRow.implicitWidth + 16
+                            radius: 13
+                            visible: Services.SystemService.bluetoothEnabled
+                            color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22) : Qt.rgba(1, 1, 1, 0.07)
+                            border.color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.5) : Qt.rgba(1, 1, 1, 0.1)
+                            border.width: 1
+
+                            Row {
+                                id: discRow
+                                anchors.centerIn: parent
+                                spacing: 5
+                                Text {
+                                    text: Services.SystemService.bluetoothDiscoverable ? "󰂰" : "󰂲"
+                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : root.theme.textMuted
+                                    font.pixelSize: 11
+                                    font.family: root.font
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: Services.SystemService.bluetoothDiscoverable ? "Visible" : "Hidden"
+                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.textPrimary : root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.Medium
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Services.SystemService.toggleBluetoothDiscoverable()
+                            }
+                        }
+
+                        // Rescan button with spinning animation
                         Rectangle {
                             width: 28
                             height: 28
                             radius: 14
+                            visible: Services.SystemService.bluetoothEnabled
                             color: rescBM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
                             Text {
+                                id: scanIcon
                                 anchors.centerIn: parent
                                 text: "󰑐"
-                                color: root.theme.accent
+                                color: Services.SystemService.bluetoothDiscovering ? root.theme.accentGreen : root.theme.accent
                                 font.pixelSize: 13
                                 font.family: root.font
+                                transformOrigin: Item.Center
+
+                                NumberAnimation on rotation {
+                                    running: Services.SystemService.bluetoothDiscovering
+                                    loops: Animation.Infinite
+                                    from: 0
+                                    to: 360
+                                    duration: 900
+                                }
                             }
                             MouseArea {
                                 id: rescBM
@@ -1987,138 +2065,475 @@ Scope {
                         }
                     }
 
-                    Text {
-                        text: "Devices"
-                        color: root.theme.textMuted
-                        font.pixelSize: 11
-                        font.family: root.font
-                        font.weight: Font.Medium
-                        anchors.leftMargin: 4
+                    // ── OFF STATE PLACEHOLDER ─────────────────
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        visible: !Services.SystemService.bluetoothEnabled
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            spacing: 12
+
+                            Rectangle {
+                                Layout.alignment: Qt.AlignHCenter
+                                width: 56
+                                height: 56
+                                radius: 28
+                                color: Qt.rgba(1, 1, 1, 0.06)
+                                border.color: Qt.rgba(1, 1, 1, 0.1)
+                                border.width: 1
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰂲"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 26
+                                    font.family: root.font
+                                }
+                            }
+
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: "Bluetooth is Turned Off"
+                                color: root.theme.textPrimary
+                                font.pixelSize: 14
+                                font.family: root.font
+                                font.weight: Font.DemiBold
+                            }
+
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: "Turn on Bluetooth to connect accessories & headphones."
+                                color: root.theme.textMuted
+                                font.pixelSize: 11
+                                font.family: root.font
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            Rectangle {
+                                Layout.alignment: Qt.AlignHCenter
+                                width: 90
+                                height: 30
+                                radius: 15
+                                color: root.theme.accent
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Turn On"
+                                    color: "#ffffff"
+                                    font.pixelSize: 11
+                                    font.family: root.font
+                                    font.weight: Font.DemiBold
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Services.SystemService.toggleBluetooth()
+                                }
+                            }
+                        }
                     }
 
-                    // Device List
-                    ListView {
+                    // ── ON STATE: SCROLLABLE DEVICES LIST ─────
+                    Flickable {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        spacing: 6
-                        model: Services.SystemService.bluetoothDevices
+                        visible: Services.SystemService.bluetoothEnabled
+                        contentWidth: width
+                        contentHeight: btContentCol.implicitHeight
+                        boundsBehavior: Flickable.StopAtBounds
 
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: ListView.view.width
-                            height: 46
-                            radius: 10
-                            color: btItmM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                            border.color: Services.Aesthetic.innerCardBorder
-                            border.width: 1
-                            Behavior on color { ColorAnimation { duration: 100 } }
+                        ColumnLayout {
+                            id: btContentCol
+                            width: parent.width
+                            spacing: 12
 
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 10
-                                spacing: 8
+                            // ── MY DEVICES SECTION ────────────────
+                            Text {
+                                text: "MY DEVICES"
+                                color: root.theme.textMuted
+                                font.pixelSize: 10
+                                font.family: root.font
+                                font.weight: Font.DemiBold
+                                Layout.leftMargin: 2
+                            }
+
+                            // Empty Paired Placeholder
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 44
+                                radius: 10
+                                visible: Services.SystemService.bluetoothDevices.length === 0
+                                color: Qt.rgba(1, 1, 1, 0.03)
+                                border.color: Qt.rgba(1, 1, 1, 0.06)
+                                border.width: 1
 
                                 Text {
-                                    text: "󰂯"
-                                    color: modelData.connected ? root.theme.accentGreen : root.theme.accent
-                                    font.pixelSize: 16
+                                    anchors.centerIn: parent
+                                    text: "No paired devices"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 11
                                     font.family: root.font
                                 }
+                            }
 
-                                Column {
+                            // Paired Devices List
+                            Repeater {
+                                model: Services.SystemService.bluetoothDevices
+
+                                delegate: Rectangle {
+                                    required property var modelData
                                     Layout.fillWidth: true
-                                    Text {
-                                        text: modelData.name || modelData.mac
-                                        color: modelData.connected ? root.theme.accentGreen : root.theme.textPrimary
-                                        font.pixelSize: 12
-                                        font.family: root.font
-                                        font.weight: modelData.connected ? Font.DemiBold : Font.Normal
-                                        elide: Text.ElideRight
-                                        width: 180
+                                    implicitHeight: 52
+                                    radius: 10
+                                    color: pDevMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+                                    Behavior on color { ColorAnimation { duration: 100 } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 10
+                                        spacing: 10
+
+                                        // Icon Container
+                                        Rectangle {
+                                            width: 32
+                                            height: 32
+                                            radius: 8
+                                            color: modelData.connected ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: root.getBtIcon(modelData.icon)
+                                                color: modelData.connected ? root.theme.accentGreen : root.theme.accent
+                                                font.pixelSize: 15
+                                                font.family: root.font
+                                            }
+                                        }
+
+                                        // Name & Details
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+
+                                            Text {
+                                                text: modelData.name || modelData.mac
+                                                color: root.theme.textPrimary
+                                                font.pixelSize: 12
+                                                font.family: root.font
+                                                font.weight: modelData.connected ? Font.DemiBold : Font.Normal
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                            }
+
+                                            RowLayout {
+                                                spacing: 6
+
+                                                Text {
+                                                    text: modelData.connected ? "Connected" : "Paired"
+                                                    color: modelData.connected ? root.theme.accentGreen : root.theme.textMuted
+                                                    font.pixelSize: 10
+                                                    font.family: root.font
+                                                }
+
+                                                // Battery badge if available
+                                                Rectangle {
+                                                    visible: modelData.battery !== null && modelData.battery !== undefined
+                                                    height: 16
+                                                    implicitWidth: battTxt.implicitWidth + 8
+                                                    radius: 4
+                                                    color: Qt.rgba(1, 1, 1, 0.08)
+
+                                                    Text {
+                                                        id: battTxt
+                                                        anchors.centerIn: parent
+                                                        text: "󰁹 " + (modelData.battery || 0) + "%"
+                                                        color: root.theme.textPrimary
+                                                        font.pixelSize: 9
+                                                        font.family: root.font
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Connect / Disconnect button
+                                        Rectangle {
+                                            height: 26
+                                            implicitWidth: connTxt.implicitWidth + 16
+                                            radius: 7
+                                            color: modelData.connected ? Qt.rgba(1, 1, 1, 0.08) : root.theme.accent
+                                            border.color: modelData.connected ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                                            border.width: 1
+
+                                            Text {
+                                                id: connTxt
+                                                anchors.centerIn: parent
+                                                text: modelData.connected ? "Disconnect" : "Connect"
+                                                color: modelData.connected ? root.theme.textPrimary : "#ffffff"
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                                font.weight: Font.DemiBold
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    if (modelData.connected) Services.SystemService.disconnectBluetooth(modelData.mac);
+                                                    else Services.SystemService.connectBluetooth(modelData.mac);
+                                                }
+                                            }
+                                        }
+
+                                        // Forget / Remove Device button
+                                        Rectangle {
+                                            width: 26
+                                            height: 26
+                                            radius: 13
+                                            color: forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2) : Qt.rgba(1, 1, 1, 0.06)
+                                            border.color: forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.4) : Qt.rgba(1, 1, 1, 0.08)
+                                            border.width: 1
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰩹"
+                                                color: forgetMouse.containsMouse ? root.theme.accentRed : root.theme.textMuted
+                                                font.pixelSize: 12
+                                                font.family: root.font
+                                            }
+
+                                            MouseArea {
+                                                id: forgetMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: Services.SystemService.removeBluetooth(modelData.mac)
+                                            }
+                                        }
                                     }
+
+                                    MouseArea {
+                                        id: pDevMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        acceptedButtons: Qt.NoButton
+                                    }
+                                }
+                            }
+
+                            // ── NEARBY DEVICES SECTION ────────────
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.topMargin: 4
+
+                                Text {
+                                    text: "NEARBY DEVICES"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.DemiBold
+                                    Layout.leftMargin: 2
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                // Searching indicator or Scan button
+                                Row {
+                                    spacing: 4
+                                    visible: Services.SystemService.bluetoothDiscovering
+
                                     Text {
-                                        text: modelData.mac
-                                        color: root.theme.textMuted
+                                        text: "Searching..."
+                                        color: root.theme.accent
                                         font.pixelSize: 10
                                         font.family: root.font
                                     }
                                 }
 
-                                Rectangle {
-                                    width: 72
-                                    height: 24
-                                    radius: 6
-                                    color: modelData.connected ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.2) : Qt.rgba(1, 1, 1, 0.1)
+                                Text {
+                                    visible: !Services.SystemService.bluetoothDiscovering
+                                    text: "󰑐 Scan"
+                                    color: root.theme.accent
+                                    font.pixelSize: 10
+                                    font.family: root.font
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.connected ? "Connected" : "Connect"
-                                        color: modelData.connected ? root.theme.accentGreen : root.theme.accent
-                                        font.pixelSize: 10
-                                        font.family: root.font
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: Services.SystemService.startBluetoothScan()
                                     }
                                 }
                             }
 
-                            MouseArea {
-                                id: btItmM
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (modelData.connected) Services.SystemService.disconnectBluetooth(modelData.mac);
-                                    else Services.SystemService.connectBluetooth(modelData.mac);
+                            // Empty Available Placeholder
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 44
+                                radius: 10
+                                visible: Services.SystemService.bluetoothAvailableDevices.length === 0
+                                color: Qt.rgba(1, 1, 1, 0.03)
+                                border.color: Qt.rgba(1, 1, 1, 0.06)
+                                border.width: 1
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: Services.SystemService.bluetoothDiscovering ? "Searching for nearby devices..." : "No nearby devices found. Tap Scan to search."
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 11
+                                    font.family: root.font
                                 }
                             }
-                        }
 
-                        // Empty placeholder
-                        Text {
-                            anchors.centerIn: parent
-                            visible: Services.SystemService.bluetoothDevices.length === 0
-                            text: Services.SystemService.bluetoothEnabled ? "No paired devices found\nTurn on device pairing to connect" : "Bluetooth is turned off"
-                            color: root.theme.textMuted
-                            font.pixelSize: 12
-                            font.family: root.font
-                            horizontalAlignment: Text.AlignHCenter
+                            // Discovered Available Devices List
+                            Repeater {
+                                model: Services.SystemService.bluetoothAvailableDevices
+
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    implicitHeight: 48
+                                    radius: 10
+                                    color: aDevMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+                                    Behavior on color { ColorAnimation { duration: 100 } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 10
+                                        spacing: 10
+
+                                        Rectangle {
+                                            width: 28
+                                            height: 28
+                                            radius: 7
+                                            color: Qt.rgba(1, 1, 1, 0.08)
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: root.getBtIcon(modelData.icon)
+                                                color: root.theme.accent
+                                                font.pixelSize: 13
+                                                font.family: root.font
+                                            }
+                                        }
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 1
+
+                                            Text {
+                                                text: modelData.name || modelData.mac
+                                                color: root.theme.textPrimary
+                                                font.pixelSize: 12
+                                                font.family: root.font
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                            }
+
+                                            Text {
+                                                text: modelData.mac
+                                                color: root.theme.textMuted
+                                                font.pixelSize: 9
+                                                font.family: root.font
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            height: 26
+                                            implicitWidth: pairTxt.implicitWidth + 16
+                                            radius: 7
+                                            color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)
+                                            border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4)
+                                            border.width: 1
+
+                                            Text {
+                                                id: pairTxt
+                                                anchors.centerIn: parent
+                                                text: "Pair"
+                                                color: root.theme.accent
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                                font.weight: Font.DemiBold
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: Services.SystemService.pairBluetooth(modelData.mac)
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: aDevMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        acceptedButtons: Qt.NoButton
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    // Open Full Bluetooth Settings
+                    // ── NATIVE FOOTER: ADAPTER DISCOVERABILITY ─────────
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: 36
+                        implicitHeight: 38
                         radius: 10
-                        color: openBtSM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                        visible: Services.SystemService.bluetoothEnabled
+                        color: Qt.rgba(1, 1, 1, 0.04)
+                        border.color: Qt.rgba(1, 1, 1, 0.08)
+                        border.width: 1
 
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 6
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 8
+
                             Text {
-                                text: "󰂱"
-                                color: root.theme.accent
+                                text: Services.SystemService.bluetoothDiscoverable ? "󰂰" : "󰂲"
+                                color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : root.theme.textMuted
                                 font.pixelSize: 14
                                 font.family: root.font
-                                anchors.verticalCenter: parent.verticalCenter
                             }
-                            Text {
-                                text: "Bluetooth Settings..."
-                                color: root.theme.textPrimary
-                                font.pixelSize: 11
-                                font.family: root.font
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
 
-                        MouseArea {
-                            id: openBtSM
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                Services.SystemService.runCmd("systemsettings kcm_bluetooth || blueman-manager");
-                                Services.SystemService.controlCenterOpen = false;
+                            Text {
+                                Layout.fillWidth: true
+                                text: "Now discoverable as \"" + Services.SystemService.bluetoothAdapterName + "\""
+                                color: root.theme.textMuted
+                                font.pixelSize: 10
+                                font.family: root.font
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                height: 22
+                                implicitWidth: footerDiscTxt.implicitWidth + 12
+                                radius: 11
+                                color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2) : Qt.rgba(1, 1, 1, 0.08)
+                                border.color: Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4) : Qt.rgba(1, 1, 1, 0.1)
+                                border.width: 1
+
+                                Text {
+                                    id: footerDiscTxt
+                                    anchors.centerIn: parent
+                                    text: Services.SystemService.bluetoothDiscoverable ? "Visible" : "Hidden"
+                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : root.theme.textMuted
+                                    font.pixelSize: 9
+                                    font.family: root.font
+                                    font.weight: Font.Medium
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Services.SystemService.toggleBluetoothDiscoverable()
+                                }
                             }
                         }
                     }
