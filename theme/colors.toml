@@ -1,0 +1,80 @@
+# ═══════════════════════════════════════════════════════════════════
+# UNIFIED DESKTOP THEME SOURCE OF TRUTH (colors.toml)
+# Generated dynamically by Matugen from wallpaper
+# Consumed by: Quickshell, Hyprland, GTK 3/4, KDE/Qt, and Kitty
+# ═══════════════════════════════════════════════════════════════════
+
+[palette]
+primary = "#b3c5ff"
+on_primary = "#1a2e60"
+primary_container = "#324478"
+on_primary_container = "#dbe1ff"
+
+secondary = "#c1c6dd"
+on_secondary = "#2a3042"
+secondary_container = "#414659"
+on_secondary_container = "#dde1f9"
+
+tertiary = "#e2bbdc"
+on_tertiary = "#422741"
+tertiary_container = "#5a3d58"
+on_tertiary_container = "#ffd6f8"
+
+surface = "#121318"
+surface_dim = "#121318"
+surface_bright = "#38393f"
+surface_container = "#1e1f25"
+surface_container_low = "#1a1b21"
+surface_container_high = "#292a2f"
+surface_container_highest = "#33343a"
+
+on_surface = "#e3e2e9"
+on_surface_variant = "#c5c6d0"
+outline = "#8f909a"
+outline_variant = "#45464f"
+error = "#ffb4ab"
+on_error = "#690005"
+
+background = "#121318"
+on_background = "#e3e2e9"
+
+[rgb]
+primary = "179,197,255"
+on_primary = "26,46,96"
+secondary = "193,198,221"
+tertiary = "226,187,220"
+surface = "18,19,24"
+surface_container = "30,31,37"
+surface_container_high = "41,42,47"
+on_surface = "227,226,233"
+on_surface_variant = "197,198,208"
+outline = "143,144,154"
+error = "255,180,171"
+
+[semantics]
+accent = "#b3c5ff"
+accent_secondary = "#c1c6dd"
+accent_tertiary = "#e2bbdc"
+accent_mauve = "#e2bbdc"
+accent_green = "#30d158"
+accent_orange = "#ff9f0a"
+accent_red = "#ffb4ab"
+accent_yellow = "#ffd60a"
+accent_pink = "#ff375f"
+
+bar_bg = "#121318"
+pill_bg = "#292a2f"
+pill_hover = "#b3c5ff"
+pill_active = "#b3c5ff"
+
+text_primary = "#e3e2e9"
+text_secondary = "#c5c6d0"
+text_muted = "#8f909a"
+
+ws_active = "#b3c5ff"
+ws_occupied = "#c5c6d0"
+ws_empty = "#45464f"
+
+batt_good = "#30d158"
+batt_warn = "#ff9f0a"
+batt_critical = "#ffb4ab"

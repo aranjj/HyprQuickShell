@@ -1,0 +1,80 @@
+# ═══════════════════════════════════════════════════════════════════
+# UNIFIED DESKTOP THEME SOURCE OF TRUTH (colors.toml)
+# Generated dynamically by Matugen from wallpaper
+# Consumed by: Quickshell, Hyprland, GTK 3/4, KDE/Qt, and Kitty
+# ═══════════════════════════════════════════════════════════════════
+
+[palette]
+primary = "{{colors.primary.default.hex}}"
+on_primary = "{{colors.on_primary.default.hex}}"
+primary_container = "{{colors.primary_container.default.hex}}"
+on_primary_container = "{{colors.on_primary_container.default.hex}}"
+
+secondary = "{{colors.secondary.default.hex}}"
+on_secondary = "{{colors.on_secondary.default.hex}}"
+secondary_container = "{{colors.secondary_container.default.hex}}"
+on_secondary_container = "{{colors.on_secondary_container.default.hex}}"
+
+tertiary = "{{colors.tertiary.default.hex}}"
+on_tertiary = "{{colors.on_tertiary.default.hex}}"
+tertiary_container = "{{colors.tertiary_container.default.hex}}"
+on_tertiary_container = "{{colors.on_tertiary_container.default.hex}}"
+
+surface = "{{colors.surface.default.hex}}"
+surface_dim = "{{colors.surface_dim.default.hex}}"
+surface_bright = "{{colors.surface_bright.default.hex}}"
+surface_container = "{{colors.surface_container.default.hex}}"
+surface_container_low = "{{colors.surface_container_low.default.hex}}"
+surface_container_high = "{{colors.surface_container_high.default.hex}}"
+surface_container_highest = "{{colors.surface_container_highest.default.hex}}"
+
+on_surface = "{{colors.on_surface.default.hex}}"
+on_surface_variant = "{{colors.on_surface_variant.default.hex}}"
+outline = "{{colors.outline.default.hex}}"
+outline_variant = "{{colors.outline_variant.default.hex}}"
+error = "{{colors.error.default.hex}}"
+on_error = "{{colors.on_error.default.hex}}"
+
+background = "{{colors.background.default.hex}}"
+on_background = "{{colors.on_background.default.hex}}"
+
+[rgb]
+primary = "{{colors.primary.default.red}},{{colors.primary.default.green}},{{colors.primary.default.blue}}"
+on_primary = "{{colors.on_primary.default.red}},{{colors.on_primary.default.green}},{{colors.on_primary.default.blue}}"
+secondary = "{{colors.secondary.default.red}},{{colors.secondary.default.green}},{{colors.secondary.default.blue}}"
+tertiary = "{{colors.tertiary.default.red}},{{colors.tertiary.default.green}},{{colors.tertiary.default.blue}}"
+surface = "{{colors.surface.default.red}},{{colors.surface.default.green}},{{colors.surface.default.blue}}"
+surface_container = "{{colors.surface_container.default.red}},{{colors.surface_container.default.green}},{{colors.surface_container.default.blue}}"
+surface_container_high = "{{colors.surface_container_high.default.red}},{{colors.surface_container_high.default.green}},{{colors.surface_container_high.default.blue}}"
+on_surface = "{{colors.on_surface.default.red}},{{colors.on_surface.default.green}},{{colors.on_surface.default.blue}}"
+on_surface_variant = "{{colors.on_surface_variant.default.red}},{{colors.on_surface_variant.default.green}},{{colors.on_surface_variant.default.blue}}"
+outline = "{{colors.outline.default.red}},{{colors.outline.default.green}},{{colors.outline.default.blue}}"
+error = "{{colors.error.default.red}},{{colors.error.default.green}},{{colors.error.default.blue}}"
+
+[semantics]
+accent = "{{colors.primary.default.hex}}"
+accent_secondary = "{{colors.secondary.default.hex}}"
+accent_tertiary = "{{colors.tertiary.default.hex}}"
+accent_mauve = "{{colors.tertiary.default.hex}}"
+accent_green = "#30d158"
+accent_orange = "#ff9f0a"
+accent_red = "{{colors.error.default.hex}}"
+accent_yellow = "#ffd60a"
+accent_pink = "#ff375f"
+
+bar_bg = "{{colors.surface.default.hex}}"
+pill_bg = "{{colors.surface_container_high.default.hex}}"
+pill_hover = "{{colors.primary.default.hex}}"
+pill_active = "{{colors.primary.default.hex}}"
+
+text_primary = "{{colors.on_surface.default.hex}}"
+text_secondary = "{{colors.on_surface_variant.default.hex}}"
+text_muted = "{{colors.outline.default.hex}}"
+
+ws_active = "{{colors.primary.default.hex}}"
+ws_occupied = "{{colors.on_surface_variant.default.hex}}"
+ws_empty = "{{colors.outline_variant.default.hex}}"
+
+batt_good = "#30d158"
+batt_warn = "#ff9f0a"
+batt_critical = "{{colors.error.default.hex}}"

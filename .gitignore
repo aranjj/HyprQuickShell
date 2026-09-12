@@ -1,0 +1,14 @@
+# Reference repositories
+quickshell-reference/
+*.reference
+
+# Runtime & dynamic state
+*.log
+*.tmp
+*~
+.DS_Store
+
+# Editor artifacts
+.vscode/
+.idea/
+*.swp

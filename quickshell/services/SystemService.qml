@@ -1,0 +1,714 @@
+pragma Singleton
+
+import Quickshell
+import Quickshell.Io
+import Quickshell.Services.Pipewire
+import QtQuick
+
+Singleton {
+    id: root
+
+    // ── User Directory Helper ───────────────────────
+    readonly property string homeDir: "/home/aran"
+
+    // ── Popup States ────────────────────────────────
+    property bool controlCenterOpen: false
+    property bool powerMenuOpen: false
+
+    property string controlCenterTab: "controls"
+    property string controlCenterSubView: "main"
+
+    function openControlCenter(tab, subview) {
+        const targetTab = tab || "controls";
+        const targetSub = subview || "main";
+        if (controlCenterOpen && controlCenterTab === targetTab && controlCenterSubView === targetSub) {
+            controlCenterOpen = false;
+        } else {
+            controlCenterTab = targetTab;
+            controlCenterSubView = targetSub;
+            controlCenterOpen = true;
+            powerMenuOpen = false;
+            if (targetTab === "controls") {
+                if (targetSub === "wifi") rescanWifi();
+                else if (targetSub === "bluetooth") rescanBluetooth();
+                else if (targetSub === "audio") {
+                    rescanAudioSinks();
+                    rescanAudioSources();
+                } else {
+                    rescanWifi();
+                    rescanBluetooth();
+                    rescanAudioSinks();
+                    rescanAudioSources();
+                }
+            }
+        }
+    }
+
+    function toggleControlCenter() {
+        openControlCenter("controls", "main");
+    }
+
+    function togglePowerMenu() {
+        powerMenuOpen = !powerMenuOpen;
+        if (powerMenuOpen) controlCenterOpen = false;
+    }
+
+    property bool aboutDialogOpen: false
+    property bool caffeineActive: false
+    property bool isIdleOrLocked: false
+
+    function toggleCaffeine() {
+        caffeineActive = !caffeineActive;
+    }
+
+    function closeAllPopups() {
+        controlCenterOpen = false;
+        powerMenuOpen = false;
+        aboutDialogOpen = false;
+    }
+
+    // ── Command Runners ─────────────────────────────
+    Process {
+        id: execProc
+        command: ["sh", "-c", ""]
+    }
+
+    function runCmd(cmd) {
+        execProc.command = ["sh", "-c", "cd " + homeDir + " && (" + cmd + ")"];
+        execProc.running = true;
+    }
+
+    // Open terminal always in ~/
+    function openTerminal() {
+        runCmd("kitty --directory " + homeDir + " || alacritty --working-directory " + homeDir + " || konsole --workdir " + homeDir);
+    }
+
+    // Open btop always in ~/
+    function openBtop() {
+        runCmd("kitty --directory " + homeDir + " -e btop || alacritty --working-directory " + homeDir + " -e btop || konsole --workdir " + homeDir + " -e btop");
+    }
+
+    // Open file manager in ~/
+    function openFileManager() {
+        runCmd("dolphin " + homeDir);
+    }
+
+    // Lock screen (same behavior as Super + L)
+    function lockScreen() {
+        closeAllPopups();
+        runCmd("quickshell ipc call lock lock || loginctl lock-session || hyprlock");
+    }
+
+    // ── Distro & Hardware Specs (Auto-detected) ─────
+    property string distroId: "cachyos"
+    property string distroName: "CachyOS Linux"
+    property string distroPrettyName: "CachyOS"
+    property string distroIdLike: "arch"
+    property string distroGlyph: "󰣇"
+    property string hardwareModel: "HP Laptop"
+    property string cpuModel: "Intel Core"
+    property string ramTotal: "16 GB RAM"
+    property string gpuModel: "Intel Graphics"
+    property string kernel: "Linux"
+    property string kernelShort: ""
+    property string compositor: "Hyprland (wayland)"
+
+    function getDistroGlyph(id, idLike) {
+        const key = (id || "").toLowerCase().trim();
+        const like = (idLike || "").toLowerCase().trim();
+
+        const glyphs = {
+            "cachyos": "󰣇",
+            "arch": "",
+            "fedora": "",
+            "ubuntu": "",
+            "debian": "",
+            "linuxmint": "",
+            "mint": "",
+            "opensuse": "",
+            "opensuse-tumbleweed": "",
+            "opensuse-leap": "",
+            "suse": "",
+            "manjaro": "",
+            "nixos": "",
+            "gentoo": "",
+            "void": "",
+            "endeavouros": "",
+            "alpine": "",
+            "kali": "",
+            "pop": "",
+            "rhel": "",
+            "redhat": "",
+            "centos": "",
+            "almalinux": "",
+            "rocky": "",
+            "freebsd": ""
+        };
+
+        if (glyphs[key]) return glyphs[key];
+
+        if (like) {
+            const parts = like.split(/\s+/);
+            for (let i = 0; i < parts.length; i++) {
+                if (glyphs[parts[i]]) return glyphs[parts[i]];
+            }
+        }
+
+        return "";
+    }
+
+    Process {
+        id: sysInfoProc
+        command: ["sh", "-c", "if [ -f /etc/os-release ]; then . /etc/os-release; elif [ -f /usr/lib/os-release ]; then . /usr/lib/os-release; fi; d_id=\"${ID:-linux}\"; d_name=\"${NAME:-Linux}\"; d_pname=\"${PRETTY_NAME:-$d_name}\"; d_like=\"${ID_LIKE:-}\"; kernel=\"$(uname -srm)\"; kernel_short=\"$(uname -r)\"; model=\"$(cat /sys/class/dmi/id/product_name 2>/dev/null || cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || hostname)\"; [ -z \"$model\" ] || [ \"$model\" = \"System Product Name\" ] && model=\"PC / Laptop\"; cpu=\"$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | sed -e 's/^[ \\t]*//' -e 's/(R)//g' -e 's/(TM)//g' -e 's/@.*//')\"; [ -z \"$cpu\" ] && cpu=\"$(uname -m)\"; ram=\"$(awk '/MemTotal/ {printf \"%.0f GB RAM\", $2/1024/1024}' /proc/meminfo 2>/dev/null)\"; gpu=\"$(lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -n1 | sed -E -e 's/.*: //' -e 's/\\(rev .*\\)//' -e 's/Corporation //' -e 's/Integrated Graphics Controller //' | xargs)\"; [ -z \"$gpu\" ] && gpu=\"Integrated Graphics\"; comp=\"${XDG_CURRENT_DESKTOP:-Wayland} (${XDG_SESSION_TYPE:-wayland})\"; printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s' \"$d_id\" \"$d_name\" \"$d_pname\" \"$d_like\" \"$kernel\" \"$kernel_short\" \"$model\" \"$cpu\" \"$ram\" \"$gpu\" \"$comp\""]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (!text || text.trim().length === 0) return;
+                const parts = text.trim().split("\t");
+                if (parts.length >= 11) {
+                    root.distroId = parts[0] || "linux";
+                    root.distroName = parts[1] || "Linux";
+                    root.distroPrettyName = parts[2] || root.distroName;
+                    root.distroIdLike = parts[3] || "";
+                    root.kernel = parts[4] || "Linux";
+                    root.kernelShort = parts[5] || "";
+                    root.hardwareModel = parts[6] || "PC / Laptop";
+                    root.cpuModel = parts[7] || "Unknown CPU";
+                    root.ramTotal = parts[8] || "Unknown RAM";
+                    root.gpuModel = parts[9] || "Graphics";
+                    root.compositor = parts[10] || "Wayland";
+                    root.distroGlyph = root.getDistroGlyph(root.distroId, root.distroIdLike);
+                }
+            }
+        }
+    }
+
+    // ── CPU ─────────────────────────────────────────
+    property string cpuUsage: "0%"
+    property real cpuUsageNum: 0
+    Process {
+        id: cpuProc
+        command: ["sh", "-c", "top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{printf \"%.0f\", 100 - $1}'"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const val = parseInt(text.trim()) || 0;
+                root.cpuUsageNum = val;
+                root.cpuUsage = val + "%";
+            }
+        }
+    }
+
+    // ── Memory ──────────────────────────────────────
+    property string memUsage: "0%"
+    property real memUsageNum: 0
+    property string memDetail: ""
+    Process {
+        id: memProc
+        command: ["sh", "-c", "free -m | awk 'NR==2{printf \"%.0f %.1f/%.1fGB\", ($3/$2)*100, $3/1024, $2/1024}'"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const parts = text.trim().split(" ");
+                root.memUsageNum = parseInt(parts[0]) || 0;
+                root.memUsage = root.memUsageNum + "%";
+                root.memDetail = parts[1] || "";
+            }
+        }
+    }
+
+    // ── Temperature ─────────────────────────────────
+    property int cpuTemp: 45
+    Process {
+        id: tempProc
+        command: ["sh", "-c", "for h in /sys/class/hwmon/hwmon*; do if [ -f \"$h/name\" ] && grep -qE 'coretemp|k10temp|cpu' \"$h/name\"; then [ -f \"$h/temp1_input\" ] && awk '{printf \"%.0f\", $1/1000}' \"$h/temp1_input\" && exit 0; fi; done; [ -f /sys/class/thermal/thermal_zone0/temp ] && awk '{printf \"%.0f\", $1/1000}' /sys/class/thermal/thermal_zone0/temp || echo 45"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const val = parseInt(text.trim()) || 45;
+                root.cpuTemp = val;
+            }
+        }
+    }
+
+    // ── Battery & AC Power ──────────────────────────
+    property int batteryLevel: 100
+    property string batteryIcon: "󰁹"
+    property bool batteryCharging: false
+    property bool batteryPlugged: false
+    property string batteryStatusText: "Full"
+
+    Process {
+        id: battProc
+        command: ["sh", "-c", "printf '%s|%s|%s' \"$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null || echo '100')\" \"$(cat /sys/class/power_supply/BAT*/status 2>/dev/null || echo 'Full')\" \"$(cat /sys/class/power_supply/AD*/online 2>/dev/null || cat /sys/class/power_supply/AC*/online 2>/dev/null || echo '0')\""]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const parts = text.trim().split("|");
+                const level = parseInt(parts[0]) || 100;
+                const status = (parts[1] || "Full").trim();
+                const acOnline = parseInt(parts[2]) === 1;
+
+                root.batteryLevel = level;
+                root.batteryCharging = status === "Charging";
+                root.batteryPlugged = acOnline || status === "Charging" || (status === "Full" && level >= 95);
+
+                if (root.batteryCharging) {
+                    root.batteryStatusText = "Charging (" + level + "%)";
+                    root.batteryIcon = "󰂄";
+                } else if (root.batteryPlugged) {
+                    root.batteryStatusText = "Plugged In (" + level + "%)";
+                    root.batteryIcon = "󰚥";
+                } else {
+                    root.batteryStatusText = "Discharging (" + level + "%)";
+                    if (level >= 90) root.batteryIcon = "󰁹";
+                    else if (level >= 70) root.batteryIcon = "󰂁";
+                    else if (level >= 50) root.batteryIcon = "󰁿";
+                    else if (level >= 30) root.batteryIcon = "󰁽";
+                    else if (level >= 10) root.batteryIcon = "󰁻";
+                    else root.batteryIcon = "󰂎";
+                }
+            }
+        }
+    }
+
+    // ── Power Profiles ──────────────────────────────
+    property string powerProfile: "balanced"
+    Process {
+        id: profileProc
+        command: ["powerprofilesctl", "get"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const p = text.trim();
+                if (p) root.powerProfile = p;
+            }
+        }
+    }
+
+    function setPowerProfile(profile) {
+        runCmd("powerprofilesctl set " + profile);
+        powerProfile = profile;
+        profileProc.running = true;
+        OsdService.showPowerProfile(profile);
+    }
+
+    property bool _sysReady: false
+    Timer {
+        interval: 3000
+        running: true
+        onTriggered: root._sysReady = true
+    }
+
+    onBatteryPluggedChanged: {
+        if (_sysReady) {
+            OsdService.showPowerSupply(batteryPlugged, batteryLevel);
+        }
+    }
+
+    // ── Audio Volume ────────────────────────────────
+    property int volume: 50
+    property bool volumeMuted: false
+
+    PwObjectTracker {
+        objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource]
+    }
+
+    Connections {
+        target: Pipewire.defaultAudioSink?.audio ?? null
+
+        function onVolumeChanged() {
+            if (Pipewire.defaultAudioSink?.audio) {
+                root.volume = Math.round(Pipewire.defaultAudioSink.audio.volume * 100);
+                root.volumeMuted = Pipewire.defaultAudioSink.audio.muted;
+            }
+        }
+
+        function onMutedChanged() {
+            if (Pipewire.defaultAudioSink?.audio) {
+                root.volume = Math.round(Pipewire.defaultAudioSink.audio.volume * 100);
+                root.volumeMuted = Pipewire.defaultAudioSink.audio.muted;
+            }
+        }
+    }
+
+    Connections {
+        target: Pipewire.defaultAudioSource?.audio ?? null
+
+        function onVolumeChanged() {
+            if (Pipewire.defaultAudioSource?.audio) {
+                root.micVolume = Math.round(Pipewire.defaultAudioSource.audio.volume * 100);
+                root.micMuted = Pipewire.defaultAudioSource.audio.muted;
+            }
+        }
+
+        function onMutedChanged() {
+            if (Pipewire.defaultAudioSource?.audio) {
+                root.micVolume = Math.round(Pipewire.defaultAudioSource.audio.volume * 100);
+                root.micMuted = Pipewire.defaultAudioSource.audio.muted;
+            }
+        }
+    }
+
+    Connections {
+        target: OsdService
+
+        function onVolumeUpdated(vol, muted) {
+            root.volume = vol;
+            root.volumeMuted = muted;
+        }
+
+        function onBrightnessUpdated(pct) {
+            root.brightness = pct;
+        }
+    }
+
+    Process {
+        id: volProc
+        command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{printf \"%.0f\\n\", $2*100; if ($3==\"[MUTED]\") print \"muted\"; else print \"unmuted\"}'"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split("\n");
+                root.volume = parseInt(lines[0]) || 0;
+                root.volumeMuted = lines[1] === "muted";
+            }
+        }
+    }
+
+    function adjustVolume(delta) {
+        root.volume = Math.max(0, Math.min(150, root.volume + delta));
+        root.volumeMuted = false;
+        const sign = delta > 0 ? "+" : "-";
+        const abs = Math.abs(delta);
+        runCmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ " + abs + "%" + sign + "; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0");
+        volProc.running = true;
+    }
+
+    function setVolumePercent(pct) {
+        root.volume = Math.max(0, Math.min(150, Math.round(pct)));
+        root.volumeMuted = false;
+        const frac = Math.max(0, Math.min(1.5, pct / 100)).toFixed(2);
+        runCmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ " + frac + "; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0");
+        volProc.running = true;
+    }
+
+    function toggleMute() {
+        root.volumeMuted = !root.volumeMuted;
+        runCmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle");
+        volProc.running = true;
+    }
+    // ── Audio Sinks (Outputs) Discovery ──────────
+    property var audioSinks: []
+
+    Process {
+        id: sinksProc
+        command: ["python3", "-c", "import subprocess, re, json\nout = subprocess.check_output(['wpctl', 'status'], text=True)\nsinks_section = False\nsinks = []\nfor line in out.splitlines():\n    if 'Sinks:' in line:\n        sinks_section = True\n        continue\n    if sinks_section:\n        if 'Sources:' in line or 'Filters:' in line or 'Streams:' in line or not line.strip():\n            if sinks: break\n        m = re.search(r'([* ])\\s+(\\d+)\\.\\s+(.*?)(?:\\s+\\[vol:.*\\])?$', line)\n        if m:\n            sinks.append({'id': m.group(2), 'name': m.group(3).strip(), 'active': m.group(1) == '*'})\nprint(json.dumps(sinks))\n"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const parsed = JSON.parse(text.trim() || "[]");
+                    root.audioSinks = parsed;
+                } catch(e) {}
+            }
+        }
+    }
+
+    function rescanAudioSinks() {
+        sinksProc.running = true;
+    }
+
+    function setAudioSink(sinkId) {
+        runCmd("wpctl set-default " + sinkId);
+        sinksProc.running = true;
+        volProc.running = true;
+    }
+
+    // ── Microphone (Input) & Sources Discovery ──
+    property int micVolume: 100
+    property bool micMuted: false
+    property bool micInUse: false
+    property string micAppName: ""
+    property var audioSources: []
+
+    Process {
+        id: micProc
+        command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | awk '{printf \"%.0f\\n\", $2*100; if ($3==\"[MUTED]\") print \"muted\"; else print \"unmuted\"}'"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split("\n");
+                root.micVolume = parseInt(lines[0]) || 0;
+                root.micMuted = lines[1] === "muted";
+            }
+        }
+    }
+
+    Process {
+        id: sourcesProc
+        command: ["python3", "-c", "import subprocess, re, json\nout = subprocess.check_output(['wpctl', 'status'], text=True)\nsources = []\nin_sources = False\nfor line in out.splitlines():\n    if 'Sources:' in line:\n        in_sources = True\n        continue\n    if in_sources:\n        if 'Filters:' in line or 'Streams:' in line or 'Video' in line:\n            break\n        m = re.search(r'([* ])\\s+(\\d+)\\.\\s+(.*?)(?:\\s+\\[vol:.*\\])?$', line)\n        if m:\n            sources.append({\n                'id': m.group(2),\n                'name': m.group(3).replace('Alder Lake PCH-P High Definition Audio Controller ', '').strip(),\n                'active': m.group(1) == '*'\n            })\nprint(json.dumps(sources))\n"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const parsed = JSON.parse(text.trim() || "[]");
+                    root.audioSources = parsed;
+                } catch(e) {}
+            }
+        }
+    }
+
+    Process {
+        id: micUsageProc
+        command: ["python3", "-c", "import subprocess\ntry:\n    out = subprocess.check_output(['pactl', 'list', 'source-outputs'], text=True)\n    lines = [l for l in out.splitlines() if 'application.name =' in l]\n    app = lines[0].split('=')[1].strip().strip('\"') if lines else ''\n    print('yes' if lines else 'no')\n    print(app)\nexcept:\n    print('no\\n')\n"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split("\n");
+                root.micInUse = lines[0] === "yes";
+                root.micAppName = lines.length > 1 ? lines[1] : "";
+            }
+        }
+    }
+
+    Timer {
+        interval: root.isIdleOrLocked ? 10000 : 3000
+        running: true
+        repeat: true
+        onTriggered: {
+            micUsageProc.running = true;
+            micProc.running = true;
+        }
+    }
+
+    function adjustMicVolume(delta) {
+        root.micVolume = Math.max(0, Math.min(150, root.micVolume + delta));
+        root.micMuted = false;
+        const sign = delta > 0 ? "+" : "-";
+        const abs = Math.abs(delta);
+        runCmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SOURCE@ " + abs + "%" + sign + "; wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0");
+        micProc.running = true;
+    }
+
+    function setMicVolumePercent(pct) {
+        root.micVolume = Math.max(0, Math.min(150, Math.round(pct)));
+        root.micMuted = false;
+        const frac = Math.max(0, Math.min(1.5, pct / 100)).toFixed(2);
+        runCmd("wpctl set-volume @DEFAULT_AUDIO_SOURCE@ " + frac + "; wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0");
+        micProc.running = true;
+    }
+
+    function toggleMicMute() {
+        root.micMuted = !root.micMuted;
+        runCmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle");
+        micProc.running = true;
+    }
+
+    function rescanAudioSources() {
+        sourcesProc.running = true;
+        micProc.running = true;
+    }
+
+    function setAudioSource(sourceId) {
+        runCmd("wpctl set-default " + sourceId);
+        sourcesProc.running = true;
+        micProc.running = true;
+    }
+
+    // ── Display Brightness ──────────────────────────
+    property int brightness: 100
+
+    Process {
+        id: brightProc
+        command: ["sh", "-c", "brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d '%' || echo '100'"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: root.brightness = parseInt(text.trim()) || 100
+        }
+    }
+
+    function adjustBrightness(delta) {
+        root.brightness = Math.max(1, Math.min(100, root.brightness + delta));
+        const sign = delta > 0 ? "+" : "-";
+        const abs = Math.abs(delta);
+        runCmd("brightnessctl -n set " + abs + "%" + sign);
+        brightProc.running = true;
+    }
+
+    function setBrightnessPercent(pct) {
+        const clamped = Math.max(1, Math.min(100, Math.round(pct)));
+        root.brightness = clamped;
+        runCmd("brightnessctl -n set " + clamped + "%");
+        brightProc.running = true;
+    }
+
+    // ── Wi-Fi ───────────────────────────────────────
+    property bool wifiEnabled: true
+    property string wifiSsid: ""
+    property string networkType: "disconnected"
+    property string networkInfo: "Disconnected"
+    property var wifiNetworks: []
+
+    Process {
+        id: netProc
+        command: ["sh", "-c", "eth=$(nmcli -t -f type,state dev 2>/dev/null | grep '^ethernet:connected'); if [ -n \"$eth\" ]; then echo 'ethernet:Ethernet'; else wifi=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes' | cut -d: -f2); if [ -n \"$wifi\" ]; then echo \"wifi:$wifi\"; else echo 'disconnected:'; fi; fi"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const result = text.trim();
+                const idx = result.indexOf(':');
+                root.networkType = result.substring(0, idx);
+                root.networkInfo = result.substring(idx + 1) || "Disconnected";
+                if (root.networkType === "wifi") root.wifiSsid = root.networkInfo;
+                else if (root.networkType === "disconnected") root.wifiSsid = "";
+            }
+        }
+    }
+
+    Process {
+        id: wifiRadioProc
+        command: ["nmcli", "radio", "wifi"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.wifiEnabled = text.trim() === "enabled";
+            }
+        }
+    }
+
+    Process {
+        id: wifiScanProc
+        command: ["sh", "-c", "nmcli -t -f active,ssid,bars,security dev wifi list --rescan no 2>/dev/null | awk -F: '!seen[$2]++ && $2!=\"\" {printf \"%s|%s|%s|%s\\n\", $1, $2, $3, $4}' | head -15"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split("\n");
+                const list = [];
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const parts = line.split("|");
+                    if (parts.length >= 2 && parts[1]) {
+                        list.push({
+                            active: parts[0] === "yes",
+                            ssid: parts[1],
+                            bars: parts[2] || "▂▄▆█",
+                            security: parts[3] || "Open"
+                        });
+                    }
+                }
+                root.wifiNetworks = list;
+            }
+        }
+    }
+
+    function toggleWifi() {
+        const next = !wifiEnabled;
+        runCmd("nmcli radio wifi " + (next ? "on" : "off"));
+        wifiEnabled = next;
+        wifiRadioProc.running = true;
+        netProc.running = true;
+    }
+
+    function rescanWifi() {
+        wifiScanProc.running = true;
+        wifiRadioProc.running = true;
+    }
+
+    function connectWifi(ssid) {
+        runCmd("nmcli dev wifi connect '" + ssid + "' || kitty --directory " + homeDir + " -e nmcli dev wifi connect '" + ssid + "' --ask");
+        netProc.running = true;
+        wifiScanProc.running = true;
+    }
+
+    function disconnectWifi() {
+        runCmd("nmcli dev disconnect ifname $(nmcli -t -f DEVICE,TYPE dev 2>/dev/null | grep ':wifi$' | cut -d: -f1 | head -1)");
+        netProc.running = true;
+        wifiScanProc.running = true;
+    }
+
+    // ── Bluetooth ───────────────────────────────────
+    property bool bluetoothEnabled: false
+    property var bluetoothDevices: []
+
+    Process {
+        id: btStatusProc
+        command: ["sh", "-c", "bluetoothctl show 2>/dev/null | grep 'Powered:' | awk '{print $2}'"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.bluetoothEnabled = text.trim() === "yes";
+            }
+        }
+    }
+
+    Process {
+        id: btDevicesProc
+        command: ["sh", "-c", "bluetoothctl devices 2>/dev/null | while read -r _ mac name; do connected=$(bluetoothctl info \"$mac\" 2>/dev/null | grep 'Connected:' | awk '{print $2}'); echo \"$mac|$name|$connected\"; done"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split("\n");
+                const list = [];
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const parts = line.split("|");
+                    if (parts.length >= 2 && parts[0]) {
+                        list.push({
+                            mac: parts[0],
+                            name: parts[1] || parts[0],
+                            connected: parts[2] === "yes"
+                        });
+                    }
+                }
+                root.bluetoothDevices = list;
+            }
+        }
+    }
+
+    function toggleBluetooth() {
+        const next = !bluetoothEnabled;
+        runCmd("bluetoothctl power " + (next ? "on" : "off"));
+        bluetoothEnabled = next;
+        btStatusProc.running = true;
+    }
+
+    function rescanBluetooth() {
+        btStatusProc.running = true;
+        btDevicesProc.running = true;
+    }
+
+    function connectBluetooth(mac) {
+        runCmd("bluetoothctl connect " + mac);
+        btDevicesProc.running = true;
+    }
+
+    function disconnectBluetooth(mac) {
+        runCmd("bluetoothctl disconnect " + mac);
+        btDevicesProc.running = true;
+    }
+
+    // ── Main Polling Loop ───────────────────────────
+    Timer {
+        interval: root.isIdleOrLocked ? 10000 : 2500
+        running: true
+        repeat: true
+        onTriggered: {
+            cpuProc.running = true;
+            memProc.running = true;
+            tempProc.running = true;
+            netProc.running = true;
+            battProc.running = true;
+            profileProc.running = true;
+            volProc.running = true;
+            brightProc.running = true;
+            btStatusProc.running = true;
+            if (controlCenterOpen) {
+                wifiScanProc.running = true;
+                btDevicesProc.running = true;
+            }
+        }
+    }
+}

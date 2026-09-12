@@ -1,0 +1,35 @@
+[config]
+
+# 1. Canonical Source of Truth
+[templates.theme_toml]
+input_path = "/home/aran/.config/matugen/templates/colors.toml"
+output_path = "/home/aran/.config/theme/colors.toml"
+
+# 2. Quickshell Native JSON
+[templates.quickshell_json]
+input_path = "/home/aran/.config/matugen/templates/colors.json"
+output_path = "/home/aran/.config/quickshell/theme/colors.json"
+
+# 3. GTK 3 & 4 Theme Palettes
+[templates.gtk3]
+input_path = "/home/aran/.config/matugen/templates/gtk-colors.css"
+output_path = "/home/aran/.config/gtk-3.0/colors.css"
+
+[templates.gtk4]
+input_path = "/home/aran/.config/matugen/templates/gtk-colors.css"
+output_path = "/home/aran/.config/gtk-4.0/colors.css"
+
+# 4. KDE Plasma & Qt 5/6 Color Scheme
+[templates.kde]
+input_path = "/home/aran/.config/matugen/templates/Matugen.colors"
+output_path = "/home/aran/.local/share/color-schemes/Matugen.colors"
+
+# 5. Kitty Terminal
+[templates.kitty]
+input_path = "/home/aran/.config/matugen/templates/kitty.conf"
+output_path = "/home/aran/.config/kitty/colors-matugen.conf"
+
+# 6. Hyprland Borders & Tokens
+[templates.hyprland]
+input_path = "/home/aran/.config/matugen/templates/hyprland.conf"
+output_path = "/home/aran/.config/hypr/colors.conf"

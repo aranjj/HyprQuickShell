@@ -1,0 +1,15 @@
+module components
+ControlCenter 1.0 ControlCenter.qml
+PowerMenu 1.0 PowerMenu.qml
+OSD 1.0 OSD.qml
+AppLauncher 1.0 AppLauncher.qml
+CalendarView 1.0 CalendarView.qml
+NotificationToast 1.0 NotificationToast.qml
+AboutDialog 1.0 AboutDialog.qml
+Wallpaper 1.0 Wallpaper.qml
+WallpaperPicker 1.0 WallpaperPicker.qml
+DynamicIsland 1.0 DynamicIsland.qml
+Clipboard 1.0 Clipboard.qml
+LockScreen 1.0 LockScreen.qml
+ScreenshotToolbar 1.0 ScreenshotToolbar.qml
+ScreenshotPreview 1.0 ScreenshotPreview.qml
