@@ -522,12 +522,88 @@ Scope {
 
                     Item { Layout.fillWidth: true }
 
+                    // Opacity Stepper
+                    RowLayout {
+                        spacing: 4
+
+                        Text {
+                            text: "Opacity:"
+                            color: root.theme.textMuted
+                            font.pixelSize: 11
+                            font.family: root.font
+                        }
+
+                        Rectangle {
+                            width: 24
+                            height: 24
+                            radius: 6
+                            color: decMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.05)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            Text {
+                                anchors.centerIn: parent
+                                text: "−"
+                                color: root.theme.textPrimary
+                                font.pixelSize: 12
+                                font.weight: Font.Bold
+                            }
+                            MouseArea {
+                                id: decMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Services.Aesthetic.setOpacity(Math.max(0.15, Services.Aesthetic.cardOpacity - 0.05))
+                            }
+                        }
+
+                        Rectangle {
+                            height: 24
+                            radius: 6
+                            color: Qt.rgba(1, 1, 1, 0.06)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            Layout.preferredWidth: opPctText.implicitWidth + 12
+                            Text {
+                                id: opPctText
+                                anchors.centerIn: parent
+                                text: Math.round(Services.Aesthetic.cardOpacity * 100) + "%"
+                                color: root.theme.textPrimary
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                                font.family: root.font
+                            }
+                        }
+
+                        Rectangle {
+                            width: 24
+                            height: 24
+                            radius: 6
+                            color: incMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.05)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            Text {
+                                anchors.centerIn: parent
+                                text: "+"
+                                color: root.theme.textPrimary
+                                font.pixelSize: 12
+                                font.weight: Font.Bold
+                            }
+                            MouseArea {
+                                id: incMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Services.Aesthetic.setOpacity(Math.min(1.0, Services.Aesthetic.cardOpacity + 0.05))
+                            }
+                        }
+                    }
+
                     // Current Preset Description
                     Text {
                         text: {
                             for (let i = 0; i < Services.Aesthetic.presets.length; i++) {
                                 if (Services.Aesthetic.presets[i].id === Services.Aesthetic.preset) {
-                                    return Services.Aesthetic.presets[i].desc;
+                                    return "• " + Services.Aesthetic.presets[i].desc;
                                 }
                             }
                             return "";

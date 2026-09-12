@@ -13,13 +13,16 @@ Singleton {
     // Presets: "frosted" | "oled" | "crystal" | "solid"
     property string preset: "frosted"
 
+    // Custom opacity override (-1 means use preset's default)
+    property real customOpacity: -1
+
     // Master Design Tokens
     property int cardRadius: 18
     property int pillRadius: 13
     property int borderWidth: 1
 
     // ── Dynamic Opacities & Tokens by Preset ────────
-    readonly property real cardOpacity: {
+    readonly property real presetCardOpacity: {
         switch (preset) {
             case "oled": return 0.95;
             case "crystal": return 0.50;
@@ -28,6 +31,8 @@ Singleton {
             default: return 0.78;
         }
     }
+
+    readonly property real cardOpacity: customOpacity > 0 ? customOpacity : presetCardOpacity
 
     readonly property real barFloatingOpacity: {
         switch (preset) {
@@ -120,8 +125,22 @@ Singleton {
         const valid = ["frosted", "oled", "crystal", "solid"];
         if (valid.indexOf(newPreset) !== -1) {
             preset = newPreset;
+            customOpacity = -1; // Reset custom override to adopt preset defaults
             saveConfig();
         }
+    }
+
+    function setOpacity(val) {
+        const num = parseFloat(val);
+        if (!isNaN(num)) {
+            customOpacity = Math.max(0.15, Math.min(1.0, num));
+            saveConfig();
+        }
+    }
+
+    function resetOpacity() {
+        customOpacity = -1;
+        saveConfig();
     }
 
     function cyclePreset() {
@@ -135,8 +154,25 @@ Singleton {
     IpcHandler {
         target: "aesthetic"
 
+        function setPreset(p: string): void {
+            root.setPreset(p);
+        }
+
         function set(p: string): void {
             root.setPreset(p);
+        }
+
+        function setOpacity(val: real): void {
+            root.setOpacity(val);
+        }
+
+        function resetOpacity(): void {
+            root.resetOpacity();
+        }
+
+        function setRadius(val: int): void {
+            root.cardRadius = Math.max(0, Math.min(40, val));
+            root.saveConfig();
         }
 
         function cycle(): void {
@@ -145,6 +181,10 @@ Singleton {
 
         function current(): string {
             return root.preset;
+        }
+
+        function opacity(): real {
+            return root.cardOpacity;
         }
     }
 
@@ -157,7 +197,8 @@ Singleton {
     function saveConfig() {
         const json = JSON.stringify({
             preset: root.preset,
-            cardRadius: root.cardRadius
+            cardRadius: root.cardRadius,
+            customOpacity: root.customOpacity
         });
         saveProc.command = ["sh", "-c", "printf '%s' '" + json + "' > '" + root.configFile + "'"];
         saveProc.running = true;
@@ -172,9 +213,9 @@ Singleton {
                 try {
                     const parsed = JSON.parse(text.trim());
                     if (parsed.preset) root.preset = parsed.preset;
-                    if (parsed.cardRadius) root.cardRadius = parsed.cardRadius;
+                    if (parsed.cardRadius !== undefined) root.cardRadius = parsed.cardRadius;
+                    if (parsed.customOpacity !== undefined) root.customOpacity = parsed.customOpacity;
                 } catch (e) {
-                    // Default to frosted if unparseable
                 }
             }
         }
