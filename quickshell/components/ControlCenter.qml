@@ -1264,10 +1264,7 @@ Scope {
                                     Text {
                                         x: 10
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: Services.SystemService.volumeMuted ? "󰖁"
-                                            : (Services.SystemService.volume === 0 ? "󰖁"
-                                            : (Services.SystemService.volume <= 33 ? "󰕿"
-                                            : (Services.SystemService.volume <= 66 ? "󰖀" : "󰕾")))
+                                        text: Services.SystemService.volumeIcon
                                         color: Services.SystemService.volumeMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
                                         font.pixelSize: 15
                                         font.family: root.font
@@ -1287,10 +1284,7 @@ Scope {
                                         Text {
                                             x: 10
                                             anchors.verticalCenter: parent.verticalCenter
-                                            text: Services.SystemService.volumeMuted ? "󰖁"
-                                                : (Services.SystemService.volume === 0 ? "󰖁"
-                                                : (Services.SystemService.volume <= 33 ? "󰕿"
-                                                : (Services.SystemService.volume <= 66 ? "󰖀" : "󰕾")))
+                                            text: Services.SystemService.volumeIcon
                                             color: "#16161a"
                                             font.pixelSize: 15
                                             font.family: root.font
@@ -2829,10 +2823,7 @@ Scope {
                                         Text {
                                             x: 10
                                             anchors.verticalCenter: parent.verticalCenter
-                                            text: Services.SystemService.volumeMuted ? "󰖁"
-                                                : (Services.SystemService.volume === 0 ? "󰖁"
-                                                : (Services.SystemService.volume <= 33 ? "󰕿"
-                                                : (Services.SystemService.volume <= 66 ? "󰖀" : "󰕾")))
+                                            text: Services.SystemService.volumeIcon
                                             color: Services.SystemService.volumeMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
                                             font.pixelSize: 15
                                             font.family: root.font
@@ -2850,10 +2841,7 @@ Scope {
                                             Text {
                                                 x: 10
                                                 anchors.verticalCenter: parent.verticalCenter
-                                                text: Services.SystemService.volumeMuted ? "󰖁"
-                                                    : (Services.SystemService.volume === 0 ? "󰖁"
-                                                    : (Services.SystemService.volume <= 33 ? "󰕿"
-                                                    : (Services.SystemService.volume <= 66 ? "󰖀" : "󰕾")))
+                                                text: Services.SystemService.volumeIcon
                                                 color: "#16161a"
                                                 font.pixelSize: 15
                                                 font.family: root.font
@@ -2915,7 +2903,12 @@ Scope {
                                                     spacing: 8
 
                                                     Text {
-                                                        text: modelData.name.toLowerCase().includes("hdmi") ? "󰡁" : (modelData.name.toLowerCase().includes("headphone") ? "󰋋" : "󰓃")
+                                                        text: {
+                                                            const nm = modelData.name.toLowerCase();
+                                                            if (nm.includes("hdmi")) return "󰡁";
+                                                            if (nm.includes("headphone") || nm.includes("headset") || nm.includes("airpod") || nm.includes("buds") || nm.includes("earphone") || nm.includes("bluez")) return "󰋋";
+                                                            return "󰓃";
+                                                        }
                                                         color: modelData.active ? root.theme.accent : root.theme.textPrimary
                                                         font.pixelSize: 14
                                                         font.family: root.font
@@ -4208,7 +4201,7 @@ Scope {
                                     anchors.left: parent.left
                                     anchors.leftMargin: 9
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: Services.SystemService.volumeMuted ? "󰖁" : (Services.SystemService.volume > 50 ? "󰕾" : "󰖀")
+                                    text: Services.SystemService.volumeIcon
                                     color: "#ffffff"
                                     font.pixelSize: 13
                                     font.family: root.font

@@ -142,9 +142,9 @@ def power_off():
         bus = dbus.SystemBus()
         props = dbus.Interface(bus.get_object("org.bluez", "/org/bluez/hci0"), "org.freedesktop.DBus.Properties")
         props.Set("org.bluez.Adapter1", "Powered", False)
-        return True
     except Exception:
         subprocess.run(["bluetoothctl", "power", "off"], capture_output=True)
+    subprocess.run(["rfkill", "block", "bluetooth"], capture_output=True)
     return True
 
 def toggle():
@@ -155,6 +155,11 @@ def toggle():
         power_on()
 
 def scan_start(timeout=30):
+    if get_rfkill_blocked():
+        return
+    status = get_status()
+    if not status.get("enabled", False):
+        return
     scan_stop()
     proc = subprocess.Popen(
         ["bluetoothctl", "--timeout", str(timeout), "scan", "on"],

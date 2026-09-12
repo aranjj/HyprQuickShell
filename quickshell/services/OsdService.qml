@@ -30,9 +30,11 @@ Singleton {
     signal brightnessUpdated(int pct)
 
     function showVolume(vol, muted) {
-        const ic = muted ? "󰖁" : (vol > 60 ? "󰕾" : (vol > 20 ? "󰖀" : "󰕿"));
+        const isHp = Services.SystemService.isHeadphones;
+        const ic = muted ? (isHp ? "󰟎" : "󰖁") : (isHp ? "󰋋" : (vol > 60 ? "󰕾" : (vol > 20 ? "󰖀" : "󰕿")));
         const col = muted ? Services.ThemeService.accentRed : Services.ThemeService.accent;
-        show(ic, col, "Volume", muted ? "Muted" : vol + "%", muted ? 0 : Math.min(1.0, vol / 100), col);
+        const titleText = isHp ? "Headphones" : "Volume";
+        show(ic, col, titleText, muted ? "Muted" : vol + "%", muted ? 0 : Math.min(1.0, vol / 100), col);
         volumeUpdated(vol, muted);
     }
 

@@ -606,8 +606,7 @@ Scope {
 
                         Text {
                             anchors.centerIn: parent
-                            text: Services.SystemService.volumeMuted ? "󰖁"
-                                : Services.SystemService.volume > 50 ? "󰕾" : "󰖀"
+                            text: Services.SystemService.volumeIcon
                             color: Services.SystemService.volumeMuted ? "#ff453a" : root.barFgPrimary
                             font.pixelSize: 16
                             font.family: root.font

@@ -312,8 +312,98 @@ Singleton {
     property int volume: 50
     property bool volumeMuted: false
 
+    // ── Headphone Detection ─────────────────────────
+    readonly property bool isHeadphones: {
+        // 1. Pipewire defaultAudioSink checks
+        const sink = Pipewire.defaultAudioSink;
+        if (sink) {
+            const desc = (sink.description || "").toLowerCase();
+            const name = (sink.name || "").toLowerCase();
+            const nick = (sink.nickname || "").toLowerCase();
+            const props = sink.properties || {};
+            const iconName = ((props["device.icon_name"] || props["device.icon-name"] || "") + "").toLowerCase();
+            const formFactor = ((props["device.form_factor"] || "") + "").toLowerCase();
+
+            if (iconName.includes("headphone") || iconName.includes("headset") ||
+                formFactor.includes("headphone") || formFactor.includes("headset") || formFactor.includes("earphone") ||
+                desc.includes("headphone") || desc.includes("headset") || desc.includes("earphone") || desc.includes("airpod") || desc.includes("buds") ||
+                nick.includes("headphone") || nick.includes("headset") || nick.includes("earphone") ||
+                name.includes("headphone") || name.includes("headset") || name.includes("bluez")) {
+                return true;
+            }
+
+            if ((iconName.includes("speaker") || nick.includes("speaker")) && !name.includes("bluez")) {
+                let btOrHpActive = false;
+                if (root.audioSinks && root.audioSinks.length > 0) {
+                    for (let i = 0; i < root.audioSinks.length; i++) {
+                        const s = root.audioSinks[i];
+                        if (s.active) {
+                            const sName = (s.name || "").toLowerCase();
+                            if (sName.includes("headphone") || sName.includes("headset") ||
+                                sName.includes("earphone") || sName.includes("airpod") ||
+                                sName.includes("buds") || sName.includes("bluez")) {
+                                btOrHpActive = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!btOrHpActive) return false;
+            }
+        }
+
+        // 2. Active audio sink from audioSinks list
+        if (root.audioSinks && root.audioSinks.length > 0) {
+            for (let i = 0; i < root.audioSinks.length; i++) {
+                const s = root.audioSinks[i];
+                if (s.active) {
+                    const sName = (s.name || "").toLowerCase();
+                    if (sName.includes("headphone") || sName.includes("headset") ||
+                        sName.includes("earphone") || sName.includes("airpod") ||
+                        sName.includes("buds") || sName.includes("bluez")) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 3. Connected Bluetooth audio devices
+        if (root.bluetoothEnabled && root.bluetoothDevices && root.bluetoothDevices.length > 0) {
+            for (let i = 0; i < root.bluetoothDevices.length; i++) {
+                const d = root.bluetoothDevices[i];
+                if (d.connected) {
+                    const dIcon = (d.icon || "").toLowerCase();
+                    const dName = (d.name || "").toLowerCase();
+                    if (dIcon === "headphones" || dIcon === "headset" ||
+                        dName.includes("airpod") || dName.includes("headphone") ||
+                        dName.includes("headset") || dName.includes("buds") ||
+                        dName.includes("earphone") || dName.includes("pro's") || dName.includes("pro’s") || dName.includes("pros")) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    readonly property string volumeIcon: {
+        if (volumeMuted) return isHeadphones ? "󰟎" : "󰖁";
+        if (isHeadphones) return "󰋋";
+        if (volume === 0) return "󰖁";
+        return volume > 60 ? "󰕾" : (volume > 20 ? "󰖀" : "󰕿");
+    }
+
     PwObjectTracker {
         objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource]
+    }
+
+    Connections {
+        target: Pipewire
+        function onDefaultAudioSinkChanged() {
+            sinksProc.running = true;
+            volProc.running = true;
+        }
     }
 
     Connections {
@@ -689,10 +779,15 @@ Singleton {
     function toggleBluetooth() {
         const next = !bluetoothEnabled;
         bluetoothEnabled = next;
+        if (!next) {
+            bluetoothDiscovering = false;
+            stopBluetoothScan();
+        }
         runBtAction(next ? "on" : "off");
     }
 
     function rescanBluetooth() {
+        if (!bluetoothEnabled) return;
         runBtAction("scan-toggle");
     }
 
@@ -701,6 +796,7 @@ Singleton {
     }
 
     function startBluetoothScan() {
+        if (!bluetoothEnabled) return;
         runBtAction("scan-start");
     }
 
@@ -748,6 +844,7 @@ Singleton {
             battProc.running = true;
             profileProc.running = true;
             volProc.running = true;
+            sinksProc.running = true;
             brightProc.running = true;
             btStatusProc.running = true;
             if (controlCenterOpen) {
