@@ -49,12 +49,8 @@ Scope {
     readonly property int currentWorkspaceId: Hyprland.focusedWorkspace?.id ?? 1
     readonly property string currentWorkspaceName: Hyprland.focusedWorkspace?.name ?? ("" + currentWorkspaceId)
 
-    // ── Apple-Style Window-Contact & Adaptive Contrast Tokens ──
-    property bool hasTopWindow: false
-
-    // When window touches top: solid frosted glass, so foreground is light.
-    // When transparent floating on desktop: invert text to dark charcoal if wallpaper top is light!
-    readonly property bool barContentLightMode: !root.hasTopWindow && root.theme.barIsLight
+    // ── Adaptive Contrast Tokens (follows wallpaper luminance) ──
+    readonly property bool barContentLightMode: root.theme.barIsLight
 
     property color barFgPrimary: barContentLightMode ? "#1a1b20" : "#ffffff"
     Behavior on barFgPrimary { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
@@ -84,21 +80,12 @@ Scope {
                 try {
                     const list = JSON.parse(text.trim() || "[]");
                     const counts = {};
-                    const focused = Hyprland.focusedWorkspace?.id ?? 1;
-                    let touchingTop = false;
-
                     for (let i = 0; i < list.length; i++) {
                         const w = list[i];
                         const ws = w.workspace?.id;
                         if (ws !== undefined && ws !== null) counts[ws] = (counts[ws] || 0) + 1;
-                        if (ws === focused && !w.hidden && w.mapped) {
-                            if ((w.fullscreen && w.fullscreen > 0) || (w.at && w.at[1] <= 45)) {
-                                touchingTop = true;
-                            }
-                        }
                     }
                     root.clientCounts = counts;
-                    root.hasTopWindow = touchingTop;
                     root.wsTick++;
                 } catch (e) {}
             }
@@ -235,19 +222,19 @@ Scope {
             implicitHeight: 34
             color: "transparent"
 
-            BackgroundEffect.blurRegion: Region { item: (Services.Aesthetic.preset === "crystal" && !root.hasTopWindow) ? null : barGlassBg }
+            BackgroundEffect.blurRegion: Region { item: Services.Aesthetic.preset === "crystal" ? null : barGlassBg }
 
-            // ── Apple-Style Dynamic Glass Background & Micro Scrim ──
+            // ── Dynamic Glass Background & Micro Scrim ──
             Rectangle {
                 id: barGlassBg
                 anchors.fill: parent
-                color: Services.Aesthetic.barGlassColor(root.hasTopWindow, root.barContentLightMode)
+                color: Services.Aesthetic.barGlassColor(root.barContentLightMode)
                 Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                 // Top subtle micro-scrim (improves text contrast over busy wallpapers for standard presets)
                 Rectangle {
                     anchors.fill: parent
-                    visible: !root.hasTopWindow && Services.Aesthetic.preset !== "crystal"
+                    visible: Services.Aesthetic.preset !== "crystal"
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: root.theme.barIsLight ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.22) }
                         GradientStop { position: 1.0; color: "transparent" }
@@ -257,7 +244,7 @@ Scope {
                 // Crystal Clear Profile: Backdrop Shadow (transparent bar with soft top-down shadow for maximum widget readability)
                 Rectangle {
                     anchors.fill: parent
-                    visible: Services.Aesthetic.preset === "crystal" && !root.hasTopWindow
+                    visible: Services.Aesthetic.preset === "crystal"
                     gradient: Gradient {
                         GradientStop {
                             position: 0.0
@@ -280,18 +267,8 @@ Scope {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: 1
-                    visible: Services.Aesthetic.preset === "crystal" && !root.hasTopWindow
+                    visible: Services.Aesthetic.preset === "crystal"
                     color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(0, 0, 0, 0.20)
-                }
-
-                // Bottom hairline separator when window touches top
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: 1
-                    color: root.hasTopWindow ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-                    Behavior on color { ColorAnimation { duration: 250 } }
                 }
             }
 

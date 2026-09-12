@@ -138,15 +138,7 @@ Singleton {
     Behavior on cardBorder { ColorAnimation { duration: 250 } }
 
     // ── Computed Top Bar Glass Color ────────────────
-    function barGlassColor(hasTopWindow, isLight) {
-        if (hasTopWindow) {
-            return Qt.rgba(
-                Services.ThemeService.colSurface.r,
-                Services.ThemeService.colSurface.g,
-                Services.ThemeService.colSurface.b,
-                preset === "crystal" ? 0.70 : 0.85
-            );
-        }
+    function barGlassColor(isLight) {
         if (preset === "crystal") {
             return "transparent";
         }
