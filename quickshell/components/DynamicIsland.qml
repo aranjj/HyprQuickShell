@@ -152,15 +152,35 @@ Scope {
         }
     }
 
+    // ── Priority State Machine ───────────────────────────
+    // Priority: Hardware OSD > Notification Alert > Media Expanded > Media Compact > Hidden
     readonly property string islandMode: {
-        if (hasNotification) return "notification";
         if (hasOsd) return "osd";
+        if (hasNotification) return "notification";
         if (hasMedia && isMediaExpanded) return "mediaExpanded";
         if (hasMedia) return "mediaCompact";
         return "hidden";
     }
 
-    onIslandModeChanged: console.log("[DynamicIsland] islandMode changed to:", islandMode)
+    // ── Satellite (Dual-Pill) State Engine ───────────────
+    readonly property bool satelliteActive: {
+        if (islandMode === "osd") return hasMedia || hasNotification;
+        if (islandMode === "notification") return hasMedia;
+        return false;
+    }
+
+    readonly property string satelliteType: {
+        if (islandMode === "osd") {
+            if (hasMedia) return "media";
+            if (hasNotification) return "notification";
+        }
+        if (islandMode === "notification") {
+            if (hasMedia) return "media";
+        }
+        return "none";
+    }
+
+    onIslandModeChanged: console.log("[DynamicIsland] islandMode changed to:", islandMode, "satelliteActive:", satelliteActive, "satelliteType:", satelliteType)
 
     Variants {
         model: Quickshell.screens
@@ -221,59 +241,73 @@ Scope {
             color: "transparent"
             visible: root.islandMode !== "hidden"
 
-            implicitWidth: 460
-            implicitHeight: 230
+            implicitWidth: 540
+            implicitHeight: 240
 
             mask: Region {
-                item: islandContainer
+                Region { item: islandContainer }
+                Region { item: satellitePill }
             }
 
             BackgroundEffect.blurRegion: Region {
-                item: islandContainer
+                Region { item: islandContainer }
+                Region { item: satellitePill }
             }
 
-            // ── Main Morphing Island Pill ─────────────────
-            Rectangle {
-                id: islandContainer
+            // ── Island Cluster (Main Pill + Detachable Satellite Pill) ──
+            Item {
+                id: islandCluster
                 anchors.top: parent.top
                 anchors.horizontalCenter: parent.horizontalCenter
-                clip: true
+                height: Math.max(islandContainer.height, satellitePill.height)
+                width: islandContainer.width + (root.satelliteActive ? (8 + satellitePill.width) : 0)
 
-                // Base card mouse handler (resets inactivity timer on hover/clicks)
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onPositionChanged: root.resetInactivityTimer()
-                    onClicked: root.resetInactivityTimer()
-                    onWheel: (wheel) => {
-                        wheel.accepted = true;
-                        root.resetInactivityTimer();
+                Behavior on width {
+                    NumberAnimation { duration: 320; easing.type: Easing.OutBack; easing.overshoot: 1.08 }
+                }
+
+                // ── Main Morphing Island Pill ─────────────────
+                Rectangle {
+                    id: islandContainer
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    clip: true
+
+                    // Base card mouse handler (resets inactivity timer on hover/clicks)
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onPositionChanged: root.resetInactivityTimer()
+                        onClicked: root.resetInactivityTimer()
+                        onWheel: (wheel) => {
+                            wheel.accepted = true;
+                            root.resetInactivityTimer();
+                        }
                     }
-                }
 
-                width: {
-                    if (root.islandMode === "notification") return 410;
-                    if (root.islandMode === "mediaExpanded") return 410;
-                    if (root.islandMode === "osd") return 350;
-                    if (root.islandMode === "mediaCompact") return Math.max(200, Math.min(350, compactContent.implicitWidth + 24));
-                    return 0;
-                }
+                    width: {
+                        if (root.islandMode === "notification") return 410;
+                        if (root.islandMode === "mediaExpanded") return 410;
+                        if (root.islandMode === "osd") return 240;
+                        if (root.islandMode === "mediaCompact") return Math.max(200, Math.min(350, compactContent.implicitWidth + 24));
+                        return 0;
+                    }
 
-                height: {
-                    if (root.islandMode === "notification") return 74;
-                    if (root.islandMode === "mediaExpanded") return 190;
-                    if (root.islandMode === "osd") return 52;
-                    if (root.islandMode === "mediaCompact") return 26;
-                    return 0;
-                }
+                    height: {
+                        if (root.islandMode === "notification") return 74;
+                        if (root.islandMode === "mediaExpanded") return 190;
+                        if (root.islandMode === "osd") return 28;
+                        if (root.islandMode === "mediaCompact") return 28;
+                        return 0;
+                    }
 
-                radius: {
-                    if (root.islandMode === "notification") return 24;
-                    if (root.islandMode === "mediaExpanded") return 24;
-                    if (root.islandMode === "osd") return 24;
-                    if (root.islandMode === "mediaCompact") return 13;
-                    return 0;
-                }
+                    radius: {
+                        if (root.islandMode === "notification") return 24;
+                        if (root.islandMode === "mediaExpanded") return 24;
+                        if (root.islandMode === "osd") return 14;
+                        if (root.islandMode === "mediaCompact") return 14;
+                        return 0;
+                    }
 
                 color: root.islandMode === "mediaExpanded" ? Qt.rgba(0.04, 0.04, 0.06, 0.98) : "#000000"
                 border.color: root.islandMode === "notification" ? Qt.rgba(0, 122, 255, 0.45) : (root.islandMode === "osd" ? Qt.rgba(1, 1, 1, 0.20) : (root.islandMode === "mediaExpanded" ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.10)))
@@ -940,6 +974,28 @@ Scope {
                                     font.weight: Font.Bold
                                     font.family: root.font
                                 }
+
+                                // Burst Notification Badge (+N)
+                                Rectangle {
+                                    visible: Services.NotificationService.unreadCount > 1
+                                    height: 14
+                                    radius: 7
+                                    width: Math.max(14, burstText.implicitWidth + 8)
+                                    color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
+                                    border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.60)
+                                    border.width: 1
+
+                                    Text {
+                                        id: burstText
+                                        anchors.centerIn: parent
+                                        text: "+" + (Services.NotificationService.unreadCount - 1)
+                                        color: "#ffffff"
+                                        font.pixelSize: 9
+                                        font.weight: Font.Bold
+                                        font.family: root.font
+                                    }
+                                }
+
                                 Text {
                                     text: "• " + (notificationView.notifData?.timeStr ?? "")
                                     color: root.theme.textMuted
@@ -1026,17 +1082,28 @@ Scope {
                         }
                     }
 
-                    // Click entire notification to invoke default action & dismiss
+                    // Click entire notification to invoke default action & dismiss (or wheel-up to flick away)
                     MouseArea {
                         anchors.fill: parent
                         anchors.rightMargin: 36
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onClicked: (mouse) => {
+                            if (mouse.button === Qt.RightButton) {
+                                Services.NotificationService.dismissIsland();
+                                return;
+                            }
                             const n = notificationView.notifData?.notif;
                             if (n) {
                                 try { n.defaultAction(); } catch (e) {}
                             }
                             Services.NotificationService.dismissIsland();
+                        }
+                        onWheel: (wheel) => {
+                            if (wheel.angleDelta.y > 0) {
+                                wheel.accepted = true;
+                                Services.NotificationService.dismissIsland();
+                            }
                         }
                     }
                 }
@@ -1053,108 +1120,196 @@ Scope {
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 16
-                        anchors.rightMargin: 16
-                        spacing: 12
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 8
 
-                        // Hardware Icon in a subtle circular accent backing
-                        Rectangle {
-                            width: 34
-                            height: 34
-                            radius: 17
-                            color: Qt.rgba(1, 1, 1, 0.08)
-                            border.color: Qt.rgba(1, 1, 1, 0.12)
-                            border.width: 1
+                        // Hardware Icon
+                        Text {
+                            text: Services.OsdService.icon
+                            color: Services.OsdService.iconColor
+                            font.pixelSize: 13
+                            font.family: root.font
                             Layout.alignment: Qt.AlignVCenter
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: Services.OsdService.icon
-                                color: Services.OsdService.iconColor
-                                font.pixelSize: 18
-                                font.family: root.font
-                            }
                         }
 
-                        // Middle Content Area
                         // Case A: Progress bar exists (Volume, Brightness, Battery level)
-                        ColumnLayout {
+                        Rectangle {
+                            visible: Services.OsdService.progress >= 0
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
-                            spacing: 4
-                            visible: Services.OsdService.progress >= 0
+                            height: 6
+                            radius: 3
+                            color: Qt.rgba(1, 1, 1, 0.18)
+                            clip: true
 
-                            RowLayout {
-                                Layout.fillWidth: true
-
-                                Text {
-                                    text: Services.OsdService.title
-                                    color: root.theme.textMuted
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                    font.family: root.font
-                                }
-
-                                Item { Layout.fillWidth: true }
-
-                                Text {
-                                    text: Services.OsdService.valueText
-                                    color: "#ffffff"
-                                    font.pixelSize: 12
-                                    font.weight: Font.Bold
-                                    font.family: root.font
-                                }
-                            }
-
-                            // Capsule Slider Bar
                             Rectangle {
-                                Layout.fillWidth: true
-                                height: 7
-                                radius: 3.5
-                                color: Qt.rgba(1, 1, 1, 0.16)
-                                clip: true
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                radius: 3
+                                color: Services.OsdService.barColor
+                                width: Services.OsdService.progress >= 0 ? parent.width * Math.max(0, Math.min(1.0, Services.OsdService.progress)) : 0
 
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.top: parent.top
-                                    anchors.bottom: parent.bottom
-                                    radius: 3.5
-                                    color: Services.OsdService.barColor
-                                    width: Services.OsdService.progress >= 0 ? parent.width * Math.max(0, Math.min(1.0, Services.OsdService.progress)) : 0
-
-                                    Behavior on width {
-                                        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
-                                    }
+                                Behavior on width {
+                                    NumberAnimation { duration: 80; easing.type: Easing.OutCubic }
                                 }
                             }
                         }
 
                         // Case B: No progress bar (Power Profile, etc.)
-                        ColumnLayout {
+                        Text {
+                            visible: Services.OsdService.progress < 0
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
-                            spacing: 2
-                            visible: Services.OsdService.progress < 0
+                            text: Services.OsdService.title
+                            color: root.theme.textMuted
+                            font.pixelSize: 11
+                            font.family: root.font
+                            elide: Text.ElideRight
+                        }
 
-                            Text {
-                                text: Services.OsdService.title
-                                color: root.theme.textMuted
-                                font.pixelSize: 11
-                                font.weight: Font.Medium
-                                font.family: root.font
-                            }
-
-                            Text {
-                                text: Services.OsdService.valueText
-                                color: "#ffffff"
-                                font.pixelSize: 13
-                                font.weight: Font.Bold
-                                font.family: root.font
-                            }
+                        // Numeric percentage or mode text
+                        Text {
+                            text: Services.OsdService.valueText
+                            color: "#ffffff"
+                            font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                            font.family: root.font
+                            Layout.alignment: Qt.AlignVCenter
                         }
                     }
                 }
             }
+
+            // ── Detachable Satellite Pill (Dual-Pill Splitting) ──
+            Rectangle {
+                id: satellitePill
+                anchors.left: islandContainer.right
+                anchors.leftMargin: 8
+                anchors.verticalCenter: islandContainer.verticalCenter
+                width: 28
+                height: 28
+                radius: 14
+                clip: true
+                color: "#000000"
+                border.color: root.satelliteType === "media" ? Qt.rgba(root.playerAccent.r, root.playerAccent.g, root.playerAccent.b, 0.40) : Qt.rgba(1, 1, 1, 0.15)
+                border.width: 1
+
+                visible: root.satelliteActive || opacity > 0.01
+                opacity: root.satelliteActive ? 1.0 : 0.0
+                scale: root.satelliteActive ? 1.0 : 0.0
+
+                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.OutBack; easing.overshoot: 1.25 } }
+                Behavior on border.color { ColorAnimation { duration: 200 } }
+
+                // Secondary Media Activity Disc
+                Item {
+                    anchors.fill: parent
+                    visible: root.satelliteType === "media"
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 20
+                        height: 20
+                        radius: 10
+                        clip: true
+                        color: Qt.rgba(0.12, 0.12, 0.15, 0.8)
+
+                        Image {
+                            id: satArt
+                            anchors.fill: parent
+                            source: root.activePlayer?.trackArtUrl ?? ""
+                            fillMode: Image.PreserveAspectCrop
+                            visible: status === Image.Ready && source != ""
+                            asynchronous: true
+                            cache: true
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "󰝚"
+                            color: root.playerAccent
+                            font.pixelSize: 11
+                            font.family: root.font
+                            visible: !satArt.visible
+                        }
+                    }
+
+                    // Mini 2-bar Cava equalizer
+                    Row {
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 3
+                        anchors.right: parent.right
+                        anchors.rightMargin: 3
+                        spacing: 1.5
+                        visible: root.isMediaPlaying
+
+                        Rectangle {
+                            width: 2
+                            height: Math.max(2.5, root.cavaBar1 * 8)
+                            radius: 1
+                            color: root.playerAccent
+                            anchors.bottom: parent.bottom
+                        }
+                        Rectangle {
+                            width: 2
+                            height: Math.max(2.5, root.cavaBar2 * 8)
+                            radius: 1
+                            color: root.playerAccent
+                            anchors.bottom: parent.bottom
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onClicked: (mouse) => {
+                            if (mouse.button === Qt.RightButton) {
+                                root.isMediaExpanded = true;
+                            } else {
+                                root.activePlayer?.togglePlaying();
+                            }
+                        }
+                        onDoubleClicked: root.isMediaExpanded = true
+                    }
+                }
+
+                // Secondary Notification Activity Disc
+                Item {
+                    anchors.fill: parent
+                    visible: root.satelliteType === "notification"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰂚"
+                        color: root.theme.accent
+                        font.pixelSize: 13
+                        font.family: root.font
+                    }
+
+                    Rectangle {
+                        anchors.top: parent.top
+                        anchors.topMargin: 4
+                        anchors.right: parent.right
+                        anchors.rightMargin: 4
+                        width: 5
+                        height: 5
+                        radius: 2.5
+                        color: root.theme.accent
+                        visible: Services.NotificationService.unreadCount > 1
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Services.NotificationService.dismissIsland()
+                    }
+                }
+            }
+        }
         }
     }
 }
