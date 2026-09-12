@@ -136,11 +136,11 @@ Scope {
             id: mainModal
             anchors.centerIn: parent
             width: Math.min(pickerWin.width * 0.88, 1040)
-            height: 500
-            radius: 20
-            color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.78)
-            border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
-            border.width: 1
+            height: 540
+            radius: Services.Aesthetic.cardRadius
+            color: Services.Aesthetic.cardBg
+            border.color: Services.Aesthetic.cardBorder
+            border.width: Services.Aesthetic.borderWidth
             clip: true
 
             // Prevent click propagation
@@ -443,6 +443,98 @@ Scope {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.stepIndex(1)
                         }
+                    }
+                }
+
+                // ── Divider ──
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.08)
+                }
+
+                // ── Shell Aesthetic Preset Selector ─────────
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Text {
+                        text: "Shell Aesthetic:"
+                        color: root.theme.textSecondary
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        font.family: root.font
+                    }
+
+                    RowLayout {
+                        spacing: 6
+
+                        Repeater {
+                            model: Services.Aesthetic.presets
+
+                            Rectangle {
+                                required property var modelData
+                                height: 28
+                                radius: 8
+                                color: Services.Aesthetic.preset === modelData.id
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
+                                    : (optMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.04))
+                                border.color: Services.Aesthetic.preset === modelData.id
+                                    ? root.theme.accent
+                                    : Qt.rgba(1, 1, 1, 0.09)
+                                border.width: 1
+                                Layout.preferredWidth: optRow.implicitWidth + 16
+
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                                RowLayout {
+                                    id: optRow
+                                    anchors.centerIn: parent
+                                    spacing: 6
+
+                                    Text {
+                                        text: modelData.icon
+                                        color: Services.Aesthetic.preset === modelData.id ? root.theme.accent : root.theme.textMuted
+                                        font.pixelSize: 12
+                                        font.family: root.font
+                                    }
+
+                                    Text {
+                                        text: modelData.name
+                                        color: Services.Aesthetic.preset === modelData.id ? "#ffffff" : root.theme.textSecondary
+                                        font.pixelSize: 11
+                                        font.weight: Services.Aesthetic.preset === modelData.id ? Font.DemiBold : Font.Normal
+                                        font.family: root.font
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: optMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Services.Aesthetic.setPreset(modelData.id)
+                                }
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    // Current Preset Description
+                    Text {
+                        text: {
+                            for (let i = 0; i < Services.Aesthetic.presets.length; i++) {
+                                if (Services.Aesthetic.presets[i].id === Services.Aesthetic.preset) {
+                                    return Services.Aesthetic.presets[i].desc;
+                                }
+                            }
+                            return "";
+                        }
+                        color: root.theme.textMuted
+                        font.pixelSize: 11
+                        font.family: root.font
                     }
                 }
 

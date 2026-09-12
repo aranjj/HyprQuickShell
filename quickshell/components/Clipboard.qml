@@ -213,7 +213,7 @@ Scope {
         // Dimmed Backdrop (click to dismiss)
         Rectangle {
             anchors.fill: parent
-            color: Qt.rgba(0, 0, 0, 0.45)
+            color: Services.Aesthetic.backdropColor
 
             MouseArea {
                 anchors.fill: parent
@@ -230,10 +230,10 @@ Scope {
 
             width: 640
             height: Math.min(560, Math.max(220, root.filteredItems.length * 62 + 150))
-            radius: 18
-            color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.78)
-            border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
-            border.width: 1
+            radius: Services.Aesthetic.cardRadius
+            color: Services.Aesthetic.cardBg
+            border.color: Services.Aesthetic.cardBorder
+            border.width: Services.Aesthetic.borderWidth
             clip: true
 
             Behavior on height {

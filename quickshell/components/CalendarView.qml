@@ -133,10 +133,10 @@ Scope {
 
                 width: 320
                 height: 380
-                radius: 18
-                color: Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.78)
-                border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.25)
-                border.width: 1
+                radius: Services.Aesthetic.cardRadius
+                color: Services.Aesthetic.cardBg
+                border.color: Services.Aesthetic.cardBorder
+                border.width: Services.Aesthetic.borderWidth
 
                 opacity: Services.ClockService.calendarOpen ? 1.0 : 0.0
                 scale: Services.ClockService.calendarOpen ? 1.0 : 0.95

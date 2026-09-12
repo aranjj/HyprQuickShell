@@ -39,7 +39,7 @@ Scope {
             // Darkened backdrop (click to dismiss)
             Rectangle {
                 anchors.fill: parent
-                color: Qt.rgba(0, 0, 0, 0.45)
+                color: Services.Aesthetic.backdropColor
 
                 MouseArea {
                     anchors.fill: parent
@@ -53,10 +53,10 @@ Scope {
                 anchors.centerIn: parent
                 width: 440
                 height: 180
-                radius: 20
-                color: Qt.rgba(0.09, 0.09, 0.14, 0.78)
-                border.color: Qt.rgba(1, 1, 1, 0.16)
-                border.width: 1
+                radius: Services.Aesthetic.cardRadius
+                color: Services.Aesthetic.cardBg
+                border.color: Services.Aesthetic.cardBorder
+                border.width: Services.Aesthetic.borderWidth
 
                 // Stop dismissal click from propagating
                 MouseArea {

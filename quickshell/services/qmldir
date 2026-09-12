@@ -7,3 +7,4 @@ singleton WallpaperService 1.0 WallpaperService.qml
 singleton NightLightService 1.0 NightLightService.qml
 singleton ScreenshotService 1.0 ScreenshotService.qml
 singleton ThemeService 1.0 ThemeService.qml
+singleton Aesthetic 1.0 Aesthetic.qml

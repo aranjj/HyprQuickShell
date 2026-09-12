@@ -49,10 +49,10 @@ Scope {
                 width: 430
                 implicitHeight: cardContent.implicitHeight + 42
                 anchors.centerIn: parent
-                radius: 18
-                color: Qt.rgba(0.11, 0.12, 0.16, 0.78)
-                border.color: Qt.rgba(1, 1, 1, 0.16)
-                border.width: 1
+                radius: Services.Aesthetic.cardRadius
+                color: Services.Aesthetic.cardBg
+                border.color: Services.Aesthetic.cardBorder
+                border.width: Services.Aesthetic.borderWidth
                 clip: true
 
                 // Prevent backdrop clicks from closing inside the card

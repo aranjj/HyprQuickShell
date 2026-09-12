@@ -241,9 +241,7 @@ Scope {
             Rectangle {
                 id: barGlassBg
                 anchors.fill: parent
-                color: root.hasTopWindow
-                    ? Qt.rgba(root.theme.surface.r, root.theme.surface.g, root.theme.surface.b, 0.82)
-                    : (root.barContentLightMode ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(0.04, 0.04, 0.07, 0.40))
+                color: Services.Aesthetic.barGlassColor(root.hasTopWindow, root.barContentLightMode)
                 Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                 // Top subtle micro-scrim (improves text contrast over busy wallpapers in transparent mode)
@@ -1124,9 +1122,9 @@ Scope {
                 width: 232
                 height: menuCol.implicitHeight + 14
                 radius: 14
-                color: Qt.rgba(0.11, 0.12, 0.16, 0.78)
-                border.color: Qt.rgba(1, 1, 1, 0.16)
-                border.width: 1
+                color: Services.Aesthetic.cardBg
+                border.color: Services.Aesthetic.cardBorder
+                border.width: Services.Aesthetic.borderWidth
 
                 MouseArea {
                     anchors.fill: parent
