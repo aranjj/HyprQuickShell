@@ -260,16 +260,6 @@ Scope {
                         }
                     }
                 }
-
-                // Crystal Clear Profile: Soft bottom drop shadow line
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: 1
-                    visible: Services.Aesthetic.preset === "crystal"
-                    color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(0, 0, 0, 0.20)
-                }
             }
 
             // ── Bar Content ───
