@@ -13,7 +13,7 @@ if [ -z "$IMG" ]; then
     if [ -f "/home/aran/.config/quickshell/wallpaper.txt" ]; then
         IMG=$(cat /home/aran/.config/quickshell/wallpaper.txt | tr -d '\n')
     else
-        IMG="/home/aran/Pictures/Wallpapers/Tahoe-Beach-Day.png"
+        IMG="/home/aran/Pictures/Wallpapers/blueeve.jpg"
     fi
 fi
 

@@ -8,11 +8,26 @@ Singleton {
     id: root
 
     readonly property string wallpapersDir: "/home/aran/Pictures/Wallpapers"
-    readonly property string defaultWallpaper: "file:///home/aran/Pictures/Wallpapers/Tahoe-Beach-Day.png"
 
-    property string currentWallpaper: defaultWallpaper
-    property string currentWallpaperName: "Tahoe Beach Day"
-    property bool dynamicMode: false
+    FileView {
+        id: wallFile
+        path: "/home/aran/.config/quickshell/wallpaper.txt"
+        preload: true
+        blockLoading: true
+    }
+
+    readonly property string savedWallpaper: {
+        try {
+            const t = wallFile.text().trim();
+            if (t.length > 0) return t;
+        } catch (e) {}
+        return "";
+    }
+
+    readonly property string defaultWallpaper: "file:///home/aran/Pictures/Wallpapers/blueeve.jpg"
+
+    property string currentWallpaper: savedWallpaper !== "" ? savedWallpaper : defaultWallpaper
+    property string currentWallpaperName: extractName(currentWallpaper)
     property var wallpapers: []
     property bool pickerOpen: false
 
@@ -77,18 +92,6 @@ Singleton {
         setWallpaper(wallpapers[randIdx]);
     }
 
-    function updateDynamicWallpaper() {
-        if (!dynamicMode) return;
-        const hour = new Date().getHours();
-        let target = "Tahoe-Beach-Day.png";
-        if (hour >= 5 && hour < 10) target = "Tahoe-Beach-Dawn.png";
-        else if (hour >= 10 && hour < 17) target = "Tahoe-Beach-Day.png";
-        else if (hour >= 17 && hour < 21) target = "Tahoe-Beach-Dusk.png";
-        else target = "Tahoe-Beach-Night.png";
-
-        setWallpaper(wallpapersDir + "/" + target, false);
-    }
-
     // ── CLI / Keybinding IPC Interface ─────────────────
     IpcHandler {
         target: "wallpaper"
@@ -99,10 +102,6 @@ Singleton {
         function togglePicker() { root.togglePicker(); }
         function openPicker() { root.openPicker(); }
         function closePicker() { root.closePicker(); }
-        function toggleDynamic() {
-            root.dynamicMode = !root.dynamicMode;
-            if (root.dynamicMode) root.updateDynamicWallpaper();
-        }
     }
 
     // ── Process: Discover Wallpapers ───────────────────
@@ -123,32 +122,9 @@ Singleton {
         }
     }
 
-    // ── Process: Load Saved Wallpaper ──────────────────
-    Process {
-        id: loadProc
-        command: ["sh", "-c", "cat /home/aran/.config/quickshell/wallpaper.txt 2>/dev/null || true"]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const saved = text.trim();
-                if (saved.length > 0 && !root.dynamicMode) {
-                    root.setWallpaper(saved, false);
-                }
-            }
-        }
-    }
-
     // ── Process: Save Wallpaper State ──────────────────
     Process {
         id: saveProc
         command: ["sh", "-c", ""]
-    }
-
-    // ── Hourly Dynamic Mode Check ──────────────────────
-    Timer {
-        interval: 60000
-        repeat: true
-        running: root.dynamicMode
-        onTriggered: root.updateDynamicWallpaper()
     }
 }

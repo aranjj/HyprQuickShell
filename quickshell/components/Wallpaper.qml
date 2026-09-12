@@ -115,7 +115,7 @@ Variants {
                 anchors.margins: -60
                 fillMode: Image.PreserveAspectCrop
                 source: bgWindow.activeImgSource
-                asynchronous: true
+                asynchronous: false
                 cache: true
                 smooth: true
             }
