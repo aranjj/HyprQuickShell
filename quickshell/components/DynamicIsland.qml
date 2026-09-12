@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 import QtQuick
 import QtQuick.Layouts
@@ -96,7 +97,7 @@ Scope {
     Process {
         id: cavaProc
         command: ["cava", "-p", "/home/aran/.config/quickshell/cava.conf"]
-        running: root.hasMedia && root.isMediaPlaying
+        running: root.hasMedia && root.isMediaPlaying && !root.isFullscreen
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (data) => {
@@ -165,24 +166,82 @@ Scope {
         }
     }
 
+    // ── Fullscreen Window Tracking ───────────────────────
+    property bool isFullscreen: false
+
+    Process {
+        id: fsProc
+        command: ["sh", "-c", "hyprctl activeworkspace -j | grep -q '\"hasfullscreen\": true' && echo 1 || echo 0"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.isFullscreen = (text.trim() === "1");
+            }
+        }
+    }
+
+    Timer {
+        interval: 1500
+        repeat: true
+        running: true
+        onTriggered: {
+            if (!fsProc.running) fsProc.running = true;
+        }
+    }
+
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(event) {
+            if (event.name === "fullscreen") {
+                root.isFullscreen = (event.data !== "0");
+                if (!fsProc.running) fsProc.running = true;
+            } else if (event.name === "workspace" || event.name === "activewindow" || event.name === "focusedmon") {
+                if (!fsProc.running) fsProc.running = true;
+            }
+        }
+
+        function onFocusedWorkspaceChanged() {
+            if (Hyprland.focusedWorkspace) {
+                root.isFullscreen = Hyprland.focusedWorkspace.hasFullscreen;
+            }
+            if (!fsProc.running) fsProc.running = true;
+        }
+
+        function onActiveToplevelChanged() {
+            if (!fsProc.running) fsProc.running = true;
+        }
+    }
+
+    onIsFullscreenChanged: {
+        if (isFullscreen) {
+            root.isMediaExpanded = false;
+        }
+    }
+
     // ── Priority State Machine ───────────────────────────
     // Priority: Hardware OSD > Notification Alert > Media Expanded > Media Compact > Hidden
+    // When playing a fullscreen video or in fullscreen mode, media player is hidden to avoid obstruction.
     readonly property string islandMode: {
         if (hasOsd) return "osd";
         if (hasNotification) return "notification";
-        if (hasMedia && isMediaExpanded) return "mediaExpanded";
-        if (hasMedia) return "mediaCompact";
+        if (!isFullscreen) {
+            if (hasMedia && isMediaExpanded) return "mediaExpanded";
+            if (hasMedia) return "mediaCompact";
+        }
         return "hidden";
     }
 
     // ── Satellite (Dual-Pill) State Engine ───────────────
     readonly property bool satelliteActive: {
+        if (isFullscreen) return false;
         if (islandMode === "osd") return hasMedia || hasNotification;
         if (islandMode === "notification") return hasMedia;
         return false;
     }
 
     readonly property string satelliteType: {
+        if (isFullscreen) return "none";
         if (islandMode === "osd") {
             if (hasMedia) return "media";
             if (hasNotification) return "notification";
@@ -204,7 +263,7 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: root.isMediaExpanded
+            visible: root.isMediaExpanded && !root.isFullscreen
             color: "transparent"
 
             WlrLayershell.layer: WlrLayer.Top
@@ -239,6 +298,14 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
+            readonly property bool screenFullscreen: {
+                try {
+                    const mon = Hyprland.monitorFor(modelData);
+                    if (mon?.activeWorkspace) return mon.activeWorkspace.hasFullscreen;
+                } catch(e) {}
+                return root.isFullscreen;
+            }
+
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.namespace: "quickshell-dynamic-island"
             exclusionMode: ExclusionMode.Ignore
@@ -252,7 +319,7 @@ Scope {
             }
 
             color: "transparent"
-            visible: root.islandMode !== "hidden"
+            visible: root.islandMode !== "hidden" && (!screenFullscreen || root.islandMode === "osd")
 
             implicitWidth: 540
             implicitHeight: 240
