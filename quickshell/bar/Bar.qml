@@ -278,7 +278,8 @@ Scope {
 
                     // ── Unified OS System Menu Button (Dynamic Distro Nerd Font) ──
                     Rectangle {
-                        implicitWidth: 28
+                        id: distroBtn
+                        implicitWidth: 26
                         implicitHeight: 26
                         radius: 13
                         color: root.appleMenuOpen || appleMouse.containsMouse ? root.barPillHover : "transparent"
@@ -286,6 +287,8 @@ Scope {
 
                         Text {
                             anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: -3
+                            anchors.verticalCenterOffset: -1
                             text: Services.SystemService.distroGlyph
                             color: root.appleMenuOpen || appleMouse.containsMouse ? root.theme.accent : root.barFgPrimary
                             font.pixelSize: 16
