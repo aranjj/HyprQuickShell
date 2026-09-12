@@ -310,8 +310,8 @@ Scope {
                         return 0;
                     }
 
-                color: root.islandMode === "mediaExpanded" ? Qt.rgba(0.04, 0.04, 0.06, 0.98) : "#000000"
-                border.color: root.islandMode === "notification" ? Qt.rgba(0, 122, 255, 0.45) : (root.islandMode === "osd" ? Qt.rgba(1, 1, 1, 0.20) : (root.islandMode === "mediaExpanded" ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.10)))
+                color: Services.Aesthetic.preset === "oled" ? "#000000" : (root.islandMode === "mediaExpanded" ? Qt.rgba(0.04, 0.04, 0.06, 0.98) : "#000000")
+                border.color: Services.Aesthetic.cardBorder
                 border.width: 1
 
                 Behavior on border.color { ColorAnimation { duration: 200 } }
@@ -1241,7 +1241,7 @@ Scope {
                 radius: 14
                 clip: true
                 color: "#000000"
-                border.color: root.satelliteType === "media" ? Qt.rgba(root.playerAccent.r, root.playerAccent.g, root.playerAccent.b, 0.40) : Qt.rgba(1, 1, 1, 0.15)
+                border.color: Services.Aesthetic.cardBorder
                 border.width: 1
 
                 visible: root.satelliteActive || opacity > 0.01
