@@ -364,22 +364,22 @@ Scope {
                         width: parent.width - 24
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: parent.top
-                        anchors.topMargin: 12
-                        spacing: 10
+                        anchors.topMargin: 8
+                        spacing: 8
 
                         // ═══════════════════════════════════════════
                         // 1. TOP QUADRANT: Connectivity (Left) & Quick Utility Tiles (Right)
                         // ═══════════════════════════════════════════
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 10
+                            spacing: 8
 
                             // Left: Connectivity 2x2 Capsule Card
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 196
                                 implicitHeight: 140
-                                radius: 18
+                                radius: 16
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
@@ -618,13 +618,13 @@ Scope {
                                 }
                             }
 
-                            // Right: iOS-style 2x2 Now Playing Square Box
+                            // Right: macOS Tahoe Now Playing Card
                             Rectangle {
-                                Layout.preferredWidth: 140
-                                Layout.minimumWidth: 140
-                                Layout.maximumWidth: 140
+                                Layout.preferredWidth: 142
+                                Layout.minimumWidth: 142
+                                Layout.maximumWidth: 142
                                 implicitHeight: 140
-                                radius: 18
+                                radius: 16
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
@@ -861,7 +861,7 @@ Scope {
                             // 1. Focus / DND Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 48
+                                implicitHeight: 50
                                 radius: 14
                                 color: focusMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.NotificationService.dnd ? Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -926,7 +926,7 @@ Scope {
                             // 2. Night Shift Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 48
+                                implicitHeight: 50
                                 radius: 14
                                 color: nightShiftMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.NightLightService.active ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -991,7 +991,7 @@ Scope {
                             // 3. Caffeine Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 48
+                                implicitHeight: 50
                                 radius: 14
                                 color: caffeineMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.SystemService.caffeineActive ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -1059,8 +1059,8 @@ Scope {
                         // ═══════════════════════════════════════════
                         Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: 78
-                            radius: 18
+                            implicitHeight: 74
+                            radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
                             border.width: 1
@@ -1162,7 +1162,7 @@ Scope {
                         Rectangle {
                             Layout.fillWidth: true
                             implicitHeight: 74
-                            radius: 18
+                            radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
                             border.width: 1
@@ -1300,38 +1300,39 @@ Scope {
                         }
 
                         // ═══════════════════════════════════════════
-                        // 5. QUICK TILES: WALLPAPER & POWER PROFILES
+                        // 5. QUICK TILES: CAPTURE, POWER PROFILE & POWER MENU
                         // ═══════════════════════════════════════════
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 10
+                            spacing: 8
 
-                            // Wallpaper Picker Mini Card
+                            // 1. Screen Capture Tile (opens floating screenshot module)
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 48
-                                radius: 16
-                                color: wallTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                implicitHeight: 50
+                                radius: 14
+                                color: snapTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 8
-                                    spacing: 8
+                                    anchors.margins: 6
+                                    spacing: 6
 
                                     Rectangle {
-                                        width: 32
-                                        height: 32
-                                        radius: 10
-                                        clip: true
+                                        width: 28
+                                        height: 28
+                                        radius: 14
+                                        color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)
 
-                                        Image {
-                                            anchors.fill: parent
-                                            source: Services.WallpaperService.currentWallpaper
-                                            fillMode: Image.PreserveAspectCrop
-                                            cache: true
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "󰹑"
+                                            color: root.theme.accent
+                                            font.pixelSize: 13
+                                            font.family: root.font
                                         }
                                     }
 
@@ -1341,7 +1342,7 @@ Scope {
                                         spacing: 1
 
                                         Text {
-                                            text: "Wallpaper"
+                                            text: "Capture"
                                             color: root.theme.textPrimary
                                             font.pixelSize: 11
                                             font.family: root.font
@@ -1350,7 +1351,7 @@ Scope {
                                             elide: Text.ElideRight
                                         }
                                         Text {
-                                            text: Services.WallpaperService.currentWallpaperName
+                                            text: "Screenshot"
                                             color: root.theme.textMuted
                                             font.pixelSize: 9
                                             font.family: root.font
@@ -1358,43 +1359,25 @@ Scope {
                                             elide: Text.ElideRight
                                         }
                                     }
-
-                                    Rectangle {
-                                        width: 24
-                                        height: 24
-                                        radius: 12
-                                        color: randWallBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "󰘚"
-                                            color: root.theme.textPrimary
-                                            font.pixelSize: 12
-                                            font.family: root.font
-                                        }
-                                        MouseArea {
-                                            id: randWallBtnM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: Services.WallpaperService.randomWallpaper()
-                                        }
-                                    }
                                 }
 
                                 MouseArea {
-                                    id: wallTileMouse
+                                    id: snapTileMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: Services.SystemService.controlCenterSubView = "wallpaper"
+                                    onClicked: {
+                                        Services.SystemService.controlCenterOpen = false;
+                                        Services.ScreenshotService.toggleToolbar();
+                                    }
                                 }
                             }
 
-                            // Power Profile Cycle Pill
+                            // 2. Power Profile Cycle Pill
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 48
-                                radius: 16
+                                implicitHeight: 50
+                                radius: 14
                                 color: powerTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
@@ -1402,13 +1385,13 @@ Scope {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 8
-                                    spacing: 8
+                                    anchors.margins: 6
+                                    spacing: 6
 
                                     Rectangle {
-                                        width: 32
-                                        height: 32
-                                        radius: 16
+                                        width: 28
+                                        height: 28
+                                        radius: 14
                                         color: Services.SystemService.powerProfile === "performance" ? root.theme.accentOrange
                                              : Services.SystemService.powerProfile === "power-saver" ? root.theme.accentGreen : root.theme.accent
                                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -1418,7 +1401,7 @@ Scope {
                                             text: Services.SystemService.powerProfile === "performance" ? "󰓅"
                                                 : Services.SystemService.powerProfile === "power-saver" ? "󰌪" : "󰾅"
                                             color: Services.SystemService.powerProfile === "performance" || Services.SystemService.powerProfile === "power-saver" ? "#000000" : "#ffffff"
-                                            font.pixelSize: 14
+                                            font.pixelSize: 13
                                             font.family: root.font
                                         }
                                     }
@@ -1429,7 +1412,7 @@ Scope {
                                         spacing: 1
 
                                         Text {
-                                            text: "Power Profile"
+                                            text: "Profile"
                                             color: root.theme.textPrimary
                                             font.pixelSize: 11
                                             font.family: root.font
@@ -1461,203 +1444,82 @@ Scope {
                                     }
                                 }
                             }
-                        }
 
-                        // Screen Capture Quick Tile
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: 46
-                            radius: 16
-                            color: snapTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                            border.color: Services.Aesthetic.innerCardBorder
-                            border.width: 1
-                            Behavior on color { ColorAnimation { duration: 120 } }
+                            // 3. Power Menu Tile (replaces wallpaper changer)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 50
+                                radius: 14
+                                color: powerMenuTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
+                                border.width: 1
+                                Behavior on color { ColorAnimation { duration: 120 } }
 
-                            MouseArea {
-                                id: snapTileMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    Services.SystemService.controlCenterOpen = false;
-                                    Services.ScreenshotService.toggleToolbar();
-                                }
-                            }
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 8
-
-                                Rectangle {
-                                    width: 32
-                                    height: 32
-                                    radius: 16
-                                    color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25)
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "󰹑"
-                                        color: root.theme.accent
-                                        font.pixelSize: 15
-                                        font.family: root.font
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    Layout.alignment: Qt.AlignVCenter
-                                    spacing: 1
-
-                                    Text {
-                                        text: "Screen Capture"
-                                        color: root.theme.textPrimary
-                                        font.pixelSize: 11
-                                        font.family: root.font
-                                        font.weight: Font.DemiBold
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        text: "Capture area, window or screen"
-                                        color: root.theme.textMuted
-                                        font.pixelSize: 9
-                                        font.family: root.font
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
-                                    }
-                                }
-
-                                // Direct Quick Buttons
                                 RowLayout {
-                                    spacing: 4
+                                    anchors.fill: parent
+                                    anchors.margins: 6
+                                    spacing: 6
 
-                                    // Fullscreen
                                     Rectangle {
-                                        width: 24
-                                        height: 24
-                                        radius: 12
-                                        color: snapFullM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                                        Behavior on color { ColorAnimation { duration: 100 } }
+                                        width: 28
+                                        height: 28
+                                        radius: 14
+                                        color: Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2)
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "󰹑"
-                                            color: root.theme.textPrimary
-                                            font.pixelSize: 12
+                                            text: "󰐥"
+                                            color: root.theme.accentRed
+                                            font.pixelSize: 13
                                             font.family: root.font
-                                        }
-
-                                        MouseArea {
-                                            id: snapFullM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                Services.SystemService.controlCenterOpen = false;
-                                                Services.ScreenshotService.capture("fullscreen", 0);
-                                            }
                                         }
                                     }
 
-                                    // Window
-                                    Rectangle {
-                                        width: 24
-                                        height: 24
-                                        radius: 12
-                                        color: snapWinM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                                        Behavior on color { ColorAnimation { duration: 100 } }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 1
 
                                         Text {
-                                            anchors.centerIn: parent
-                                            text: "󰍹"
+                                            text: "Power"
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 12
+                                            font.pixelSize: 11
                                             font.family: root.font
+                                            font.weight: Font.DemiBold
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
                                         }
-
-                                        MouseArea {
-                                            id: snapWinM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                Services.SystemService.controlCenterOpen = false;
-                                                Services.ScreenshotService.capture("window", 0);
-                                            }
-                                        }
-                                    }
-
-                                    // Portion / Region snip
-                                    Rectangle {
-                                        width: 24
-                                        height: 24
-                                        radius: 12
-                                        color: snapRegM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35) : Qt.rgba(1, 1, 1, 0.08)
-                                        Behavior on color { ColorAnimation { duration: 100 } }
-
                                         Text {
-                                            anchors.centerIn: parent
-                                            text: "󰒉"
-                                            color: snapRegM.containsMouse ? root.theme.accent : root.theme.textPrimary
-                                            font.pixelSize: 12
+                                            text: "Menu"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 9
                                             font.family: root.font
-                                        }
-
-                                        MouseArea {
-                                            id: snapRegM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                Services.SystemService.controlCenterOpen = false;
-                                                Services.ScreenshotService.capture("region", 0);
-                                            }
-                                        }
-                                    }
-
-                                    // HUD / Floating Toolbar trigger
-                                    Rectangle {
-                                        width: 24
-                                        height: 24
-                                        radius: 12
-                                        color: snapHudM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                                        Behavior on color { ColorAnimation { duration: 100 } }
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "󰄀"
-                                            color: root.theme.textPrimary
-                                            font.pixelSize: 12
-                                            font.family: root.font
-                                        }
-
-                                        MouseArea {
-                                            id: snapHudM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                Services.SystemService.controlCenterOpen = false;
-                                                Services.ScreenshotService.toggleToolbar();
-                                            }
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
                                         }
                                     }
                                 }
+
+                                MouseArea {
+                                    id: powerMenuTileMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Services.SystemService.togglePowerMenu()
+                                }
                             }
                         }
-
                         // ═══════════════════════════════════════════
                         // 6. BOTTOM STATUS CAPSULE: BATTERY & SYSTEM STATS
                         // ═══════════════════════════════════════════
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 10
+                            spacing: 8
 
                             // Battery Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 44
+                                implicitHeight: 50
                                 radius: 14
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1713,7 +1575,7 @@ Scope {
                             // CPU & RAM Card (Click -> btop)
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 44
+                                implicitHeight: 50
                                 radius: 14
                                 color: sysStatsM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
