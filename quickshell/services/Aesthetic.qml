@@ -149,14 +149,17 @@ Singleton {
                 Services.ThemeService.colSurface.r,
                 Services.ThemeService.colSurface.g,
                 Services.ThemeService.colSurface.b,
-                0.85
+                preset === "crystal" ? 0.70 : 0.85
             );
+        }
+        if (preset === "crystal") {
+            return "transparent";
         }
         if (preset === "oled") {
             return Qt.rgba(0.02, 0.02, 0.03, barFloatingOpacity);
         }
         if (isLight) {
-            return Qt.rgba(1, 1, 1, preset === "crystal" ? 0.18 : 0.25);
+            return Qt.rgba(1, 1, 1, 0.25);
         }
         return Qt.rgba(0.04, 0.04, 0.07, barFloatingOpacity);
     }

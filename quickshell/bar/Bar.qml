@@ -235,7 +235,7 @@ Scope {
             implicitHeight: 34
             color: "transparent"
 
-            BackgroundEffect.blurRegion: Region { item: barGlassBg }
+            BackgroundEffect.blurRegion: Region { item: (Services.Aesthetic.preset === "crystal" && !root.hasTopWindow) ? null : barGlassBg }
 
             // ── Apple-Style Dynamic Glass Background & Micro Scrim ──
             Rectangle {
@@ -244,14 +244,44 @@ Scope {
                 color: Services.Aesthetic.barGlassColor(root.hasTopWindow, root.barContentLightMode)
                 Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
-                // Top subtle micro-scrim (improves text contrast over busy wallpapers in transparent mode)
+                // Top subtle micro-scrim (improves text contrast over busy wallpapers for standard presets)
                 Rectangle {
                     anchors.fill: parent
-                    visible: !root.hasTopWindow
+                    visible: !root.hasTopWindow && Services.Aesthetic.preset !== "crystal"
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: root.theme.barIsLight ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.22) }
                         GradientStop { position: 1.0; color: "transparent" }
                     }
+                }
+
+                // Crystal Clear Profile: Backdrop Shadow (transparent bar with soft top-down shadow for maximum widget readability)
+                Rectangle {
+                    anchors.fill: parent
+                    visible: Services.Aesthetic.preset === "crystal" && !root.hasTopWindow
+                    gradient: Gradient {
+                        GradientStop {
+                            position: 0.0
+                            color: root.barContentLightMode ? Qt.rgba(1, 1, 1, 0.40) : Qt.rgba(0, 0, 0, 0.55)
+                        }
+                        GradientStop {
+                            position: 0.65
+                            color: root.barContentLightMode ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.24)
+                        }
+                        GradientStop {
+                            position: 1.0
+                            color: "transparent"
+                        }
+                    }
+                }
+
+                // Crystal Clear Profile: Soft bottom drop shadow line
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    visible: Services.Aesthetic.preset === "crystal" && !root.hasTopWindow
+                    color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(0, 0, 0, 0.20)
                 }
 
                 // Bottom hairline separator when window touches top
