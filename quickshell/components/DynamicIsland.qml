@@ -152,6 +152,19 @@ Scope {
         }
     }
 
+    IpcHandler {
+        target: "island"
+        function toggle() {
+            if (root.hasMedia) root.isMediaExpanded = !root.isMediaExpanded;
+        }
+        function expand() {
+            if (root.hasMedia) root.isMediaExpanded = true;
+        }
+        function collapse() {
+            root.isMediaExpanded = false;
+        }
+    }
+
     // ── Priority State Machine ───────────────────────────
     // Priority: Hardware OSD > Notification Alert > Media Expanded > Media Compact > Hidden
     readonly property string islandMode: {
@@ -254,24 +267,12 @@ Scope {
                 Region { item: satellitePill }
             }
 
-            // ── Island Cluster (Main Pill + Detachable Satellite Pill) ──
-            Item {
-                id: islandCluster
+            // ── Main Morphing Island Pill ─────────────────
+            Rectangle {
+                id: islandContainer
                 anchors.top: parent.top
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: Math.max(islandContainer.height, satellitePill.height)
-                width: islandContainer.width + (root.satelliteActive ? (8 + satellitePill.width) : 0)
-
-                Behavior on width {
-                    NumberAnimation { duration: 320; easing.type: Easing.OutBack; easing.overshoot: 1.08 }
-                }
-
-                // ── Main Morphing Island Pill ─────────────────
-                Rectangle {
-                    id: islandContainer
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    clip: true
+                clip: true
 
                     // Base card mouse handler (resets inactivity timer on hover/clicks)
                     MouseArea {
@@ -317,10 +318,10 @@ Scope {
 
                 // Organic Spring Physics (Apple-grade micro-spring)
                 Behavior on width {
-                    NumberAnimation { duration: 340; easing.type: Easing.OutBack; easing.overshoot: 1.10 }
+                    NumberAnimation { duration: 320; easing.type: Easing.OutBack; easing.overshoot: 1.04 }
                 }
                 Behavior on height {
-                    NumberAnimation { duration: 340; easing.type: Easing.OutBack; easing.overshoot: 1.10 }
+                    NumberAnimation { duration: 320; easing.type: Easing.OutBack; easing.overshoot: 1.04 }
                 }
                 Behavior on radius {
                     NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
@@ -534,7 +535,9 @@ Scope {
                     anchors.fill: parent
                     visible: root.islandMode === "mediaExpanded" || opacity > 0.0
                     opacity: root.islandMode === "mediaExpanded" ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    scale: root.islandMode === "mediaExpanded" ? 1.0 : 0.96
+                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -933,7 +936,9 @@ Scope {
                     anchors.fill: parent
                     visible: root.islandMode === "notification" || opacity > 0.0
                     opacity: root.islandMode === "notification" ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    scale: root.islandMode === "notification" ? 1.0 : 0.96
+                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
                     readonly property var notifData: Services.NotificationService.islandNotification
 
@@ -1309,7 +1314,6 @@ Scope {
                     }
                 }
             }
-        }
         }
     }
 }
