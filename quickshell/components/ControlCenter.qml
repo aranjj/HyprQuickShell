@@ -380,8 +380,8 @@ Scope {
                                 Layout.preferredWidth: 196
                                 implicitHeight: 140
                                 radius: 18
-                                color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
 
                                 ColumnLayout {
@@ -625,8 +625,8 @@ Scope {
                                 Layout.maximumWidth: 140
                                 implicitHeight: 140
                                 radius: 18
-                                color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 clip: true
 
@@ -863,8 +863,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 48
                                 radius: 14
-                                color: focusMouse.containsMouse ? Qt.rgba(root.theme.surfaceContainerHigh.r, root.theme.surfaceContainerHigh.g, root.theme.surfaceContainerHigh.b, 0.85) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Services.NotificationService.dnd ? Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.45) : Qt.rgba(1, 1, 1, 0.08)
+                                color: focusMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                border.color: Services.NotificationService.dnd ? Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.45) : Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -928,8 +928,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 48
                                 radius: 14
-                                color: nightShiftMouse.containsMouse ? Qt.rgba(root.theme.surfaceContainerHigh.r, root.theme.surfaceContainerHigh.g, root.theme.surfaceContainerHigh.b, 0.85) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Services.NightLightService.active ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.45) : Qt.rgba(1, 1, 1, 0.08)
+                                color: nightShiftMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                border.color: Services.NightLightService.active ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.45) : Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -993,8 +993,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 48
                                 radius: 14
-                                color: caffeineMouse.containsMouse ? Qt.rgba(root.theme.surfaceContainerHigh.r, root.theme.surfaceContainerHigh.g, root.theme.surfaceContainerHigh.b, 0.85) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Services.SystemService.caffeineActive ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.45) : Qt.rgba(1, 1, 1, 0.08)
+                                color: caffeineMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                border.color: Services.SystemService.caffeineActive ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.45) : Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1061,8 +1061,8 @@ Scope {
                             Layout.fillWidth: true
                             implicitHeight: 78
                             radius: 18
-                            color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            color: Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
                             border.width: 1
 
                             ColumnLayout {
@@ -1094,7 +1094,7 @@ Scope {
                                     Layout.fillWidth: true
                                     height: 30
                                     radius: 15
-                                    color: Qt.rgba(0, 0, 0, 0.35)
+                                    color: Services.Aesthetic.sliderTrackBg
                                     border.color: brightMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09)
                                     border.width: 1
                                     clip: true
@@ -1116,7 +1116,7 @@ Scope {
                                         width: Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.brightness / 100)))
                                         height: parent.height
                                         radius: 15
-                                        color: "#ffffff"
+                                        color: Services.Aesthetic.sliderFill
                                         clip: true
                                         Behavior on width { NumberAnimation { duration: 50 } }
 
@@ -1163,8 +1163,8 @@ Scope {
                             Layout.fillWidth: true
                             implicitHeight: 74
                             radius: 18
-                            color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            color: Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
                             border.width: 1
                             clip: true
 
@@ -1226,7 +1226,7 @@ Scope {
                                     Layout.fillWidth: true
                                     height: 30
                                     radius: 15
-                                    color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Qt.rgba(0, 0, 0, 0.35)
+                                    color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
                                     border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (soundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
                                     border.width: 1
                                     clip: true
@@ -1252,7 +1252,7 @@ Scope {
                                         width: Services.SystemService.volumeMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
                                         height: parent.height
                                         radius: 15
-                                        color: "#ffffff"
+                                        color: Services.Aesthetic.sliderFill
                                         clip: true
                                         Behavior on width { NumberAnimation { duration: 50 } }
 
@@ -1311,8 +1311,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 48
                                 radius: 16
-                                color: wallTileMouse.containsMouse ? Qt.rgba(root.theme.surfaceContainerHigh.r, root.theme.surfaceContainerHigh.g, root.theme.surfaceContainerHigh.b, 0.85) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: wallTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1395,8 +1395,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 48
                                 radius: 16
-                                color: powerTileMouse.containsMouse ? Qt.rgba(root.theme.surfaceContainerHigh.r, root.theme.surfaceContainerHigh.g, root.theme.surfaceContainerHigh.b, 0.85) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: powerTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1468,8 +1468,8 @@ Scope {
                             Layout.fillWidth: true
                             implicitHeight: 46
                             radius: 16
-                            color: snapTileMouse.containsMouse ? Qt.rgba(root.theme.surfaceContainerHigh.r, root.theme.surfaceContainerHigh.g, root.theme.surfaceContainerHigh.b, 0.85) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            color: snapTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
                             border.width: 1
                             Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1659,8 +1659,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 44
                                 radius: 14
-                                color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
 
                                 RowLayout {
@@ -1715,8 +1715,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 44
                                 radius: 14
-                                color: sysStatsM.containsMouse ? Qt.rgba(root.theme.surfaceContainerHigh.r, root.theme.surfaceContainerHigh.g, root.theme.surfaceContainerHigh.b, 0.85) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: sysStatsM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1884,7 +1884,9 @@ Scope {
                         Layout.fillWidth: true
                         implicitHeight: 48
                         radius: 12
-                        color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
+                        color: Services.Aesthetic.innerCardBg
+                        border.color: Services.Aesthetic.innerCardBorder
+                        border.width: 1
                         visible: Services.SystemService.wifiEnabled && Services.SystemService.wifiSsid !== ""
 
                         RowLayout {
@@ -1964,7 +1966,9 @@ Scope {
                             width: ListView.view.width
                             height: 44
                             radius: 10
-                            color: wifiItmM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
+                            color: wifiItmM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
+                            border.width: 1
                             Behavior on color { ColorAnimation { duration: 100 } }
 
                             RowLayout {
@@ -2143,7 +2147,9 @@ Scope {
                             width: ListView.view.width
                             height: 46
                             radius: 10
-                            color: btItmM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
+                            color: btItmM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
+                            border.width: 1
                             Behavior on color { ColorAnimation { duration: 100 } }
 
                             RowLayout {
@@ -2348,8 +2354,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: outputCol.implicitHeight + 24
                                 radius: 16
-                                color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
 
                                 ColumnLayout {
@@ -2384,7 +2390,7 @@ Scope {
                                         Layout.fillWidth: true
                                         height: 30
                                         radius: 15
-                                        color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Qt.rgba(0, 0, 0, 0.35)
+                                        color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
                                         border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (subSoundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
                                         border.width: 1
                                         clip: true
@@ -2408,7 +2414,7 @@ Scope {
                                             width: Services.SystemService.volumeMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
                                             height: parent.height
                                             radius: 15
-                                            color: "#ffffff"
+                                            color: Services.Aesthetic.sliderFill
                                             clip: true
                                             Behavior on width { NumberAnimation { duration: 50 } }
 
@@ -2524,8 +2530,8 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: micCardCol.implicitHeight + 20
                                 radius: 16
-                                color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 clip: true
                                 Behavior on implicitHeight { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -2625,7 +2631,7 @@ Scope {
                                             Layout.fillWidth: true
                                             height: 30
                                             radius: 15
-                                            color: Services.SystemService.micMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Qt.rgba(0, 0, 0, 0.35)
+                                            color: Services.SystemService.micMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
                                             border.color: Services.SystemService.micMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (subMicMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
                                             border.width: 1
                                             clip: true
@@ -2646,7 +2652,7 @@ Scope {
                                                 width: Services.SystemService.micMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.micVolume) / 100)))
                                                 height: parent.height
                                                 radius: 15
-                                                color: Services.SystemService.micInUse ? "#ff9f0a" : "#ffffff"
+                                                color: Services.SystemService.micInUse ? "#ff9f0a" : Services.Aesthetic.sliderFill
                                                 clip: true
                                                 Behavior on width { NumberAnimation { duration: 50 } }
                                                 Behavior on color { ColorAnimation { duration: 140 } }
@@ -2872,8 +2878,8 @@ Scope {
                         Layout.fillWidth: true
                         implicitHeight: 46
                         radius: 12
-                        color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                        border.color: Qt.rgba(1, 1, 1, 0.08)
+                        color: Services.Aesthetic.innerCardBg
+                        border.color: Services.Aesthetic.innerCardBorder
                         border.width: 1
 
                         RowLayout {
@@ -3203,8 +3209,8 @@ Scope {
                                             Layout.fillWidth: true
                                             implicitHeight: notifCardCol.implicitHeight + 20
                                             radius: 14
-                                            color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                                            color: Services.Aesthetic.innerCardBg
+                                            border.color: Services.Aesthetic.innerCardBorder
                                             border.width: 1
 
                                             ColumnLayout {
@@ -3787,8 +3793,8 @@ Scope {
                         Layout.fillWidth: true
                         implicitHeight: 60
                         radius: 16
-                        color: Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.75)
-                        border.color: Qt.rgba(1, 1, 1, 0.08)
+                        color: Services.Aesthetic.innerCardBg
+                        border.color: Services.Aesthetic.innerCardBorder
                         border.width: 1
 
                         ColumnLayout {
@@ -3907,8 +3913,8 @@ Scope {
                             radius: 12
                             color: {
                                 const isCurrent = root.activePlayer?.identity === modelData.identity;
-                                if (srcMouse.containsMouse) return Qt.rgba(1, 1, 1, 0.12);
-                                return isCurrent ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(root.theme.surfaceContainer.r, root.theme.surfaceContainer.g, root.theme.surfaceContainer.b, 0.6);
+                                if (srcMouse.containsMouse) return Services.Aesthetic.innerCardHover;
+                                return isCurrent ? Qt.rgba(1, 1, 1, 0.08) : Services.Aesthetic.innerCardBg;
                             }
                             border.color: root.activePlayer?.identity === modelData.identity ? root.playerAccent : Qt.rgba(1, 1, 1, 0.06)
                             border.width: 1
