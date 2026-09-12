@@ -38,6 +38,7 @@ SLURP_BOX="#${HEX}25"
 
 case "$MODE" in
     fullscreen)
+        pkill -9 -x slurp 2>/dev/null || true
         grim "$FILE" || exit 0
         wl-copy --type image/png < "$FILE" 2>/dev/null || true
         ;;

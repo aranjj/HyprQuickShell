@@ -126,15 +126,15 @@ Singleton {
         SystemService.controlCenterOpen = false;
 
         const d = (delaySecs !== undefined && delaySecs > 0) ? delaySecs : 0;
-        const m = mode || "region";
+        const m = mode || root.captureMode || "region";
 
-        if (overlayWasOpen && m !== "fullscreen") {
-            // Delay: let the overlay surface fully unmap
+        if (overlayWasOpen) {
+            // Delay: let the overlay surface fully unmap and release compositor grab
             root._pendingMode = m;
             root._pendingDelay = d;
             captureDelayTimer.restart();
         } else {
-            // Keyboard shortcut or fullscreen — execute immediately
+            // Keyboard shortcut or background invocation — execute immediately
             _runCapture(m, d);
         }
     }
