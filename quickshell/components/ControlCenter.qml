@@ -15,7 +15,7 @@ Scope {
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
-    // Sub-view toggle: "main", "wifi", "bluetooth", "media", "wallpaper"
+    // Sub-view toggle: "main", "wifi", "bluetooth", "audio", "battery", "media", "wallpaper"
     readonly property string activeView: Services.SystemService.controlCenterSubView
 
     IpcHandler {
@@ -1394,79 +1394,7 @@ Scope {
                                 }
                             }
 
-                            // 2. Power Profile Cycle Pill
-                            Rectangle {
-                                Layout.fillWidth: true
-                                implicitHeight: 50
-                                radius: 14
-                                color: powerTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                border.color: Services.Aesthetic.innerCardBorder
-                                border.width: 1
-                                Behavior on color { ColorAnimation { duration: 120 } }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 6
-                                    spacing: 6
-
-                                    Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
-                                        color: Services.SystemService.powerProfile === "performance" ? root.theme.accentOrange
-                                             : Services.SystemService.powerProfile === "power-saver" ? root.theme.accentGreen : root.theme.accent
-                                        Behavior on color { ColorAnimation { duration: 150 } }
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: Services.SystemService.powerProfile === "performance" ? "󰓅"
-                                                : Services.SystemService.powerProfile === "power-saver" ? "󰌪" : "󰾅"
-                                            color: Services.SystemService.powerProfile === "performance" || Services.SystemService.powerProfile === "power-saver" ? "#000000" : "#ffffff"
-                                            font.pixelSize: 13
-                                            font.family: root.font
-                                        }
-                                    }
-
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        Layout.alignment: Qt.AlignVCenter
-                                        spacing: 1
-
-                                        Text {
-                                            text: "Profile"
-                                            color: root.theme.textPrimary
-                                            font.pixelSize: 11
-                                            font.family: root.font
-                                            font.weight: Font.DemiBold
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                        }
-                                        Text {
-                                            text: Services.SystemService.powerProfile === "performance" ? "Performance"
-                                                : Services.SystemService.powerProfile === "power-saver" ? "Power Saver" : "Balanced"
-                                            color: root.theme.textMuted
-                                            font.pixelSize: 9
-                                            font.family: root.font
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                        }
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: powerTileMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        const p = Services.SystemService.powerProfile;
-                                        const next = p === "performance" ? "balanced" : (p === "balanced" ? "power-saver" : "performance");
-                                        Services.SystemService.setPowerProfile(next);
-                                    }
-                                }
-                            }
-
-                            // 3. Power Menu Tile (replaces wallpaper changer)
+                            // 2. Power Menu Tile
                             Rectangle {
                                 Layout.fillWidth: true
                                 implicitHeight: 50
@@ -1478,8 +1406,8 @@ Scope {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 6
-                                    spacing: 6
+                                    anchors.margins: 8
+                                    spacing: 8
 
                                     Rectangle {
                                         width: 28
@@ -1542,9 +1470,10 @@ Scope {
                                 Layout.fillWidth: true
                                 implicitHeight: 50
                                 radius: 14
-                                color: Services.Aesthetic.innerCardBg
+                                color: battTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
+                                Behavior on color { ColorAnimation { duration: 120 } }
 
                                 RowLayout {
                                     anchors.fill: parent
@@ -1590,6 +1519,22 @@ Scope {
                                             elide: Text.ElideRight
                                         }
                                     }
+
+                                    Text {
+                                        text: "›"
+                                        color: root.theme.textMuted
+                                        font.pixelSize: 16
+                                        font.family: root.font
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: battTileMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Services.SystemService.controlCenterSubView = "battery"
                                 }
                             }
 
@@ -3221,6 +3166,662 @@ Scope {
                                     onClicked: {
                                         Services.SystemService.runCmd("pavucontrol || systemsettings kcm_pulseaudio");
                                         Services.SystemService.controlCenterOpen = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ═══════════════════════════════════════════
+                // VIEW: macOS STYLE BATTERY & POWER SETTINGS
+                // ═══════════════════════════════════════════
+                ColumnLayout {
+                    id: battDetailsView
+                    visible: root.activeView === "battery"
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 12
+
+                    // Back & Title Header
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        // Back button with hover/press animations
+                        Rectangle {
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: backBattM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (backBattM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
+                            border.color: backBattM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1)
+                            border.width: 1
+                            scale: backBattM.pressed ? 0.92 : (backBattM.containsMouse ? 1.06 : 1.0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "‹"
+                                color: backBattM.containsMouse ? "#ffffff" : root.theme.textPrimary
+                                font.pixelSize: 18
+                                font.family: root.font
+                            }
+                            MouseArea {
+                                id: backBattM
+                                anchors.fill: parent
+                                anchors.margins: -4
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Services.SystemService.controlCenterSubView = "main"
+                            }
+                        }
+
+                        Text {
+                            text: "Battery"
+                            color: root.theme.textPrimary
+                            font.pixelSize: 16
+                            font.family: root.font
+                            font.weight: Font.DemiBold
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        // Refresh button
+                        Rectangle {
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: rescBattM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (rescBattM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
+                            border.color: rescBattM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1)
+                            border.width: 1
+                            scale: rescBattM.pressed ? 0.92 : (rescBattM.containsMouse ? 1.06 : 1.0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "󰑐"
+                                color: rescBattM.containsMouse ? "#ffffff" : root.theme.accent
+                                font.pixelSize: 13
+                                font.family: root.font
+                            }
+                            MouseArea {
+                                id: rescBattM
+                                anchors.fill: parent
+                                anchors.margins: -4
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Services.SystemService.refreshBattery()
+                            }
+                        }
+                    }
+
+                    // Content Scroll Area
+                    Flickable {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        contentWidth: width
+                        contentHeight: battDetailCol.implicitHeight
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        ColumnLayout {
+                            id: battDetailCol
+                            width: parent.width
+                            spacing: 14
+
+                            // ── 1. BATTERY STATUS CARD ──
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: battStatusInnerCol.implicitHeight + 24
+                                radius: 16
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
+                                border.width: 1
+
+                                ColumnLayout {
+                                    id: battStatusInnerCol
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 12
+
+                                    // Top Row: Big Icon + Percentage & State + Status Badge
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 12
+
+                                        Rectangle {
+                                            width: 44
+                                            height: 44
+                                            radius: 22
+                                            color: (Services.SystemService.batteryCharging || Services.SystemService.batteryPlugged)
+                                                   ? Qt.rgba(root.theme.battGood.r, root.theme.battGood.g, root.theme.battGood.b, 0.15)
+                                                   : (Services.SystemService.batteryLevel > 20
+                                                      ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.15)
+                                                      : Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.15))
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: Services.SystemService.batteryIcon
+                                                color: (Services.SystemService.batteryCharging || Services.SystemService.batteryPlugged)
+                                                       ? root.theme.battGood
+                                                       : (Services.SystemService.batteryLevel > 20 ? root.theme.accentGreen : root.theme.accentOrange)
+                                                font.pixelSize: 22
+                                                font.family: root.font
+                                            }
+                                        }
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+
+                                            RowLayout {
+                                                spacing: 6
+                                                Text {
+                                                    text: Services.SystemService.batteryLevel + "%"
+                                                    color: root.theme.textPrimary
+                                                    font.pixelSize: 20
+                                                    font.family: root.font
+                                                    font.weight: Font.Bold
+                                                }
+
+                                                Text {
+                                                    text: "󱐋"
+                                                    color: root.theme.battGood
+                                                    font.pixelSize: 14
+                                                    font.family: root.font
+                                                    visible: Services.SystemService.batteryCharging
+                                                }
+                                            }
+
+                                            Text {
+                                                text: Services.SystemService.batteryCharging ? "Charging" : (Services.SystemService.batteryPlugged ? "Power Adapter (Connected)" : "Discharging on Battery")
+                                                color: root.theme.textMuted
+                                                font.pixelSize: 11
+                                                font.family: root.font
+                                                Layout.fillWidth: true
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        // Status badge pill
+                                        Rectangle {
+                                            implicitHeight: 24
+                                            implicitWidth: statusPillText.implicitWidth + 16
+                                            radius: 12
+                                            color: Services.SystemService.batteryCharging
+                                                   ? Qt.rgba(root.theme.battGood.r, root.theme.battGood.g, root.theme.battGood.b, 0.2)
+                                                   : (Services.SystemService.batteryPlugged
+                                                      ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)
+                                                      : Qt.rgba(1, 1, 1, 0.1))
+
+                                            Text {
+                                                id: statusPillText
+                                                anchors.centerIn: parent
+                                                text: Services.SystemService.batteryCharging ? "Charging" : (Services.SystemService.batteryPlugged ? "AC Connected" : "Battery")
+                                                color: Services.SystemService.batteryCharging
+                                                       ? root.theme.battGood
+                                                       : (Services.SystemService.batteryPlugged ? root.theme.accent : root.theme.textSecondary)
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                                font.weight: Font.DemiBold
+                                            }
+                                        }
+                                    }
+
+                                    // Battery Level Progress Capsule
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 8
+                                        radius: 4
+                                        color: Qt.rgba(1, 1, 1, 0.08)
+                                        clip: true
+
+                                        Rectangle {
+                                            height: parent.height
+                                            width: Math.max(8, parent.width * Math.min(1.0, Math.max(0.0, Services.SystemService.batteryLevel / 100.0)))
+                                            radius: 4
+                                            color: (Services.SystemService.batteryCharging || Services.SystemService.batteryPlugged)
+                                                   ? root.theme.battGood
+                                                   : (Services.SystemService.batteryLevel > 20 ? root.theme.accentGreen : root.theme.accentOrange)
+                                            Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                                        }
+                                    }
+
+                                    // 1px Subtle Divider
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 1
+                                        color: Qt.rgba(1, 1, 1, 0.06)
+                                    }
+
+                                    // Power Details Rows
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text {
+                                            text: "Power Source"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: Services.SystemService.batteryPlugged ? "Power Adapter" : "Battery"
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            font.weight: Font.Medium
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text {
+                                            text: "Battery Condition"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: Services.SystemService.batteryCondition + (Services.SystemService.batteryHealthPct > 0 ? " (" + Services.SystemService.batteryHealthPct + "%)" : "")
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            font.weight: Font.Medium
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        visible: Services.SystemService.batteryCycles > 0
+                                        Text {
+                                            text: "Cycle Count"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: Services.SystemService.batteryCycles + " cycles"
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            font.weight: Font.Medium
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ── 2. ENERGY MODE SECTION (macOS Tahoe Radio Selector) ──
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+
+                                Text {
+                                    text: "ENERGY MODE"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 0.6
+                                    Layout.leftMargin: 4
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: energyModesCol.implicitHeight + 12
+                                    radius: 16
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+
+                                    ColumnLayout {
+                                        id: energyModesCol
+                                        anchors.fill: parent
+                                        anchors.margins: 6
+                                        spacing: 2
+
+                                        // Low Power Mode
+                                        Rectangle {
+                                            id: modeSaverRow
+                                            readonly property bool isSelected: Services.SystemService.powerProfile === "power-saver"
+                                            Layout.fillWidth: true
+                                            implicitHeight: 52
+                                            radius: 10
+                                            color: isSelected
+                                                   ? Qt.rgba(0, 0.48, 1, 0.16)
+                                                   : (modeSaverMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 10
+                                                anchors.rightMargin: 10
+                                                spacing: 10
+
+                                                Rectangle {
+                                                    width: 30
+                                                    height: 30
+                                                    radius: 15
+                                                    color: modeSaverRow.isSelected
+                                                           ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.25)
+                                                           : Qt.rgba(1, 1, 1, 0.07)
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "󰌪"
+                                                        color: modeSaverRow.isSelected ? root.theme.accentGreen : root.theme.textSecondary
+                                                        font.pixelSize: 14
+                                                        font.family: root.font
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 1
+
+                                                    Text {
+                                                        text: "Low Power Mode"
+                                                        color: modeSaverRow.isSelected ? "#ffffff" : root.theme.textPrimary
+                                                        font.pixelSize: 12
+                                                        font.family: root.font
+                                                        font.weight: modeSaverRow.isSelected ? Font.DemiBold : Font.Normal
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+                                                    }
+
+                                                    Text {
+                                                        text: "Reduces energy usage to increase battery life"
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 9
+                                                        font.family: root.font
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: "✓"
+                                                    color: root.theme.accent
+                                                    font.pixelSize: 14
+                                                    font.weight: Font.Bold
+                                                    font.family: root.font
+                                                    visible: modeSaverRow.isSelected
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: modeSaverMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: Services.SystemService.setPowerProfile("power-saver")
+                                            }
+                                        }
+
+                                        // Divider
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 1
+                                            color: Qt.rgba(1, 1, 1, 0.06)
+                                        }
+
+                                        // Automatic (Balanced)
+                                        Rectangle {
+                                            id: modeBalRow
+                                            readonly property bool isSelected: Services.SystemService.powerProfile === "balanced"
+                                            Layout.fillWidth: true
+                                            implicitHeight: 52
+                                            radius: 10
+                                            color: isSelected
+                                                   ? Qt.rgba(0, 0.48, 1, 0.16)
+                                                   : (modeBalMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 10
+                                                anchors.rightMargin: 10
+                                                spacing: 10
+
+                                                Rectangle {
+                                                    width: 30
+                                                    height: 30
+                                                    radius: 15
+                                                    color: modeBalRow.isSelected
+                                                           ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25)
+                                                           : Qt.rgba(1, 1, 1, 0.07)
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "󰾅"
+                                                        color: modeBalRow.isSelected ? root.theme.accent : root.theme.textSecondary
+                                                        font.pixelSize: 14
+                                                        font.family: root.font
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 1
+
+                                                    Text {
+                                                        text: "Automatic (Balanced)"
+                                                        color: modeBalRow.isSelected ? "#ffffff" : root.theme.textPrimary
+                                                        font.pixelSize: 12
+                                                        font.family: root.font
+                                                        font.weight: modeBalRow.isSelected ? Font.DemiBold : Font.Normal
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+                                                    }
+
+                                                    Text {
+                                                        text: "Balances system performance and energy consumption"
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 9
+                                                        font.family: root.font
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: "✓"
+                                                    color: root.theme.accent
+                                                    font.pixelSize: 14
+                                                    font.weight: Font.Bold
+                                                    font.family: root.font
+                                                    visible: modeBalRow.isSelected
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: modeBalMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: Services.SystemService.setPowerProfile("balanced")
+                                            }
+                                        }
+
+                                        // Divider
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 1
+                                            color: Qt.rgba(1, 1, 1, 0.06)
+                                        }
+
+                                        // High Power Mode
+                                        Rectangle {
+                                            id: modePerfRow
+                                            readonly property bool isSelected: Services.SystemService.powerProfile === "performance"
+                                            Layout.fillWidth: true
+                                            implicitHeight: 52
+                                            radius: 10
+                                            color: isSelected
+                                                   ? Qt.rgba(0, 0.48, 1, 0.16)
+                                                   : (modePerfMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 10
+                                                anchors.rightMargin: 10
+                                                spacing: 10
+
+                                                Rectangle {
+                                                    width: 30
+                                                    height: 30
+                                                    radius: 15
+                                                    color: modePerfRow.isSelected
+                                                           ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.25)
+                                                           : Qt.rgba(1, 1, 1, 0.07)
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "󰓅"
+                                                        color: modePerfRow.isSelected ? root.theme.accentOrange : root.theme.textSecondary
+                                                        font.pixelSize: 14
+                                                        font.family: root.font
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 1
+
+                                                    Text {
+                                                        text: "High Power Mode"
+                                                        color: modePerfRow.isSelected ? "#ffffff" : root.theme.textPrimary
+                                                        font.pixelSize: 12
+                                                        font.family: root.font
+                                                        font.weight: modePerfRow.isSelected ? Font.DemiBold : Font.Normal
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+                                                    }
+
+                                                    Text {
+                                                        text: "Optimizes performance for intensive system workloads"
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 9
+                                                        font.family: root.font
+                                                        Layout.fillWidth: true
+                                                        elide: Text.ElideRight
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: "✓"
+                                                    color: root.theme.accent
+                                                    font.pixelSize: 14
+                                                    font.weight: Font.Bold
+                                                    font.family: root.font
+                                                    visible: modePerfRow.isSelected
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: modePerfMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: Services.SystemService.setPowerProfile("performance")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ── 3. SIGNIFICANT ENERGY CONSUMERS / ACTIVITY MONITOR ──
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+
+                                Text {
+                                    text: "SYSTEM USAGE"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 0.6
+                                    Layout.leftMargin: 4
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: 52
+                                    radius: 14
+                                    color: btopTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 12
+                                        anchors.rightMargin: 12
+                                        spacing: 10
+
+                                        Rectangle {
+                                            width: 30
+                                            height: 30
+                                            radius: 15
+                                            color: Qt.rgba(0.75, 0.35, 0.95, 0.2)
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "󰻠"
+                                                color: "#bf5af2"
+                                                font.pixelSize: 15
+                                                font.family: root.font
+                                            }
+                                        }
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 1
+
+                                            Text {
+                                                text: "Activity Monitor"
+                                                color: root.theme.textPrimary
+                                                font.pixelSize: 12
+                                                font.family: root.font
+                                                font.weight: Font.DemiBold
+                                                Layout.fillWidth: true
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                text: "CPU " + Services.SystemService.cpuUsage + "  •  RAM " + Services.SystemService.memUsage
+                                                color: root.theme.textMuted
+                                                font.pixelSize: 9
+                                                font.family: root.font
+                                                Layout.fillWidth: true
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        Text {
+                                            text: "›"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 16
+                                            font.family: root.font
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: btopTileMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Services.SystemService.controlCenterOpen = false;
+                                            Services.SystemService.openBtop();
+                                        }
                                     }
                                 }
                             }

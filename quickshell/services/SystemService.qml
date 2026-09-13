@@ -36,6 +36,8 @@ Singleton {
                 } else if (targetSub === "audio") {
                     rescanAudioSinks();
                     rescanAudioSources();
+                } else if (targetSub === "battery") {
+                    refreshBattery();
                 } else {
                     rescanWifi();
                     refreshBluetooth();
@@ -239,10 +241,13 @@ Singleton {
     property bool batteryCharging: false
     property bool batteryPlugged: false
     property string batteryStatusText: "Full"
+    property int batteryHealthPct: 100
+    property string batteryCondition: "Normal"
+    property int batteryCycles: 0
 
     Process {
         id: battProc
-        command: ["sh", "-c", "printf '%s|%s|%s' \"$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null || echo '100')\" \"$(cat /sys/class/power_supply/BAT*/status 2>/dev/null || echo 'Full')\" \"$(cat /sys/class/power_supply/AD*/online 2>/dev/null || cat /sys/class/power_supply/AC*/online 2>/dev/null || echo '0')\""]
+        command: ["sh", "-c", "printf '%s|%s|%s|%s|%s|%s' \"$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null || echo '100')\" \"$(cat /sys/class/power_supply/BAT*/status 2>/dev/null || echo 'Full')\" \"$(cat /sys/class/power_supply/AD*/online 2>/dev/null || cat /sys/class/power_supply/AC*/online 2>/dev/null || echo '0')\" \"$(cat /sys/class/power_supply/BAT*/cycle_count 2>/dev/null || echo '0')\" \"$(cat /sys/class/power_supply/BAT*/energy_full 2>/dev/null || cat /sys/class/power_supply/BAT*/charge_full 2>/dev/null || echo '0')\" \"$(cat /sys/class/power_supply/BAT*/energy_full_design 2>/dev/null || cat /sys/class/power_supply/BAT*/charge_full_design 2>/dev/null || echo '0')\""]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -250,10 +255,23 @@ Singleton {
                 const level = parseInt(parts[0]) || 100;
                 const status = (parts[1] || "Full").trim();
                 const acOnline = parseInt(parts[2]) === 1;
+                const cycles = parseInt(parts[3]) || 0;
+                const energyFull = parseInt(parts[4]) || 0;
+                const energyDesign = parseInt(parts[5]) || 0;
 
                 root.batteryLevel = level;
                 root.batteryCharging = status === "Charging";
                 root.batteryPlugged = acOnline || status === "Charging" || (status === "Full" && level >= 95);
+                root.batteryCycles = cycles;
+
+                if (energyDesign > 0 && energyFull > 0) {
+                    const health = Math.min(100, Math.round((energyFull / energyDesign) * 100));
+                    root.batteryHealthPct = health;
+                    root.batteryCondition = health >= 80 ? "Normal" : "Service Recommended";
+                } else {
+                    root.batteryHealthPct = 100;
+                    root.batteryCondition = "Normal";
+                }
 
                 if (root.batteryCharging) {
                     root.batteryStatusText = "Charging (" + level + "%)";
@@ -272,6 +290,11 @@ Singleton {
                 }
             }
         }
+    }
+
+    function refreshBattery() {
+        battProc.running = true;
+        profileProc.running = true;
     }
 
     // ── Power Profiles ──────────────────────────────

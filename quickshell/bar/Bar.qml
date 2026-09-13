@@ -833,7 +833,7 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Services.SystemService.toggleControlCenter()
+                            onClicked: Services.SystemService.openControlCenter("controls", "battery")
                         }
                     }
 
