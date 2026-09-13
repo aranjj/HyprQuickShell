@@ -68,7 +68,7 @@ Scope {
     // ── Fetch Clipboard via cliphist ────────────────
     Process {
         id: listProc
-        command: ["cliphist", "list"]
+        command: ["/home/aran/.config/quickshell/scripts/cliphist-fetch.sh"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -100,29 +100,73 @@ Scope {
 
             const id = line.substring(0, tabIdx).trim();
             const preview = line.substring(tabIdx + 1);
+            const trimmed = preview.trim();
 
             let type = "text";
             let isImage = false;
             let isUrl = false;
             let isColor = false;
             let isCode = false;
+            let thumbSource = "";
+            let title = "";
+            let subtitle = "";
+            let dimensions = "";
+            let fileSize = "";
+            let format = "";
 
             // Check if item is binary image data
-            if (preview.includes("PNG") || preview.includes("JFIF") || preview.includes("WEBP") || preview.includes("IHDR") || preview.charCodeAt(0) === 0x89) {
+            const isBinaryImage = /^\[\[\s*binary data/i.test(trimmed) || trimmed.includes("binary data") || trimmed.includes("PNG") || trimmed.includes("JFIF") || trimmed.includes("WEBP") || trimmed.includes("IHDR") || trimmed.charCodeAt(0) === 0x89;
+            const isFileImage = /^file:\/\/\S+\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(trimmed);
+            const isPathImage = /^\/\S+\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(trimmed);
+
+            if (isBinaryImage) {
                 type = "image";
                 isImage = true;
+                thumbSource = "file:///tmp/quickshell_clip_thumbs/" + id + ".png";
+
+                const dimMatch = trimmed.match(/(\d+)\s*x\s*(\d+)/i);
+                if (dimMatch) dimensions = dimMatch[1] + " × " + dimMatch[2];
+
+                const sizeMatch = trimmed.match(/(\d+(?:\.\d+)?\s*(?:KiB|MiB|GiB|B|KB|MB))/i);
+                if (sizeMatch) fileSize = sizeMatch[1];
+
+                const fmtMatch = trimmed.match(/\b(png|jpe?g|webp|gif|bmp|tiff|avif)\b/i);
+                format = fmtMatch ? fmtMatch[1].toUpperCase() : "PNG";
+
+                title = format + " Image" + (dimensions ? " (" + dimensions + ")" : "");
+                subtitle = (fileSize ? fileSize + " • " : "") + format + " • Press ↵ to copy";
+            } else if (isFileImage || isPathImage) {
+                type = "image";
+                isImage = true;
+                thumbSource = isFileImage ? trimmed : ("file://" + trimmed);
+                const rawPath = isFileImage ? decodeURIComponent(trimmed.replace(/^file:\/\//, "")) : trimmed;
+                const fileName = rawPath.split("/").pop() || "Image";
+                title = fileName;
+                subtitle = "Local Image File • Press ↵ to copy";
+            } else if (/^https?:\/\/\S+/i.test(trimmed) || /^www\.\S+/i.test(trimmed)) {
+                type = "url";
+                isUrl = true;
+                title = trimmed;
+                subtitle = "Web Link • " + trimmed;
+            } else if (/^#(?:[0-9a-fA-F]{3}){1,2}$|^rgba?\([0-9, ]+\)$/.test(trimmed)) {
+                type = "color";
+                isColor = true;
+                title = trimmed;
+                subtitle = "Color Hex • " + trimmed;
+            } else if (trimmed.includes("\n") || trimmed.includes("function") || trimmed.includes("const ") || trimmed.includes("import ") || (trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("<") && trimmed.endsWith(">"))) {
+                type = "code";
+                isCode = true;
+                const clean = trimmed.replace(/\r?\n|\r/g, " ").trim();
+                title = clean.length > 90 ? (clean.substring(0, 90) + "…") : clean;
+                const len = trimmed.length;
+                const lineCount = trimmed.split("\n").length;
+                subtitle = (lineCount > 1 ? (lineCount + " lines (" + len + " chars)") : (len + " characters")) + " • Code snippet";
             } else {
-                const trimmed = preview.trim();
-                if (/^https?:\/\/\S+/i.test(trimmed) || /^www\.\S+/i.test(trimmed)) {
-                    type = "url";
-                    isUrl = true;
-                } else if (/^#(?:[0-9a-fA-F]{3}){1,2}$|^rgba?\([0-9, ]+\)$/.test(trimmed)) {
-                    type = "color";
-                    isColor = true;
-                } else if (trimmed.includes("\n") || trimmed.includes("function") || trimmed.includes("const ") || trimmed.includes("import ") || (trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("<") && trimmed.endsWith(">"))) {
-                    type = "code";
-                    isCode = true;
-                }
+                const clean = trimmed.replace(/\r?\n|\r/g, " ").trim();
+                title = clean.length > 90 ? (clean.substring(0, 90) + "…") : clean;
+                const len = trimmed.length;
+                const lineCount = trimmed.split("\n").length;
+                subtitle = (lineCount > 1 ? (lineCount + " lines (" + len + " chars)") : (len + " characters")) + " • Plain text";
             }
 
             items.push({
@@ -132,7 +176,13 @@ Scope {
                 isImage: isImage,
                 isUrl: isUrl,
                 isColor: isColor,
-                isCode: isCode
+                isCode: isCode,
+                thumbSource: thumbSource,
+                title: title,
+                subtitle: subtitle,
+                dimensions: dimensions,
+                fileSize: fileSize,
+                format: format
             });
         }
 
@@ -149,7 +199,7 @@ Scope {
 
         return clipboardItems.filter(item => {
             if (item.isImage) {
-                return "image".includes(q) || "png".includes(q) || "screenshot".includes(q) || "photo".includes(q);
+                return "image".includes(q) || "png".includes(q) || "screenshot".includes(q) || "photo".includes(q) || (item.title && item.title.toLowerCase().includes(q));
             }
             return item.preview.toLowerCase().includes(q);
         });
@@ -165,7 +215,7 @@ Scope {
 
     function deleteItem(item) {
         if (!item) return;
-        const cmd = "printf '%s\\t' " + item.id + " | cliphist delete";
+        const cmd = "printf '%s\\t' " + item.id + " | cliphist delete; rm -f /tmp/quickshell_clip_thumbs/" + item.id + ".*";
         runAction(cmd);
 
         // Update local array immediately
@@ -177,7 +227,7 @@ Scope {
     }
 
     function wipeHistory() {
-        runAction("cliphist wipe");
+        runAction("cliphist wipe; rm -rf /tmp/quickshell_clip_thumbs/*");
         root.clipboardItems = [];
         root.selectedIndex = 0;
         root.statusMessage = "Clipboard history cleared";
@@ -480,7 +530,7 @@ Scope {
                     delegate: Rectangle {
                         id: itemRow
                         width: itemList.width
-                        height: 52
+                        height: itemData.isImage ? 58 : 50
                         radius: 10
 
                         readonly property bool isSelected: index === root.selectedIndex
@@ -506,7 +556,7 @@ Scope {
                             // Left Accent Indicator Pill
                             Rectangle {
                                 width: 3
-                                height: 22
+                                height: itemData.isImage ? 28 : 22
                                 radius: 1.5
                                 color: root.theme.accent
                                 visible: itemRow.isSelected
@@ -532,22 +582,40 @@ Scope {
                                 }
                             }
 
-                            // Type Icon Badge
+                            // Type Icon Badge or Image Thumbnail
                             Rectangle {
-                                width: 32
-                                height: 32
+                                width: itemData.isImage ? 46 : 32
+                                height: itemData.isImage ? 46 : 32
                                 radius: 8
                                 Layout.alignment: Qt.AlignVCenter
                                 color: {
-                                    if (itemData.isImage) return Qt.rgba(root.theme.accentPink.r, root.theme.accentPink.g, root.theme.accentPink.b, 0.14);
+                                    if (itemData.isImage) return Qt.rgba(0, 0, 0, 0.35);
                                     if (itemData.isUrl) return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.14);
                                     if (itemData.isColor) return Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.14);
                                     if (itemData.isCode) return Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.14);
                                     return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12);
                                 }
+                                border.color: itemData.isImage ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                                border.width: itemData.isImage ? 1 : 0
+                                clip: true
 
+                                // Thumbnail Image
+                                Image {
+                                    id: thumbImg
+                                    anchors.fill: parent
+                                    source: (itemData.isImage && itemData.thumbSource) ? itemData.thumbSource : ""
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    smooth: true
+                                    mipmap: true
+                                    cache: true
+                                    visible: itemData.isImage && status === Image.Ready
+                                }
+
+                                // Fallback Icon / Type Icon
                                 Text {
                                     anchors.centerIn: parent
+                                    visible: !itemData.isImage || thumbImg.status !== Image.Ready
                                     text: {
                                         if (itemData.isImage) return "󰋩";
                                         if (itemData.isUrl) return "󰌹";
@@ -562,7 +630,7 @@ Scope {
                                         if (itemData.isCode) return root.theme.accentMauve;
                                         return root.theme.accent;
                                     }
-                                    font.pixelSize: 15
+                                    font.pixelSize: itemData.isImage ? 18 : 15
                                     font.family: root.font
                                 }
                             }
@@ -571,17 +639,11 @@ Scope {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 Layout.alignment: Qt.AlignVCenter
-                                spacing: 1
+                                spacing: 2
 
                                 Text {
                                     Layout.fillWidth: true
-                                    text: {
-                                        if (itemData.isImage) {
-                                            return "Image Clip (" + (itemData.preview.includes("PNG") ? "PNG" : "Image") + ")";
-                                        }
-                                        const clean = itemData.preview.replace(/\r?\n|\r/g, " ").trim();
-                                        return clean.length > 90 ? (clean.substring(0, 90) + "…") : clean;
-                                    }
+                                    text: itemData.title || itemData.preview
                                     color: root.theme.textPrimary
                                     font.pixelSize: 12
                                     font.weight: itemRow.isSelected ? Font.DemiBold : Font.Normal
@@ -591,17 +653,7 @@ Scope {
 
                                 Text {
                                     Layout.fillWidth: true
-                                    text: {
-                                        if (itemData.isImage) return "Image snippet • Press ↵ to copy";
-                                        if (itemData.isUrl) return "Web Link • " + itemData.preview.trim();
-                                        if (itemData.isColor) return "Color Hex • " + itemData.preview.trim();
-                                        const len = itemData.preview.length;
-                                        const lines = itemData.preview.split("\n").length;
-                                        if (lines > 1) {
-                                            return lines + " lines (" + len + " chars) • Multi-line text";
-                                        }
-                                        return len + " characters • Plain text";
-                                    }
+                                    text: itemData.subtitle || ""
                                     color: root.theme.textMuted
                                     font.pixelSize: 10
                                     font.family: root.font
