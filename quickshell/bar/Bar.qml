@@ -842,14 +842,13 @@ Scope {
                         implicitHeight: 26
                         implicitWidth: 26
                         radius: 13
-                        color: wifiIconMouse.containsMouse ? root.barPillHover : "transparent"
+                        color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterSubView === "wifi") || wifiIconMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Text {
                             anchors.centerIn: parent
-                            text: Services.SystemService.networkType === "ethernet" ? "󰈀"
-                                : Services.SystemService.networkType === "wifi" ? "󰖩" : "󰖪"
-                            color: Services.SystemService.networkType === "disconnected" ? root.barFgMuted : root.barFgPrimary
+                            text: Services.SystemService.wifiBarIcon
+                            color: (Services.SystemService.networkType === "disconnected" && !Services.SystemService.wifiConnected) ? root.barFgMuted : root.barFgPrimary
                             font.pixelSize: 16
                             font.family: root.font
                             font.weight: Font.Bold

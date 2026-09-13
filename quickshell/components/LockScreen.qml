@@ -354,9 +354,8 @@ Scope {
 
                                 // Network
                                 Text {
-                                    text: Services.SystemService.networkType === "ethernet" ? "󰈀"
-                                        : Services.SystemService.networkType === "wifi" ? "󰖩" : "󰖪"
-                                    color: Services.SystemService.networkType === "disconnected" ? Qt.rgba(1, 1, 1, 0.4) : "#ffffff"
+                                    text: Services.SystemService.wifiBarIcon
+                                    color: (Services.SystemService.networkType === "disconnected" && !Services.SystemService.wifiConnected) ? Qt.rgba(1, 1, 1, 0.4) : "#ffffff"
                                     font.pixelSize: 15
                                     font.family: root.font
                                 }

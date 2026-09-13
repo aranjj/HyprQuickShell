@@ -693,6 +693,8 @@ Singleton {
     }
 
     // ── Wi-Fi ───────────────────────────────────────
+    property string networkType: "disconnected"
+    property string networkInfo: "Disconnected"
     property bool wifiEnabled: true
     property bool wifiScanning: false
     property bool wifiConnected: false
@@ -707,18 +709,60 @@ Singleton {
     property string wifiConnectError: ""
     property bool wifiConnecting: false
 
+    readonly property string wifiBarIcon: {
+        if (networkType === "ethernet") return "󰈀";
+        if (!wifiEnabled) return "󰖪";
+        if (networkType === "wifi" || wifiConnected) {
+            const sig = wifiActiveNetwork ? (wifiActiveNetwork.signal || 0) : 0;
+            if (sig >= 75) return "󰤨";
+            if (sig >= 50) return "󰤥";
+            if (sig >= 25) return "󰤢";
+            if (sig > 0) return "󰤟";
+            return "󰖩";
+        }
+        return "󰤯";
+    }
+
     Process {
         id: netProc
-        command: ["sh", "-c", "eth=$(nmcli -t -f type,state dev 2>/dev/null | grep '^ethernet:connected'); if [ -n \"$eth\" ]; then echo 'ethernet:Ethernet'; else wifi=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes' | cut -d: -f2); if [ -n \"$wifi\" ]; then echo \"wifi:$wifi\"; else echo 'disconnected:'; fi; fi"]
+        command: ["sh", "-c", "eth=$(nmcli -t -f type,state dev 2>/dev/null | grep '^ethernet:connected'); if [ -n \"$eth\" ]; then echo 'ethernet:Ethernet'; else wifi_radio=$(nmcli radio wifi 2>/dev/null); if [ \"$wifi_radio\" = 'disabled' ]; then echo 'off:'; else wifi=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes' | head -1 | cut -d: -f2-); if [ -n \"$wifi\" ]; then echo \"wifi:$wifi\"; else echo 'disconnected:'; fi; fi; fi"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
                 const result = text.trim();
                 const idx = result.indexOf(':');
-                root.networkType = result.substring(0, idx);
-                root.networkInfo = result.substring(idx + 1) || "Disconnected";
-                if (root.networkType === "wifi") root.wifiSsid = root.networkInfo;
-                else if (root.networkType === "disconnected" && !root.wifiConnected) root.wifiSsid = "";
+                if (idx !== -1) {
+                    const type = result.substring(0, idx);
+                    const info = result.substring(idx + 1);
+                    if (type === "ethernet") {
+                        root.networkType = "ethernet";
+                        root.networkInfo = "Ethernet";
+                    } else if (type === "wifi") {
+                        const wasDisconnected = !root.wifiConnected;
+                        root.networkType = "wifi";
+                        root.networkInfo = info || "Connected";
+                        root.wifiConnected = true;
+                        root.wifiEnabled = true;
+                        root.wifiSsid = info;
+                        if (wasDisconnected && !root.controlCenterOpen) {
+                            wifiStatusProc.running = true;
+                        }
+                    } else if (type === "off") {
+                        root.networkType = "disconnected";
+                        root.networkInfo = "Wi-Fi Off";
+                        root.wifiEnabled = false;
+                        root.wifiConnected = false;
+                        root.wifiSsid = "";
+                        root.wifiActiveNetwork = null;
+                    } else {
+                        root.networkType = "disconnected";
+                        root.networkInfo = "Disconnected";
+                        root.wifiEnabled = true;
+                        root.wifiConnected = false;
+                        root.wifiSsid = "";
+                        root.wifiActiveNetwork = null;
+                    }
+                }
             }
         }
     }
@@ -827,6 +871,14 @@ Singleton {
     function toggleWifi() {
         const next = !wifiEnabled;
         wifiEnabled = next;
+        if (!next) {
+            wifiConnected = false;
+            wifiActiveNetwork = null;
+            if (networkType !== "ethernet") {
+                networkType = "disconnected";
+                networkInfo = "Wi-Fi Off";
+            }
+        }
         runWifiAction(next ? "on" : "off");
     }
 
@@ -866,6 +918,12 @@ Singleton {
     }
 
     function disconnectWifi() {
+        wifiConnected = false;
+        wifiActiveNetwork = null;
+        if (networkType !== "ethernet") {
+            networkType = "disconnected";
+            networkInfo = "Disconnected";
+        }
         runWifiAction("disconnect");
     }
 
@@ -994,7 +1052,9 @@ Singleton {
         interval: root.isIdleOrLocked ? 10000 : 2500
         running: true
         repeat: true
+        property int tick: 0
         onTriggered: {
+            tick++;
             cpuProc.running = true;
             memProc.running = true;
             tempProc.running = true;
@@ -1005,7 +1065,7 @@ Singleton {
             sinksProc.running = true;
             brightProc.running = true;
             btStatusProc.running = true;
-            if (controlCenterOpen) {
+            if (controlCenterOpen || tick % 4 === 0) {
                 wifiStatusProc.running = true;
             }
         }
