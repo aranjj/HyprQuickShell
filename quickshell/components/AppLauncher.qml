@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Widgets
 import QtQuick
@@ -17,40 +18,213 @@ Scope {
     property int selectedIndex: 0
     property var results: []
     property string searchQuery: ""
+    property string activeCategory: "apps" // Default to Apps tab (Launchpad behavior)
+    property var hyprWindows: []
+
+    // ── Category List Definition ──────────────────────
+    readonly property var categoryList: [
+        { id: "all", label: "All", icon: "󰍉" },
+        { id: "apps", label: "Apps", icon: "󰣆" },
+        { id: "windows", label: "Windows", icon: "󰖲" },
+        { id: "commands", label: "Commands", icon: "󰞷" },
+        { id: "shortcuts", label: "Shortcuts", icon: "󰅌" },
+        { id: "math", label: "Math", icon: "󰃬" }
+    ]
+
+    readonly property string searchPlaceholder: {
+        switch (activeCategory) {
+            case "apps": return "Search Applications (e.g. Kitty, Firefox)...";
+            case "windows": return "Search Open Windows...";
+            case "commands": return "Search or Type Commands (e.g. btop, pacman)...";
+            case "shortcuts": return "Search System Shortcuts (e.g. Lock, Screenshot)...";
+            case "math": return "Calculate (e.g. 15% of 850, sqrt(144))...";
+            case "all":
+            default: return "Spotlight Search...";
+        }
+    }
+
+    function cycleCategory(direction) {
+        const list = categoryList;
+        let idx = list.findIndex(c => c.id === root.activeCategory);
+        if (idx === -1) idx = 1;
+        let nextIdx = (idx + direction + list.length) % list.length;
+        root.activeCategory = list[nextIdx].id;
+        root.selectedIndex = 0;
+        root.updateSearchResults();
+    }
+
+    // ── Hyprland Windows Provider ────────────────────
+    Process {
+        id: windowsProc
+        command: ["hyprctl", "-i", "0", "-j", "clients"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.parseHyprlandWindows(text);
+            }
+        }
+    }
+
+    Timer {
+        id: fetchTimer
+        interval: 150
+        repeat: false
+        onTriggered: root.fetchWindows()
+    }
+
+    function fetchWindows() {
+        windowsProc.running = false;
+        windowsProc.running = true;
+    }
+
+    function parseHyprlandWindows(jsonStr) {
+        try {
+            const raw = JSON.parse(jsonStr.trim() || "[]");
+            let list = [];
+            for (let i = 0; i < raw.length; i++) {
+                const w = raw[i];
+                if (!w || !w.mapped || w.hidden) continue;
+                const cls = (w.class || w.initialClass || "").toLowerCase();
+                if (cls === "quickshell" || cls === "") continue;
+
+                list.push({
+                    id: "win_" + w.address,
+                    type: "window",
+                    address: w.address,
+                    title: w.title || w.initialTitle || "Untitled Window",
+                    clazz: w.class || w.initialClass || "Window",
+                    workspaceId: w.workspace ? w.workspace.id : 1,
+                    workspaceName: w.workspace ? (w.workspace.name || String(w.workspace.id)) : "1",
+                    floating: !!w.floating,
+                    pid: w.pid || 0,
+                    xwayland: !!w.xwayland
+                });
+            }
+            root.hyprWindows = list;
+            if (launcherPanel.visible && (root.activeCategory === "windows" || root.activeCategory === "all")) {
+                root.updateSearchResults();
+            }
+        } catch (e) {
+            console.warn("Failed to parse hyprland windows:", e);
+        }
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (launcherPanel.visible) {
+                root.fetchWindows();
+            }
+        }
+    }
+
+    function focusWindow(address) {
+        Services.SystemService.runCmd("hyprctl dispatch 'hl.dsp.focus({ window = \"address:" + address + "\" })'");
+        closeLauncher();
+    }
+
+    function closeWindow(address) {
+        Services.SystemService.runCmd("hyprctl dispatch 'hl.dsp.window.close({ window = \"address:" + address + "\" })'");
+        root.hyprWindows = root.hyprWindows.filter(w => w.address !== address);
+        root.updateSearchResults();
+        fetchTimer.restart();
+    }
+
+    function toggleWindowFloat(address) {
+        Services.SystemService.runCmd("hyprctl dispatch 'hl.dsp.focus({ window = \"address:" + address + "\" })' && hyprctl dispatch 'hl.dsp.window.float({ action = \"toggle\" })'");
+        closeLauncher();
+    }
+
+    function makeWindowResultItem(w, category) {
+        const wsText = "Workspace " + w.workspaceName;
+        const sub = w.clazz + " • " + wsText + (w.floating ? " • Floating" : "");
+        return {
+            id: "win_" + w.address,
+            type: "window",
+            address: w.address,
+            title: w.title,
+            subtitle: sub,
+            category: category || "OPEN WINDOWS",
+            kindTag: wsText,
+            icon: (w.clazz || "").toLowerCase(),
+            glyph: "󰖲",
+            accentColor: "#89b4fa",
+            wsName: w.workspaceName,
+            wsId: w.workspaceId,
+            clazz: w.clazz,
+            floating: w.floating,
+            pid: w.pid,
+            desc: "Active window on " + wsText + ". Press Enter to switch, or Ctrl+W to close.",
+            actionLabel: "Switch to Window",
+            action: () => root.focusWindow(w.address)
+        };
+    }
+
+    function makeWebSearchItem(rawQ) {
+        return {
+            id: "web_search_" + rawQ,
+            type: "web",
+            title: "Search Google for \"" + rawQ + "\"",
+            subtitle: "Search on the web in default browser",
+            category: "WEB SEARCH",
+            kindTag: "Web Search",
+            icon: "󰖟",
+            glyph: "󰖟",
+            accentColor: root.theme.accent,
+            desc: "Performs a Google web search in your default web browser.",
+            actionLabel: "Search Web",
+            action: () => root.searchWeb(rawQ)
+        };
+    }
 
     // ── IPC Handler for External Toggle ─────────────
     IpcHandler {
         target: "launcher"
 
         function toggle(): void {
-            launcherPanel.visible = !launcherPanel.visible;
             if (launcherPanel.visible) {
-                searchInput.text = "";
-                root.selectedIndex = 0;
-                root.updateSearchResults();
-                searchInput.forceActiveFocus();
+                root.closeLauncher();
+            } else {
+                root.openLauncher();
             }
         }
 
         function open(): void {
-            launcherPanel.visible = true;
-            searchInput.text = "";
-            root.selectedIndex = 0;
-            root.updateSearchResults();
-            searchInput.forceActiveFocus();
+            root.openLauncher();
         }
 
         function query(text: string): void {
-            launcherPanel.visible = true;
-            searchInput.text = text || "";
+            root.openLauncher(text);
+        }
+
+        function setCategory(cat: string): void {
+            if (!launcherPanel.visible) launcherPanel.visible = true;
+            root.activeCategory = cat || "apps";
             root.selectedIndex = 0;
             root.updateSearchResults();
             searchInput.forceActiveFocus();
         }
 
         function close(): void {
-            launcherPanel.visible = false;
+            root.closeLauncher();
         }
+    }
+
+    function openLauncher(initialText) {
+        launcherPanel.visible = true;
+        const text = initialText || "";
+        searchInput.text = text;
+        if (text.startsWith(">")) {
+            root.activeCategory = "commands";
+        } else if (text && root.evaluateMath(text) !== "" && (/[+\-*/^%=]|sqrt|sin|cos|tan|pi/i.test(text) || text.startsWith("="))) {
+            root.activeCategory = "math";
+        } else {
+            root.activeCategory = "apps"; // Default to Apps tab like Launchpad!
+        }
+        root.selectedIndex = 0;
+        root.fetchWindows();
+        root.updateSearchResults();
+        searchInput.forceActiveFocus();
     }
 
     function closeLauncher() {
@@ -113,15 +287,6 @@ Scope {
         const q = encodeURIComponent(query.trim());
         if (!q) return;
         Services.SystemService.runCmd("xdg-open 'https://www.google.com/search?q=" + q + "' || firefox 'https://www.google.com/search?q=" + q + "'");
-        closeLauncher();
-    }
-
-    function openUrl(url) {
-        let target = url.trim();
-        if (!target.startsWith("http://") && !target.startsWith("https://")) {
-            target = "https://" + target;
-        }
-        Services.SystemService.runCmd("xdg-open '" + target + "' || firefox '" + target + "'");
         closeLauncher();
     }
 
@@ -340,7 +505,7 @@ Scope {
             desc: "Switches the focused window between tiled layout and floating mode.",
             actionLabel: "Toggle Float",
             keywords: ["float", "window", "tile"],
-            action: () => Services.SystemService.runCmd("hyprctl dispatch togglefloating")
+            action: () => Services.SystemService.runCmd("hyprctl dispatch 'hl.dsp.window.float({ action = \"toggle\" })'")
         },
         {
             id: "sc_fullscreen",
@@ -355,7 +520,7 @@ Scope {
             desc: "Toggles full monitor coverage for the active window.",
             actionLabel: "Toggle Fullscreen",
             keywords: ["fullscreen", "maximize"],
-            action: () => Services.SystemService.runCmd("hyprctl dispatch fullscreen 1")
+            action: () => Services.SystemService.runCmd("hyprctl dispatch 'hl.dsp.fullscreen()'")
         },
         {
             id: "sc_close",
@@ -370,7 +535,7 @@ Scope {
             desc: "Sends a graceful close request to the current window.",
             actionLabel: "Close Window",
             keywords: ["close", "kill", "quit", "window"],
-            action: () => Services.SystemService.runCmd("hyprctl dispatch killactive")
+            action: () => Services.SystemService.runCmd("hyprctl dispatch 'hl.dsp.window.close()'")
         },
         {
             id: "sc_suspend",
@@ -607,7 +772,7 @@ Scope {
                 title: "= " + mathVal,
                 subtitle: "Calculation: " + rawQ,
                 category: "CALCULATOR",
-                kindTag: "Calculation Result",
+                kindTag: "Instant Math",
                 icon: "󰃬",
                 glyph: "󰃬",
                 accentColor: "#a6e3a1",
@@ -619,26 +784,134 @@ Scope {
             };
         }
 
-        // ── EMPTY STATE: Curated Recents & Suggestions ──
-        if (q === "") {
-            const allApps = [...(DesktopEntries.applications.values || [])];
-            
-            // Priority apps: Kitty, Firefox, Dolphin, Code
-            const topApps = allApps.filter(a => {
-                const n = (a.name ?? "").toLowerCase();
-                const id = (a.id ?? "").toLowerCase();
-                return n.includes("kitty") || n.includes("firefox") || n.includes("dolphin") || n.includes("code") || id.includes("antigravity");
-            }).slice(0, 4);
+        // Helper: retrieve desktop entries
+        const allAppsRaw = DesktopEntries.applications.values || [];
+        const allApps = allAppsRaw.filter(a => a && a.name && !a.noDisplay);
 
-            let first = true;
-            for (let i = 0; i < topApps.length; i++) {
-                const app = topApps[i];
+        // ─────────────────────────────────────────────────────────────
+        // 1. APPS TAB (Launchpad behavior with suggestions)
+        // ─────────────────────────────────────────────────────────────
+        if (root.activeCategory === "apps") {
+            if (q === "") {
+                const suggestedNames = ["kitty", "firefox", "dolphin", "code", "antigravity", "spotify", "discord", "steam", "obs"];
+                const suggestedApps = [];
+                const otherApps = [];
+
+                for (let i = 0; i < allApps.length; i++) {
+                    const a = allApps[i];
+                    const n = (a.name || "").toLowerCase();
+                    const id = (a.id || "").toLowerCase();
+                    const isSuggested = suggestedNames.some(s => n.includes(s) || id.includes(s));
+                    if (isSuggested && suggestedApps.length < 5) {
+                        suggestedApps.push(a);
+                    } else {
+                        otherApps.push(a);
+                    }
+                }
+
+                // Suggestions Section
+                for (let i = 0; i < suggestedApps.length; i++) {
+                    const app = suggestedApps[i];
+                    out.push({
+                        id: "app_sug_" + (app.id || app.name),
+                        type: "app",
+                        title: app.name ?? "Application",
+                        subtitle: app.genericName || app.comment || "Suggested Application",
+                        category: "SUGGESTIONS",
+                        kindTag: "Suggested",
+                        icon: app.icon ?? "",
+                        glyph: "󰣆",
+                        accentColor: root.theme.accent,
+                        entry: app,
+                        exec: app.id || app.name,
+                        desc: app.comment || app.genericName || "Desktop Application",
+                        actionLabel: "Open Application",
+                        action: () => { app.execute(); closeLauncher(); }
+                    });
+                }
+
+                // All Applications Section (alphabetical)
+                otherApps.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                for (let i = 0; i < otherApps.length; i++) {
+                    const app = otherApps[i];
+                    out.push({
+                        id: "app_all_" + (app.id || app.name) + "_" + i,
+                        type: "app",
+                        title: app.name ?? "Application",
+                        subtitle: app.genericName || app.comment || "Application",
+                        category: "ALL APPLICATIONS",
+                        kindTag: "Application",
+                        icon: app.icon ?? "",
+                        glyph: "󰣆",
+                        accentColor: root.theme.accent,
+                        entry: app,
+                        exec: app.id || app.name,
+                        desc: app.comment || app.genericName || "Desktop Application",
+                        actionLabel: "Open Application",
+                        action: () => { app.execute(); closeLauncher(); }
+                    });
+                }
+
+                root.results = out;
+                root.selectedIndex = 0;
+                return;
+            }
+
+            // Query in Apps tab
+            // 1. Math calculation support
+            if (calcItem) {
+                out.push(calcItem);
+            }
+
+            // 2. Command prefix '>' support
+            if (rawQ.startsWith(">")) {
+                const cmdStr = rawQ.substring(1).trim();
+                if (cmdStr) {
+                    out.push({
+                        id: "cmd_custom_term",
+                        type: "cmd",
+                        title: "Run: " + cmdStr,
+                        subtitle: "Execute command in Kitty terminal",
+                        category: "TERMINAL EXECUTION",
+                        kindTag: "Terminal Command",
+                        icon: "󰞷",
+                        glyph: "󰞷",
+                        accentColor: root.theme.accent,
+                        cmd: cmdStr,
+                        desc: "Runs '" + cmdStr + "' directly in Kitty terminal session.",
+                        actionLabel: "Run in Kitty",
+                        action: () => root.runTerminalCmd(cmdStr, false)
+                    });
+                    root.results = out;
+                    root.selectedIndex = 0;
+                    return;
+                }
+            }
+
+            const filtered = allApps.filter(app => {
+                const n = (app.name ?? "").toLowerCase();
+                const gen = (app.genericName ?? "").toLowerCase();
+                const com = (app.comment ?? "").toLowerCase();
+                const exec = (app.id ?? "").toLowerCase();
+                return n.includes(q) || gen.includes(q) || com.includes(q) || exec.includes(q);
+            }).sort((a, b) => {
+                const an = (a.name ?? "").toLowerCase();
+                const bn = (b.name ?? "").toLowerCase();
+                const aStarts = an.startsWith(q);
+                const bStarts = bn.startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                return an.localeCompare(bn);
+            });
+
+            for (let i = 0; i < filtered.length; i++) {
+                const app = filtered[i];
                 out.push({
-                    id: "app_" + (app.id || app.name),
+                    id: "app_res_" + (app.id || app.name) + "_" + i,
                     type: "app",
                     title: app.name ?? "Application",
                     subtitle: app.genericName || app.comment || "Application",
-                    category: first ? "TOP HIT" : "APPLICATIONS",
+                    category: i === 0 ? "TOP HIT" : "APPLICATIONS",
                     kindTag: "Application",
                     icon: app.icon ?? "",
                     glyph: "󰣆",
@@ -649,19 +922,10 @@ Scope {
                     actionLabel: "Open Application",
                     action: () => { app.execute(); closeLauncher(); }
                 });
-                first = false;
             }
 
-            // Suggested Top Shortcuts
-            const topShortcuts = [root.systemShortcuts[0], root.systemShortcuts[1], root.systemShortcuts[2], root.systemShortcuts[6]];
-            for (let i = 0; i < topShortcuts.length; i++) {
-                if (topShortcuts[i]) out.push(topShortcuts[i]);
-            }
-
-            // Suggested Top Commands
-            const topCmds = [root.suggestedCommands[0], root.suggestedCommands[1], root.suggestedCommands[4]];
-            for (let i = 0; i < topCmds.length; i++) {
-                if (topCmds[i]) out.push(topCmds[i]);
+            if (out.length === 0) {
+                out.push(root.makeWebSearchItem(rawQ));
             }
 
             root.results = out;
@@ -669,196 +933,441 @@ Scope {
             return;
         }
 
-        // ── QUERY STATE: Filter & Score Results ──────────
-        let matchedCalc = calcItem;
-        let matchedShortcuts = [];
-        let matchedCommands = [];
-        let matchedApps = [];
+        // ─────────────────────────────────────────────────────────────
+        // 2. WINDOWS TAB (Hyprland Active Window Switcher)
+        // ─────────────────────────────────────────────────────────────
+        if (root.activeCategory === "windows") {
+            const wins = root.hyprWindows || [];
+            let matchedWins = [];
 
-        // Check explicit terminal command prefix: e.g. "> ls -la" or "> htop"
-        if (rawQ.startsWith(">")) {
-            const cmdStr = rawQ.substring(1).trim();
-            if (cmdStr) {
+            if (q === "") {
+                matchedWins = wins;
+            } else {
+                matchedWins = wins.filter(w => {
+                    const t = (w.title || "").toLowerCase();
+                    const c = (w.clazz || "").toLowerCase();
+                    const ws = (w.workspaceName || "").toLowerCase();
+                    return t.includes(q) || c.includes(q) || ws.includes(q);
+                });
+            }
+
+            if (matchedWins.length === 0) {
                 out.push({
-                    id: "custom_cmd_" + cmdStr,
+                    id: "win_empty",
+                    type: "info",
+                    title: q === "" ? "No active windows found" : "No windows matching \"" + rawQ + "\"",
+                    subtitle: "Open applications across your workspaces will appear here",
+                    category: "OPEN WINDOWS",
+                    kindTag: "Window Switcher",
+                    icon: "",
+                    glyph: "󰖲",
+                    accentColor: root.theme.textMuted,
+                    desc: "Switch between open windows across all workspaces with instantaneous focus.",
+                    actionLabel: "No Window",
+                    action: () => {}
+                });
+            } else {
+                for (let i = 0; i < matchedWins.length; i++) {
+                    const w = matchedWins[i];
+                    out.push(root.makeWindowResultItem(w, i === 0 && q !== "" ? "TOP HIT" : "OPEN WINDOWS (" + matchedWins.length + ")"));
+                }
+            }
+
+            root.results = out;
+            root.selectedIndex = 0;
+            return;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 3. COMMANDS TAB (CLI Tools & Terminal Runner)
+        // ─────────────────────────────────────────────────────────────
+        if (root.activeCategory === "commands") {
+            if (q === "") {
+                for (let i = 0; i < root.suggestedCommands.length; i++) {
+                    const cmd = root.suggestedCommands[i];
+                    out.push(Object.assign({}, cmd, {
+                        category: "SUGGESTED COMMANDS"
+                    }));
+                }
+            } else {
+                const cleanQ = rawQ.startsWith(">") ? rawQ.substring(1).trim() : rawQ;
+
+                out.push({
+                    id: "cmd_custom_term",
                     type: "cmd",
-                    title: "Run: " + cmdStr,
-                    subtitle: "Execute in Kitty terminal",
-                    category: "TOP HIT",
+                    title: "Run: " + cleanQ,
+                    subtitle: "Execute command in Kitty terminal",
+                    category: "TERMINAL EXECUTION",
                     kindTag: "Terminal Command",
                     icon: "󰞷",
                     glyph: "󰞷",
                     accentColor: root.theme.accent,
-                    cmd: cmdStr,
-                    desc: "Runs '" + cmdStr + "' directly in Kitty terminal.",
+                    cmd: cleanQ,
+                    desc: "Runs '" + cleanQ + "' directly in Kitty terminal session.",
                     actionLabel: "Run in Kitty",
-                    action: () => root.runTerminalCmd(cmdStr, false)
+                    action: () => root.runTerminalCmd(cleanQ, false)
                 });
+
                 out.push({
-                    id: "custom_bg_" + cmdStr,
+                    id: "cmd_custom_bg",
                     type: "cmd",
-                    title: "Run in Background: " + cmdStr,
-                    subtitle: "Execute silently in background",
-                    category: "COMMANDS",
+                    title: "Run in Background: " + cleanQ,
+                    subtitle: "Spawn command silently without terminal",
+                    category: "BACKGROUND EXECUTION",
                     kindTag: "Background Command",
                     icon: "󰜎",
                     glyph: "󰜎",
                     accentColor: root.theme.textMuted,
-                    cmd: cmdStr,
-                    desc: "Spawns '" + cmdStr + "' silently without a terminal window.",
+                    cmd: cleanQ,
+                    desc: "Executes '" + cleanQ + "' silently in background.",
                     actionLabel: "Run in Background",
-                    action: () => root.runBgCmd(cmdStr)
+                    action: () => root.runBgCmd(cleanQ)
                 });
+
+                for (let i = 0; i < root.suggestedCommands.length; i++) {
+                    const cmd = root.suggestedCommands[i];
+                    const tMatch = cmd.title.toLowerCase().includes(q);
+                    const cMatch = cmd.cmd.toLowerCase().includes(q);
+                    const kMatch = cmd.keywords.some(k => k.includes(q));
+                    if (tMatch || cMatch || kMatch) {
+                        out.push(Object.assign({}, cmd, {
+                            category: "MATCHED COMMANDS"
+                        }));
+                    }
+                }
+            }
+
+            root.results = out;
+            root.selectedIndex = 0;
+            return;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 4. SHORTCUTS TAB (System Controls & Keybindings)
+        // ─────────────────────────────────────────────────────────────
+        if (root.activeCategory === "shortcuts") {
+            if (q === "") {
+                for (let i = 0; i < root.systemShortcuts.length; i++) {
+                    const sc = root.systemShortcuts[i];
+                    out.push(Object.assign({}, sc, {
+                        category: "SYSTEM SHORTCUTS"
+                    }));
+                }
+            } else {
+                for (let i = 0; i < root.systemShortcuts.length; i++) {
+                    const sc = root.systemShortcuts[i];
+                    const tMatch = sc.title.toLowerCase().includes(q);
+                    const sMatch = sc.subtitle.toLowerCase().includes(q);
+                    const kMatch = sc.keywords.some(k => k.includes(q));
+                    if (tMatch || sMatch || kMatch) {
+                        out.push(Object.assign({}, sc, {
+                            category: out.length === 0 ? "TOP HIT" : "SHORTCUTS"
+                        }));
+                    }
+                }
+                if (out.length === 0) {
+                    out.push(root.makeWebSearchItem(rawQ));
+                }
+            }
+
+            root.results = out;
+            root.selectedIndex = 0;
+            return;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 5. MATH TAB (Calculator & Instant Expressions)
+        // ─────────────────────────────────────────────────────────────
+        if (root.activeCategory === "math") {
+            if (calcItem) {
+                out.push(calcItem);
+            } else if (q !== "") {
+                out.push({
+                    id: "calc_incomplete",
+                    type: "calc_help",
+                    title: "Calculating: " + rawQ,
+                    subtitle: "Supports +, -, *, /, ^, %, sqrt(), sin(), cos(), tan(), pi",
+                    category: "CALCULATOR",
+                    kindTag: "Math Input",
+                    icon: "󰃬",
+                    glyph: "󰃬",
+                    accentColor: root.theme.accent,
+                    desc: "Enter a mathematical expression like '15% of 850', 'sqrt(144)', or '2^8'.",
+                    actionLabel: "Calculate",
+                    action: () => {}
+                });
+            }
+
+            const examples = [
+                { expr: "15% of 850", result: "127.5" },
+                { expr: "sqrt(144) + 25", result: "37" },
+                { expr: "2 ^ 10", result: "1024" },
+                { expr: "128 * 4.5", result: "576" },
+                { expr: "sin(45) * 100", result: "70.71" },
+                { expr: "pi * 10^2", result: "314.159265" }
+            ];
+
+            for (let i = 0; i < examples.length; i++) {
+                const ex = examples[i];
+                out.push({
+                    id: "calc_ex_" + i,
+                    type: "calc_ex",
+                    title: ex.expr + "  =  " + ex.result,
+                    subtitle: "Example calculation",
+                    category: "EXAMPLE EXPRESSIONS",
+                    kindTag: "Example",
+                    icon: "󰃬",
+                    glyph: "󰃬",
+                    accentColor: "#fab387",
+                    formula: ex.expr,
+                    result: ex.result,
+                    desc: "Click or press Enter to populate search input with '" + ex.expr + "'.",
+                    actionLabel: "Try Expression",
+                    action: () => {
+                        searchInput.text = ex.expr;
+                        searchInput.forceActiveFocus();
+                    }
+                });
+            }
+
+            root.results = out;
+            root.selectedIndex = 0;
+            return;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 6. ALL TAB (Unified Cross-Category Search)
+        // ─────────────────────────────────────────────────────────────
+        if (root.activeCategory === "all") {
+            if (q === "") {
+                const topApps = allApps.filter(a => {
+                    const n = (a.name ?? "").toLowerCase();
+                    const id = (a.id ?? "").toLowerCase();
+                    return n.includes("kitty") || n.includes("firefox") || n.includes("dolphin") || n.includes("code");
+                }).slice(0, 3);
+
+                for (let i = 0; i < topApps.length; i++) {
+                    const app = topApps[i];
+                    out.push({
+                        id: "app_all_" + (app.id || app.name),
+                        type: "app",
+                        title: app.name ?? "Application",
+                        subtitle: app.genericName || app.comment || "Application",
+                        category: "APPLICATIONS",
+                        kindTag: "Application",
+                        icon: app.icon ?? "",
+                        glyph: "󰣆",
+                        accentColor: root.theme.accent,
+                        entry: app,
+                        exec: app.id || app.name,
+                        desc: app.comment || app.genericName || "Desktop Application",
+                        actionLabel: "Open Application",
+                        action: () => { app.execute(); closeLauncher(); }
+                    });
+                }
+
+                const wins = root.hyprWindows || [];
+                for (let i = 0; i < Math.min(3, wins.length); i++) {
+                    out.push(root.makeWindowResultItem(wins[i], "OPEN WINDOWS"));
+                }
+
+                const topSc = [root.systemShortcuts[0], root.systemShortcuts[1], root.systemShortcuts[2]];
+                for (let i = 0; i < topSc.length; i++) {
+                    if (topSc[i]) out.push(topSc[i]);
+                }
+
+                const topCmd = [root.suggestedCommands[0], root.suggestedCommands[1]];
+                for (let i = 0; i < topCmd.length; i++) {
+                    if (topCmd[i]) out.push(topCmd[i]);
+                }
+
                 root.results = out;
                 root.selectedIndex = 0;
                 return;
             }
-        }
 
-        // A. Match System Shortcuts
-        for (let i = 0; i < root.systemShortcuts.length; i++) {
-            const sc = root.systemShortcuts[i];
-            const titleMatch = sc.title.toLowerCase().includes(q);
-            const subMatch = sc.subtitle.toLowerCase().includes(q);
-            const kwMatch = sc.keywords.some(k => k.includes(q));
-            if (titleMatch || subMatch || kwMatch) {
-                matchedShortcuts.push(sc);
+            let matchedCalc = calcItem;
+            let matchedApps = [];
+            let matchedWins = [];
+            let matchedShortcuts = [];
+            let matchedCommands = [];
+
+            if (rawQ.startsWith(">")) {
+                const cmdStr = rawQ.substring(1).trim();
+                if (cmdStr) {
+                    out.push({
+                        id: "custom_cmd_" + cmdStr,
+                        type: "cmd",
+                        title: "Run: " + cmdStr,
+                        subtitle: "Execute in Kitty terminal",
+                        category: "TOP HIT",
+                        kindTag: "Terminal Command",
+                        icon: "󰞷",
+                        glyph: "󰞷",
+                        accentColor: root.theme.accent,
+                        cmd: cmdStr,
+                        desc: "Runs '" + cmdStr + "' directly in Kitty terminal.",
+                        actionLabel: "Run in Kitty",
+                        action: () => root.runTerminalCmd(cmdStr, false)
+                    });
+                    out.push({
+                        id: "custom_bg_" + cmdStr,
+                        type: "cmd",
+                        title: "Run in Background: " + cmdStr,
+                        subtitle: "Execute silently in background",
+                        category: "COMMANDS",
+                        kindTag: "Background Command",
+                        icon: "󰜎",
+                        glyph: "󰜎",
+                        accentColor: root.theme.textMuted,
+                        cmd: cmdStr,
+                        desc: "Spawns '" + cmdStr + "' silently without a terminal window.",
+                        actionLabel: "Run in Background",
+                        action: () => root.runBgCmd(cmdStr)
+                    });
+                    root.results = out;
+                    root.selectedIndex = 0;
+                    return;
+                }
             }
-        }
 
-        // B. Match Suggested Commands
-        for (let i = 0; i < root.suggestedCommands.length; i++) {
-            const cmd = root.suggestedCommands[i];
-            const titleMatch = cmd.title.toLowerCase().includes(q);
-            const cmdMatch = cmd.cmd.toLowerCase().includes(q);
-            const kwMatch = cmd.keywords.some(k => k.includes(q));
-            if (titleMatch || cmdMatch || kwMatch) {
-                matchedCommands.push(cmd);
+            // Open windows match
+            const wins = root.hyprWindows || [];
+            for (let i = 0; i < wins.length; i++) {
+                const w = wins[i];
+                const t = (w.title || "").toLowerCase();
+                const c = (w.clazz || "").toLowerCase();
+                if (t.includes(q) || c.includes(q)) {
+                    matchedWins.push(root.makeWindowResultItem(w, "OPEN WINDOWS"));
+                }
             }
-        }
 
-        // C. Match Desktop Applications
-        const allApps = [...(DesktopEntries.applications.values || [])];
-        const filtered = allApps.filter(app => {
-            const n = (app.name ?? "").toLowerCase();
-            const gen = (app.genericName ?? "").toLowerCase();
-            const com = (app.comment ?? "").toLowerCase();
-            return n.includes(q) || gen.includes(q) || com.includes(q);
-        }).sort((a, b) => {
-            const an = (a.name ?? "").toLowerCase();
-            const bn = (b.name ?? "").toLowerCase();
-            const aStarts = an.startsWith(q);
-            const bStarts = bn.startsWith(q);
-            if (aStarts && !bStarts) return -1;
-            if (!aStarts && bStarts) return 1;
-            return an.localeCompare(bn);
-        });
-
-        for (let i = 0; i < Math.min(8, filtered.length); i++) {
-            const app = filtered[i];
-            matchedApps.push({
-                id: "app_" + (app.id || app.name),
-                type: "app",
-                title: app.name ?? "Application",
-                subtitle: app.genericName || app.comment || "Application",
-                category: "APPLICATIONS",
-                kindTag: "Application",
-                icon: app.icon ?? "",
-                glyph: "󰣆",
-                accentColor: root.theme.accent,
-                entry: app,
-                exec: app.id || app.name,
-                desc: app.comment || app.genericName || "Desktop Application",
-                actionLabel: "Open Application",
-                action: () => { app.execute(); closeLauncher(); }
+            // Desktop apps match
+            const appMatches = allApps.filter(app => {
+                const n = (app.name ?? "").toLowerCase();
+                const gen = (app.genericName ?? "").toLowerCase();
+                const com = (app.comment ?? "").toLowerCase();
+                return n.includes(q) || gen.includes(q) || com.includes(q);
+            }).sort((a, b) => {
+                const an = (a.name ?? "").toLowerCase();
+                const bn = (b.name ?? "").toLowerCase();
+                const aStarts = an.startsWith(q);
+                const bStarts = bn.startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                return an.localeCompare(bn);
             });
+
+            for (let i = 0; i < Math.min(6, appMatches.length); i++) {
+                const app = appMatches[i];
+                matchedApps.push({
+                    id: "app_" + (app.id || app.name),
+                    type: "app",
+                    title: app.name ?? "Application",
+                    subtitle: app.genericName || app.comment || "Application",
+                    category: "APPLICATIONS",
+                    kindTag: "Application",
+                    icon: app.icon ?? "",
+                    glyph: "󰣆",
+                    accentColor: root.theme.accent,
+                    entry: app,
+                    exec: app.id || app.name,
+                    desc: app.comment || app.genericName || "Desktop Application",
+                    actionLabel: "Open Application",
+                    action: () => { app.execute(); closeLauncher(); }
+                });
+            }
+
+            // Shortcuts match
+            for (let i = 0; i < root.systemShortcuts.length; i++) {
+                const sc = root.systemShortcuts[i];
+                const tMatch = sc.title.toLowerCase().includes(q);
+                const sMatch = sc.subtitle.toLowerCase().includes(q);
+                const kMatch = sc.keywords.some(k => k.includes(q));
+                if (tMatch || sMatch || kMatch) matchedShortcuts.push(sc);
+            }
+
+            // Commands match
+            for (let i = 0; i < root.suggestedCommands.length; i++) {
+                const cmd = root.suggestedCommands[i];
+                const tMatch = cmd.title.toLowerCase().includes(q);
+                const cMatch = cmd.cmd.toLowerCase().includes(q);
+                const kMatch = cmd.keywords.some(k => k.includes(q));
+                if (tMatch || cMatch || kMatch) matchedCommands.push(cmd);
+            }
+
+            // Determine TOP HIT
+            let topHit = null;
+            if (matchedCalc && (rawQ.startsWith("=") || /^[0-9+\-*/().%^ eE]+$/.test(rawQ))) {
+                topHit = matchedCalc;
+                matchedCalc = null;
+            } else if (matchedApps.length > 0 && matchedApps[0].title.toLowerCase().startsWith(q)) {
+                topHit = matchedApps.shift();
+            } else if (matchedWins.length > 0 && matchedWins[0].title.toLowerCase().startsWith(q)) {
+                topHit = matchedWins.shift();
+            } else if (matchedShortcuts.length > 0 && matchedShortcuts[0].title.toLowerCase().startsWith(q)) {
+                topHit = matchedShortcuts.shift();
+            } else if (matchedCommands.length > 0 && matchedCommands[0].cmd.toLowerCase().startsWith(q)) {
+                topHit = matchedCommands.shift();
+            } else if (matchedApps.length > 0) {
+                topHit = matchedApps.shift();
+            } else if (matchedWins.length > 0) {
+                topHit = matchedWins.shift();
+            } else if (matchedShortcuts.length > 0) {
+                topHit = matchedShortcuts.shift();
+            } else if (matchedCommands.length > 0) {
+                topHit = matchedCommands.shift();
+            } else if (matchedCalc) {
+                topHit = matchedCalc;
+                matchedCalc = null;
+            }
+
+            if (topHit) {
+                topHit.category = "TOP HIT";
+                out.push(topHit);
+            }
+
+            for (let i = 0; i < matchedApps.length; i++) {
+                matchedApps[i].category = "APPLICATIONS";
+                out.push(matchedApps[i]);
+            }
+            for (let i = 0; i < matchedWins.length; i++) {
+                matchedWins[i].category = "OPEN WINDOWS";
+                out.push(matchedWins[i]);
+            }
+            for (let i = 0; i < matchedShortcuts.length; i++) {
+                matchedShortcuts[i].category = "SHORTCUTS";
+                out.push(matchedShortcuts[i]);
+            }
+            for (let i = 0; i < matchedCommands.length; i++) {
+                matchedCommands[i].category = "COMMANDS";
+                out.push(matchedCommands[i]);
+            }
+
+            if (rawQ.length > 1 && !topHit && matchedApps.length === 0 && matchedWins.length === 0) {
+                out.push({
+                    id: "typed_cmd_" + rawQ,
+                    type: "cmd",
+                    title: "Run: " + rawQ,
+                    subtitle: "Execute terminal command in Kitty",
+                    category: "COMMANDS",
+                    kindTag: "Terminal Command",
+                    icon: "󰞷",
+                    glyph: "󰞷",
+                    accentColor: root.theme.accent,
+                    cmd: rawQ,
+                    desc: "Runs '" + rawQ + "' directly in Kitty terminal.",
+                    actionLabel: "Run in Kitty",
+                    action: () => root.runTerminalCmd(rawQ, false)
+                });
+            }
+
+            out.push(root.makeWebSearchItem(rawQ));
+
+            root.results = out;
+            root.selectedIndex = 0;
+            return;
         }
-
-        // D. Top Hit Selection (macOS 1:1 Behavior)
-        let topHit = null;
-
-        // If math expression is explicit:
-        if (matchedCalc && (rawQ.startsWith("=") || /^[0-9+\-*/().%^ eE]+$/.test(rawQ))) {
-            topHit = matchedCalc;
-            matchedCalc = null;
-        } else if (matchedApps.length > 0 && matchedApps[0].title.toLowerCase().startsWith(q)) {
-            // Exact prefix app match is prime top hit candidate
-            topHit = matchedApps.shift();
-        } else if (matchedShortcuts.length > 0 && matchedShortcuts[0].title.toLowerCase().startsWith(q)) {
-            topHit = matchedShortcuts.shift();
-        } else if (matchedCommands.length > 0 && matchedCommands[0].cmd.toLowerCase().startsWith(q)) {
-            topHit = matchedCommands.shift();
-        } else if (matchedApps.length > 0) {
-            topHit = matchedApps.shift();
-        } else if (matchedShortcuts.length > 0) {
-            topHit = matchedShortcuts.shift();
-        } else if (matchedCommands.length > 0) {
-            topHit = matchedCommands.shift();
-        } else if (matchedCalc) {
-            topHit = matchedCalc;
-            matchedCalc = null;
-        }
-
-        if (topHit) {
-            topHit.category = "TOP HIT";
-            out.push(topHit);
-        }
-
-        // Add remaining applications
-        for (let i = 0; i < matchedApps.length; i++) {
-            matchedApps[i].category = "APPLICATIONS";
-            out.push(matchedApps[i]);
-        }
-
-        // Add remaining shortcuts
-        for (let i = 0; i < matchedShortcuts.length; i++) {
-            matchedShortcuts[i].category = "SHORTCUTS";
-            out.push(matchedShortcuts[i]);
-        }
-
-        // Add remaining commands
-        for (let i = 0; i < matchedCommands.length; i++) {
-            matchedCommands[i].category = "COMMANDS";
-            out.push(matchedCommands[i]);
-        }
-
-        // If arbitrary command typed, offer terminal execution
-        if (rawQ.length > 1 && !topHit && matchedApps.length === 0) {
-            out.push({
-                id: "typed_cmd_" + rawQ,
-                type: "cmd",
-                title: "Run: " + rawQ,
-                subtitle: "Execute terminal command in Kitty",
-                category: "COMMANDS",
-                kindTag: "Terminal Command",
-                icon: "󰞷",
-                glyph: "󰞷",
-                accentColor: root.theme.accent,
-                cmd: rawQ,
-                desc: "Runs '" + rawQ + "' directly in Kitty terminal.",
-                actionLabel: "Run in Kitty",
-                action: () => root.runTerminalCmd(rawQ, false)
-            });
-        }
-
-        // E. Web Search Fallback
-        out.push({
-            id: "web_search_" + rawQ,
-            type: "web",
-            title: "Search Google for \"" + rawQ + "\"",
-            subtitle: "Search on the web in default browser",
-            category: "WEB SEARCH",
-            kindTag: "Web Search",
-            icon: "󰖟",
-            glyph: "󰖟",
-            accentColor: root.theme.accent,
-            desc: "Performs a Google web search in your default web browser.",
-            actionLabel: "Search Web",
-            action: () => root.searchWeb(rawQ)
-        });
-
-        root.results = out;
-        root.selectedIndex = 0;
     }
 
     // ── Execute Active Selected Result ───────────────
@@ -874,6 +1383,10 @@ Scope {
         if (selectedItem.action) {
             selectedItem.action();
         }
+    }
+
+    Component.onCompleted: {
+        root.fetchWindows();
     }
 
     // ── Full-Screen Overlay Window ───────────────────
@@ -908,15 +1421,15 @@ Scope {
             }
         }
 
-        // ── Spotlight Floating Card (macOS 1:1) ──────
+        // ── Spotlight Floating Card (macOS Tahoe & Raycast Scopes) ──────
         Rectangle {
             id: spotlightBox
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: parent.height * 0.16
+            anchors.topMargin: parent.height * 0.15
 
-            width: 720
-            height: 480
+            width: 740
+            height: 520
             radius: 16
             color: Services.Aesthetic.cardBg
             border.color: Services.Aesthetic.cardBorder
@@ -949,7 +1462,7 @@ Scope {
                 // ── 1. SPOTLIGHT SEARCH INPUT ROW ────
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 58
+                    height: 54
                     color: "transparent"
 
                     RowLayout {
@@ -973,7 +1486,7 @@ Scope {
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
                             color: root.theme.textPrimary
-                            font.pixelSize: 18
+                            font.pixelSize: 17
                             font.family: root.font
                             font.weight: Font.Normal
                             clip: true
@@ -981,7 +1494,7 @@ Scope {
 
                             Text {
                                 anchors.fill: parent
-                                text: "Spotlight Search"
+                                text: root.searchPlaceholder
                                 color: root.theme.textMuted
                                 font: parent.font
                                 visible: !parent.text
@@ -1002,26 +1515,64 @@ Scope {
                             }
 
                             Keys.onPressed: (event) => {
-                                if (event.key === Qt.Key_Down) {
+                                // 1. Tab / Shift+Tab cycles Category Filter Chips
+                                if ((event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier)) || event.key === Qt.Key_Backtab) {
+                                    event.accepted = true;
+                                    root.cycleCategory(-1);
+                                    return;
+                                } else if (event.key === Qt.Key_Tab) {
+                                    event.accepted = true;
+                                    root.cycleCategory(1);
+                                    return;
+                                }
+
+                                // 2. Up/Down navigation (also Ctrl+J / Ctrl+K)
+                                if (event.key === Qt.Key_Down || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_J)) {
                                     event.accepted = true;
                                     if (root.results.length > 0) {
                                         root.selectedIndex = (root.selectedIndex + 1) % root.results.length;
                                         resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                                     }
-                                } else if (event.key === Qt.Key_Up) {
+                                    return;
+                                } else if (event.key === Qt.Key_Up || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_K)) {
                                     event.accepted = true;
                                     if (root.results.length > 0) {
                                         root.selectedIndex = (root.selectedIndex - 1 + root.results.length) % root.results.length;
                                         resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
                                     }
+                                    return;
                                 } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                                     event.accepted = true;
                                     root.executeSelectedItem();
-                                } else if (event.key === Qt.Key_Tab) {
-                                    event.accepted = true;
-                                    if (root.results.length > 0) {
-                                        root.selectedIndex = (root.selectedIndex + 1) % root.results.length;
-                                        resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                    return;
+                                }
+
+                                // 3. Secondary Actions Shortcuts (Raycast-style)
+                                if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_W) {
+                                    if (root.selectedItem && root.selectedItem.type === "window") {
+                                        event.accepted = true;
+                                        root.closeWindow(root.selectedItem.address);
+                                        return;
+                                    }
+                                } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_F) {
+                                    if (root.selectedItem && root.selectedItem.type === "window") {
+                                        event.accepted = true;
+                                        root.toggleWindowFloat(root.selectedItem.address);
+                                        return;
+                                    }
+                                } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_B) {
+                                    if (root.selectedItem && (root.selectedItem.type === "cmd" || root.selectedItem.cmd)) {
+                                        event.accepted = true;
+                                        root.runBgCmd(root.selectedItem.cmd);
+                                        return;
+                                    }
+                                } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C) {
+                                    // If no text selected inside input field, copy selected item's text!
+                                    if (searchInput.selectedText === "" && root.selectedItem) {
+                                        event.accepted = true;
+                                        const cpText = root.selectedItem.result || root.selectedItem.cmd || root.selectedItem.title || "";
+                                        if (cpText) root.copyToClipboard(cpText);
+                                        return;
                                     }
                                 }
                             }
@@ -1075,22 +1626,139 @@ Scope {
                     }
                 }
 
-                // ── 2. HORIZONTAL DIVIDER ────────────
+                // ── 2. DIVIDER ───────────────────────
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
                     color: Qt.rgba(1, 1, 1, 0.08)
                 }
 
-                // ── 3. DUAL-PANE SPOTLIGHT CONTENT ───
+                // ── 3. INTERACTIVE CATEGORY FILTER CHIPS ROW ────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 38
+                    color: Qt.rgba(0, 0, 0, 0.12)
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 16
+                        anchors.rightMargin: 16
+                        spacing: 6
+
+                        Repeater {
+                            model: root.categoryList
+
+                            Rectangle {
+                                id: chipBox
+                                height: 26
+                                Layout.alignment: Qt.AlignVCenter
+                                width: chipRow.implicitWidth + 18
+                                radius: 13
+
+                                readonly property bool isActive: root.activeCategory === modelData.id
+                                readonly property bool isHovered: chipMouse.containsMouse
+
+                                color: isActive 
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
+                                    : (isHovered ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+
+                                border.color: isActive
+                                    ? root.theme.accent
+                                    : (isHovered ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.06))
+                                border.width: 1
+
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Behavior on border.color { ColorAnimation { duration: 100 } }
+
+                                RowLayout {
+                                    id: chipRow
+                                    anchors.centerIn: parent
+                                    spacing: 5
+
+                                    Text {
+                                        text: modelData.icon
+                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.theme.textPrimary : root.theme.textMuted)
+                                        font.pixelSize: 11
+                                        font.family: root.font
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Text {
+                                        text: modelData.label
+                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.theme.textPrimary : root.theme.textMuted)
+                                        font.pixelSize: 11
+                                        font.family: root.font
+                                        font.weight: chipBox.isActive ? Font.DemiBold : Font.Normal
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: chipMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.activeCategory = modelData.id;
+                                        root.selectedIndex = 0;
+                                        root.updateSearchResults();
+                                        searchInput.forceActiveFocus();
+                                    }
+                                }
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        // Keyboard Tab switch hint
+                        Row {
+                            Layout.alignment: Qt.AlignVCenter
+                            spacing: 4
+                            opacity: 0.65
+
+                            Rectangle {
+                                height: 16
+                                width: tabHint.implicitWidth + 6
+                                radius: 3
+                                color: Qt.rgba(1, 1, 1, 0.08)
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text {
+                                    id: tabHint
+                                    anchors.centerIn: parent
+                                    text: "Tab"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 9
+                                    font.family: root.font
+                                }
+                            }
+
+                            Text {
+                                text: "to filter"
+                                color: root.theme.textMuted
+                                font.pixelSize: 10
+                                font.family: root.font
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                    }
+                }
+
+                // ── 4. DIVIDER ───────────────────────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.08)
+                }
+
+                // ── 5. DUAL-PANE CONTENT ─────────────
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: 0
 
-                    // ── LEFT PANE: RESULTS LIST (width: 420px) ──
+                    // ── LEFT PANE: RESULTS LIST (width: 430px) ──
                     Rectangle {
-                        Layout.preferredWidth: 420
+                        Layout.preferredWidth: 430
                         Layout.fillHeight: true
                         color: "transparent"
                         clip: true
@@ -1155,7 +1823,7 @@ Scope {
                                                 width: 20
                                                 height: 20
                                                 source: Quickshell.iconPath(modelData.icon ?? "", true)
-                                                visible: modelData.type === "app" && (modelData.icon ?? "") !== ""
+                                                visible: (modelData.type === "app" || modelData.type === "window") && (modelData.icon ?? "") !== ""
                                             }
 
                                             Text {
@@ -1164,7 +1832,7 @@ Scope {
                                                 color: root.selectedIndex === index ? "#ffffff" : (modelData.accentColor ?? root.theme.accent)
                                                 font.pixelSize: 14
                                                 font.family: root.font
-                                                visible: modelData.type !== "app" || (modelData.icon ?? "") === ""
+                                                visible: (modelData.type !== "app" && modelData.type !== "window") || (modelData.icon ?? "") === ""
                                             }
                                         }
 
@@ -1230,8 +1898,8 @@ Scope {
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 18
-                            spacing: 12
+                            anchors.margins: 16
+                            spacing: 10
 
                             // ── TOP: Icon + Large Title + Kind ──
                             ColumnLayout {
@@ -1239,41 +1907,41 @@ Scope {
                                 Layout.fillWidth: true
                                 spacing: 8
 
-                                // Large 64x64 Squircle Icon
+                                // Large 56x56 Squircle Icon
                                 Rectangle {
                                     Layout.alignment: Qt.AlignHCenter
-                                    width: 64
-                                    height: 64
-                                    radius: 14
+                                    width: 56
+                                    height: 56
+                                    radius: 13
                                     color: Qt.rgba(1, 1, 1, 0.06)
                                     border.color: Qt.rgba(1, 1, 1, 0.12)
                                     border.width: 1
 
                                     IconImage {
                                         anchors.centerIn: parent
-                                        width: 48
-                                        height: 48
+                                        width: 42
+                                        height: 42
                                         source: Quickshell.iconPath(root.selectedItem?.icon ?? "", true)
-                                        visible: root.selectedItem?.type === "app" && (root.selectedItem?.icon ?? "") !== ""
+                                        visible: (root.selectedItem?.type === "app" || root.selectedItem?.type === "window") && (root.selectedItem?.icon ?? "") !== ""
                                     }
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: root.selectedItem?.glyph ?? (root.selectedItem?.icon ?? "󰣆")
                                         color: root.selectedItem?.accentColor ?? root.theme.accent
-                                        font.pixelSize: 32
+                                        font.pixelSize: 28
                                         font.family: root.font
-                                        visible: root.selectedItem?.type !== "app" || (root.selectedItem?.icon ?? "") === ""
+                                        visible: (root.selectedItem?.type !== "app" && root.selectedItem?.type !== "window") || (root.selectedItem?.icon ?? "") === ""
                                     }
                                 }
 
                                 // Large Title
                                 Text {
                                     Layout.alignment: Qt.AlignHCenter
-                                    Layout.maximumWidth: 240
+                                    Layout.maximumWidth: 260
                                     text: root.selectedItem?.title ?? "Spotlight Search"
                                     color: root.theme.textPrimary
-                                    font.pixelSize: 15
+                                    font.pixelSize: 14
                                     font.family: root.font
                                     font.weight: Font.Bold
                                     elide: Text.ElideRight
@@ -1299,6 +1967,7 @@ Scope {
                             }
 
                             // ── MIDDLE: Rich Contextual Details ──
+
                             // 1. Math Evaluation Display
                             ColumnLayout {
                                 visible: root.selectedItem?.type === "calc"
@@ -1318,7 +1987,7 @@ Scope {
                                     Layout.alignment: Qt.AlignHCenter
                                     text: "= " + (root.selectedItem?.result ?? "")
                                     color: root.theme.accentGreen
-                                    font.pixelSize: 26
+                                    font.pixelSize: 24
                                     font.family: root.font
                                     font.weight: Font.Bold
                                 }
@@ -1332,11 +2001,46 @@ Scope {
                                 }
                             }
 
-                            // 2. Standard Metadata Rows (Apps, Shortcuts, Commands)
+                            // 2. Open Window Metadata (for Window Switcher)
                             ColumnLayout {
-                                visible: root.selectedItem?.type !== "calc"
+                                visible: root.selectedItem?.type === "window"
                                 Layout.fillWidth: true
-                                spacing: 8
+                                spacing: 7
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "App:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                    Item { Layout.fillWidth: true }
+                                    Text { text: root.selectedItem?.clazz ?? ""; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font; font.weight: Font.DemiBold }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Workspace:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                    Item { Layout.fillWidth: true }
+                                    Text { text: root.selectedItem?.wsName ?? ""; color: root.theme.accent; font.pixelSize: 10; font.family: root.font; font.weight: Font.Bold }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "State:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                    Item { Layout.fillWidth: true }
+                                    Text { text: root.selectedItem?.floating ? "Floating" : "Tiled"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text { text: "Address:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                    Item { Layout.fillWidth: true }
+                                    Text { text: root.selectedItem?.address ?? ""; color: root.theme.textMuted; font.pixelSize: 9; font.family: root.font }
+                                }
+                            }
+
+                            // 3. Standard Metadata Rows (Apps, Shortcuts, Commands)
+                            ColumnLayout {
+                                visible: root.selectedItem?.type !== "calc" && root.selectedItem?.type !== "window"
+                                Layout.fillWidth: true
+                                spacing: 7
 
                                 // Keybinding pills (for shortcuts)
                                 RowLayout {
@@ -1463,7 +2167,118 @@ Scope {
 
                             Item { Layout.fillHeight: true }
 
-                            // ── BOTTOM: Primary Action Button (macOS 1:1) ──
+                            // ── SECONDARY ACTIONS BAR (Raycast-style) ──
+                            // For Windows: Close / Float
+                            RowLayout {
+                                Layout.fillWidth: true
+                                visible: root.selectedItem?.type === "window"
+                                spacing: 6
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 26
+                                    radius: 6
+                                    color: btnCloseMouse.containsMouse ? Qt.rgba(1, 0.2, 0.2, 0.25) : Qt.rgba(1, 1, 1, 0.06)
+                                    border.color: btnCloseMouse.containsMouse ? "#f38ba8" : Qt.rgba(1, 1, 1, 0.1)
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text { text: "⌃W"; color: root.theme.textMuted; font.pixelSize: 9; font.family: root.font; font.weight: Font.Bold }
+                                        Text { text: "Close"; color: btnCloseMouse.containsMouse ? "#f38ba8" : root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                    }
+
+                                    MouseArea {
+                                        id: btnCloseMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.closeWindow(root.selectedItem.address)
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 26
+                                    radius: 6
+                                    color: btnFloatMouse.containsMouse ? Qt.rgba(0.5, 0.8, 1, 0.25) : Qt.rgba(1, 1, 1, 0.06)
+                                    border.color: btnFloatMouse.containsMouse ? "#89b4fa" : Qt.rgba(1, 1, 1, 0.1)
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text { text: "⌃F"; color: root.theme.textMuted; font.pixelSize: 9; font.family: root.font; font.weight: Font.Bold }
+                                        Text { text: root.selectedItem?.floating ? "Tile" : "Float"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                    }
+
+                                    MouseArea {
+                                        id: btnFloatMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.toggleWindowFloat(root.selectedItem.address)
+                                    }
+                                }
+                            }
+
+                            // For Commands: Background / Copy
+                            RowLayout {
+                                Layout.fillWidth: true
+                                visible: root.selectedItem?.type === "cmd" || (!!root.selectedItem?.cmd && root.selectedItem?.type !== "window")
+                                spacing: 6
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 26
+                                    radius: 6
+                                    color: btnBgMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                                    border.color: Qt.rgba(1, 1, 1, 0.1)
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text { text: "⌃B"; color: root.theme.textMuted; font.pixelSize: 9; font.family: root.font; font.weight: Font.Bold }
+                                        Text { text: "Background"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                    }
+
+                                    MouseArea {
+                                        id: btnBgMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.runBgCmd(root.selectedItem.cmd)
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 26
+                                    radius: 6
+                                    color: btnCpMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                                    border.color: Qt.rgba(1, 1, 1, 0.1)
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+                                        Text { text: "⌃C"; color: root.theme.textMuted; font.pixelSize: 9; font.family: root.font; font.weight: Font.Bold }
+                                        Text { text: "Copy"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                    }
+
+                                    MouseArea {
+                                        id: btnCpMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.copyToClipboard(root.selectedItem.cmd)
+                                    }
+                                }
+                            }
+
+                            // ── BOTTOM: Primary Action Button (macOS / Raycast 1:1) ──
                             Rectangle {
                                 Layout.fillWidth: true
                                 height: 32
@@ -1505,14 +2320,14 @@ Scope {
                     }
                 }
 
-                // ── 4. HORIZONTAL DIVIDER ────────────
+                // ── 6. DIVIDER ───────────────────────
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
                     color: Qt.rgba(1, 1, 1, 0.08)
                 }
 
-                // ── 5. SPOTLIGHT FOOTER BAR ──────────
+                // ── 7. SPOTLIGHT FOOTER BAR ──────────
                 Rectangle {
                     Layout.fillWidth: true
                     height: 28
@@ -1535,13 +2350,26 @@ Scope {
                             Row {
                                 spacing: 4
                                 Text { text: "↵"; color: root.theme.textMuted; font.pixelSize: 11; font.family: root.font }
-                                Text { text: "Execute"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                Text { text: "Select"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                            }
+
+                            Row {
+                                spacing: 4
+                                Text { text: "Tab"; color: root.theme.textMuted; font.pixelSize: 9; font.family: root.font }
+                                Text { text: "Filter"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                            }
+
+                            Row {
+                                visible: root.selectedItem?.type === "window"
+                                spacing: 4
+                                Text { text: "⌃W"; color: root.theme.textMuted; font.pixelSize: 9; font.family: root.font }
+                                Text { text: "Close"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
                             }
 
                             Row {
                                 spacing: 4
                                 Text { text: "esc"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
-                                Text { text: "Close"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                Text { text: "Dismiss"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
                             }
                         }
 
