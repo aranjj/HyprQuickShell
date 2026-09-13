@@ -82,19 +82,103 @@ Singleton {
         execProc.running = true;
     }
 
+    // ── Hyprland Lua User Programs Defaults ──────────
+    FileView {
+        id: hyprConfigFile
+        path: "/home/aran/.config/hypr/hyprland.lua"
+        preload: true
+        blockLoading: true
+    }
+
+    readonly property string defaultTerminal: {
+        try {
+            const txt = hyprConfigFile.text();
+            const m = txt.match(/local\s+terminal\s*=\s*["']([^"']+)["']/);
+            if (m && m[1]) return m[1].trim();
+        } catch (e) {}
+        return "kitty";
+    }
+
+    readonly property string defaultFileManager: {
+        try {
+            const txt = hyprConfigFile.text();
+            const m = txt.match(/local\s+fileManager\s*=\s*["']([^"']+)["']/);
+            if (m && m[1]) return m[1].trim();
+        } catch (e) {}
+        return "dolphin";
+    }
+
+    readonly property string defaultBrowser: {
+        try {
+            const txt = hyprConfigFile.text();
+            const m = txt.match(/local\s+browser\s*=\s*["']([^"']+)["']/);
+            if (m && m[1]) return m[1].trim();
+        } catch (e) {}
+        return "firefox";
+    }
+
+    readonly property string defaultMenu: {
+        try {
+            const txt = hyprConfigFile.text();
+            const m = txt.match(/local\s+menu\s*=\s*["']([^"']+)["']/);
+            if (m && m[1]) return m[1].trim();
+        } catch (e) {}
+        return "hyprlauncher";
+    }
+
+    // Run command in user's configured default terminal emulator
+    function runInTerminal(cmd, hold) {
+        const term = defaultTerminal || "kitty";
+        const clean = cmd.replace(/^>/, '').trim();
+        if (!clean) return;
+
+        if (term === "kitty") {
+            const flag = hold ? "--hold -e " : "-e ";
+            runCmd("kitty --directory " + homeDir + " " + flag + clean);
+        } else if (term === "alacritty") {
+            const flag = hold ? "--hold -e " : "-e ";
+            runCmd("alacritty --working-directory " + homeDir + " " + flag + clean);
+        } else if (term === "foot") {
+            const flag = hold ? "--hold " : "";
+            runCmd("foot -D " + homeDir + " " + flag + clean);
+        } else if (term === "ghostty") {
+            runCmd("ghostty --working-directory=" + homeDir + " -e " + clean);
+        } else if (term === "konsole") {
+            const flag = hold ? "--hold -e " : "-e ";
+            runCmd("konsole --workdir " + homeDir + " " + flag + clean);
+        } else {
+            if (hold) {
+                runCmd(term + " -e sh -c '" + clean.replace(/'/g, "'\\''") + "; printf \"\\n[Process completed. Press Enter to exit]\\n\"; read _'");
+            } else {
+                runCmd(term + " -e " + clean);
+            }
+        }
+    }
+
     // Open terminal always in ~/
     function openTerminal() {
-        runCmd("kitty --directory " + homeDir + " || alacritty --working-directory " + homeDir + " || konsole --workdir " + homeDir);
+        const term = defaultTerminal || "kitty";
+        if (term === "kitty") {
+            runCmd("kitty --directory " + homeDir);
+        } else if (term === "alacritty") {
+            runCmd("alacritty --working-directory " + homeDir);
+        } else if (term === "foot") {
+            runCmd("foot -D " + homeDir);
+        } else if (term === "konsole") {
+            runCmd("konsole --workdir " + homeDir);
+        } else {
+            runCmd(term + " || kitty || alacritty");
+        }
     }
 
     // Open btop always in ~/
     function openBtop() {
-        runCmd("kitty --directory " + homeDir + " -e btop || alacritty --working-directory " + homeDir + " -e btop || konsole --workdir " + homeDir + " -e btop");
+        runInTerminal("btop", false);
     }
 
     // Open file manager in ~/
     function openFileManager() {
-        runCmd("dolphin " + homeDir);
+        runCmd((defaultFileManager || "dolphin") + " " + homeDir);
     }
 
     // Lock screen (same behavior as Super + L)

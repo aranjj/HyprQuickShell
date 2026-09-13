@@ -1186,7 +1186,7 @@ Scope {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.appleMenuOpen = false;
-                                Services.SystemService.runCmd("systemsettings || kitty");
+                                Services.SystemService.runCmd("systemsettings || " + (Services.SystemService.defaultTerminal || "kitty"));
                             }
                         }
                     }

@@ -21,6 +21,14 @@ Scope {
     property string activeCategory: "apps" // Default to Apps tab (Launchpad behavior)
     property var hyprWindows: []
 
+    // ── Hyprland Configured Default Programs ─────────
+    readonly property string terminalApp: Services.SystemService.defaultTerminal || "kitty"
+    readonly property string browserApp: Services.SystemService.defaultBrowser || "firefox"
+    readonly property string fileManagerApp: Services.SystemService.defaultFileManager || "dolphin"
+    readonly property string terminalName: terminalApp ? (terminalApp.charAt(0).toUpperCase() + terminalApp.slice(1)) : "Terminal"
+    readonly property string browserName: browserApp ? (browserApp.charAt(0).toUpperCase() + browserApp.slice(1)) : "Browser"
+    readonly property string fileManagerName: fileManagerApp ? (fileManagerApp.charAt(0).toUpperCase() + fileManagerApp.slice(1)) : "File Manager"
+
     // ── Category List Definition ──────────────────────
     readonly property var categoryList: [
         { id: "all", label: "All", icon: "󰍉" },
@@ -33,7 +41,7 @@ Scope {
 
     readonly property string searchPlaceholder: {
         switch (activeCategory) {
-            case "apps": return "Search Applications (e.g. Kitty, Firefox)...";
+            case "apps": return "Search Applications (e.g. " + root.terminalName + ", " + root.browserName + ")...";
             case "windows": return "Search Open Windows...";
             case "commands": return "Search or Type Commands (e.g. btop, pacman)...";
             case "shortcuts": return "Search System Shortcuts (e.g. Lock, Screenshot)...";
@@ -269,10 +277,7 @@ Scope {
 
     // ── Execution Helpers ────────────────────────────
     function runTerminalCmd(cmd, hold) {
-        const clean = cmd.replace(/^>/, '').trim();
-        if (!clean) return;
-        const flag = hold ? "--hold -e " : "-e ";
-        Services.SystemService.runCmd("kitty --directory /home/aran " + flag + clean);
+        Services.SystemService.runInTerminal(cmd, hold);
         closeLauncher();
     }
 
@@ -286,7 +291,8 @@ Scope {
     function searchWeb(query) {
         const q = encodeURIComponent(query.trim());
         if (!q) return;
-        Services.SystemService.runCmd("xdg-open 'https://www.google.com/search?q=" + q + "' || firefox 'https://www.google.com/search?q=" + q + "'");
+        const browser = root.browserApp || "firefox";
+        Services.SystemService.runCmd("xdg-open 'https://www.google.com/search?q=" + q + "' || " + browser + " 'https://www.google.com/search?q=" + q + "'");
         closeLauncher();
     }
 
@@ -612,7 +618,7 @@ Scope {
             accentColor: "#a6e3a1",
             cmd: "btop",
             desc: "Full-featured modern system monitoring tool for Linux.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["btop", "top", "monitor", "cpu", "ram", "processes"],
             action: () => root.runTerminalCmd("btop", false)
         },
@@ -627,7 +633,7 @@ Scope {
             accentColor: "#89b4fa",
             cmd: "fastfetch",
             desc: "Displays system specs, kernel, desktop environment, and GPU info.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["fastfetch", "neofetch", "info", "specs", "hardware"],
             action: () => root.runTerminalCmd("fastfetch", true)
         },
@@ -642,7 +648,7 @@ Scope {
             accentColor: "#fab387",
             cmd: "yazi",
             desc: "Modern terminal file manager with inline image previews and fuzzy search.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["yazi", "files", "fm", "ranger", "directory"],
             action: () => root.runTerminalCmd("yazi", false)
         },
@@ -657,7 +663,7 @@ Scope {
             accentColor: "#a6e3a1",
             cmd: "vim",
             desc: "Powerful modal text editor for software development and configuration.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["vim", "nvim", "edit", "editor", "text"],
             action: () => root.runTerminalCmd("vim", false)
         },
@@ -672,7 +678,7 @@ Scope {
             accentColor: "#89dceb",
             cmd: "sudo pacman -Syu",
             desc: "Refreshes package repositories and installs all available OS updates.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["pacman", "update", "upgrade", "syu", "packages"],
             action: () => root.runTerminalCmd("sudo pacman -Syu", false)
         },
@@ -687,7 +693,7 @@ Scope {
             accentColor: "#f9e2af",
             cmd: "journalctl -xe -f",
             desc: "Monitors real-time logs from kernel, desktop, and system services.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["journalctl", "logs", "systemd", "errors", "debug"],
             action: () => root.runTerminalCmd("journalctl -xe -f", false)
         },
@@ -702,7 +708,7 @@ Scope {
             accentColor: "#cba6f7",
             cmd: "ip a",
             desc: "Displays detailed network configuration for all network adapters.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["ip", "ifconfig", "network", "address", "mac"],
             action: () => root.runTerminalCmd("ip a", true)
         },
@@ -717,7 +723,7 @@ Scope {
             accentColor: "#94e2d5",
             cmd: "ping 8.8.8.8",
             desc: "Measures packet round-trip time and internet latency in milliseconds.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["ping", "latency", "dns", "internet"],
             action: () => root.runTerminalCmd("ping 8.8.8.8", false)
         },
@@ -732,7 +738,7 @@ Scope {
             accentColor: "#fab387",
             cmd: "df -h",
             desc: "Displays human-readable free and used disk space on all mounted filesystems.",
-            actionLabel: "Run in Kitty",
+            actionLabel: "Run in " + root.terminalName,
             keywords: ["df", "disk", "storage", "space", "free"],
             action: () => root.runTerminalCmd("df -h", true)
         },
@@ -793,7 +799,7 @@ Scope {
         // ─────────────────────────────────────────────────────────────
         if (root.activeCategory === "apps") {
             if (q === "") {
-                const suggestedNames = ["kitty", "firefox", "dolphin", "code", "antigravity", "spotify", "discord", "steam", "obs"];
+                const suggestedNames = [root.terminalApp, root.browserApp, root.fileManagerApp, "code", "antigravity", "spotify", "discord", "steam", "obs"];
                 const suggestedApps = [];
                 const otherApps = [];
 
@@ -801,7 +807,7 @@ Scope {
                     const a = allApps[i];
                     const n = (a.name || "").toLowerCase();
                     const id = (a.id || "").toLowerCase();
-                    const isSuggested = suggestedNames.some(s => n.includes(s) || id.includes(s));
+                    const isSuggested = suggestedNames.some(s => s && (n.includes(s) || id.includes(s)));
                     if (isSuggested && suggestedApps.length < 5) {
                         suggestedApps.push(a);
                     } else {
@@ -825,21 +831,21 @@ Scope {
                         entry: app,
                         exec: app.id || app.name,
                         desc: app.comment || app.genericName || "Desktop Application",
-                        actionLabel: "Open Application",
+                        actionLabel: "Launch Application",
                         action: () => { app.execute(); closeLauncher(); }
                     });
                 }
 
-                // All Applications Section (alphabetical)
+                // Applications Section (A-Z)
                 otherApps.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
                 for (let i = 0; i < otherApps.length; i++) {
                     const app = otherApps[i];
                     out.push({
-                        id: "app_all_" + (app.id || app.name) + "_" + i,
+                        id: "app_other_" + (app.id || app.name),
                         type: "app",
                         title: app.name ?? "Application",
                         subtitle: app.genericName || app.comment || "Application",
-                        category: "ALL APPLICATIONS",
+                        category: "APPLICATIONS",
                         kindTag: "Application",
                         icon: app.icon ?? "",
                         glyph: "󰣆",
@@ -847,7 +853,7 @@ Scope {
                         entry: app,
                         exec: app.id || app.name,
                         desc: app.comment || app.genericName || "Desktop Application",
-                        actionLabel: "Open Application",
+                        actionLabel: "Launch Application",
                         action: () => { app.execute(); closeLauncher(); }
                     });
                 }
@@ -871,15 +877,15 @@ Scope {
                         id: "cmd_custom_term",
                         type: "cmd",
                         title: "Run: " + cmdStr,
-                        subtitle: "Execute command in Kitty terminal",
+                        subtitle: "Execute command in " + root.terminalName + " terminal",
                         category: "TERMINAL EXECUTION",
                         kindTag: "Terminal Command",
                         icon: "󰞷",
                         glyph: "󰞷",
                         accentColor: root.theme.accent,
                         cmd: cmdStr,
-                        desc: "Runs '" + cmdStr + "' directly in Kitty terminal session.",
-                        actionLabel: "Run in Kitty",
+                        desc: "Runs '" + cmdStr + "' directly in " + root.terminalName + " terminal session.",
+                        actionLabel: "Run in " + root.terminalName,
                         action: () => root.runTerminalCmd(cmdStr, false)
                     });
                     root.results = out;
@@ -996,15 +1002,15 @@ Scope {
                     id: "cmd_custom_term",
                     type: "cmd",
                     title: "Run: " + cleanQ,
-                    subtitle: "Execute command in Kitty terminal",
+                    subtitle: "Execute command in " + root.terminalName + " terminal",
                     category: "TERMINAL EXECUTION",
                     kindTag: "Terminal Command",
                     icon: "󰞷",
                     glyph: "󰞷",
                     accentColor: root.theme.accent,
                     cmd: cleanQ,
-                    desc: "Runs '" + cleanQ + "' directly in Kitty terminal session.",
-                    actionLabel: "Run in Kitty",
+                    desc: "Runs '" + cleanQ + "' directly in " + root.terminalName + " terminal session.",
+                    actionLabel: "Run in " + root.terminalName,
                     action: () => root.runTerminalCmd(cleanQ, false)
                 });
 
@@ -1143,7 +1149,10 @@ Scope {
                 const topApps = allApps.filter(a => {
                     const n = (a.name ?? "").toLowerCase();
                     const id = (a.id ?? "").toLowerCase();
-                    return n.includes("kitty") || n.includes("firefox") || n.includes("dolphin") || n.includes("code");
+                    return (root.terminalApp && (n.includes(root.terminalApp) || id.includes(root.terminalApp))) ||
+                           (root.browserApp && (n.includes(root.browserApp) || id.includes(root.browserApp))) ||
+                           (root.fileManagerApp && (n.includes(root.fileManagerApp) || id.includes(root.fileManagerApp))) ||
+                           n.includes("code");
                 }).slice(0, 3);
 
                 for (let i = 0; i < topApps.length; i++) {
@@ -1199,15 +1208,15 @@ Scope {
                         id: "custom_cmd_" + cmdStr,
                         type: "cmd",
                         title: "Run: " + cmdStr,
-                        subtitle: "Execute in Kitty terminal",
+                        subtitle: "Execute in " + root.terminalName + " terminal",
                         category: "TOP HIT",
                         kindTag: "Terminal Command",
                         icon: "󰞷",
                         glyph: "󰞷",
                         accentColor: root.theme.accent,
                         cmd: cmdStr,
-                        desc: "Runs '" + cmdStr + "' directly in Kitty terminal.",
-                        actionLabel: "Run in Kitty",
+                        desc: "Runs '" + cmdStr + "' directly in " + root.terminalName + " terminal.",
+                        actionLabel: "Run in " + root.terminalName,
                         action: () => root.runTerminalCmd(cmdStr, false)
                     });
                     out.push({
@@ -1349,15 +1358,15 @@ Scope {
                     id: "typed_cmd_" + rawQ,
                     type: "cmd",
                     title: "Run: " + rawQ,
-                    subtitle: "Execute terminal command in Kitty",
+                    subtitle: "Execute terminal command in " + root.terminalName,
                     category: "COMMANDS",
                     kindTag: "Terminal Command",
                     icon: "󰞷",
                     glyph: "󰞷",
                     accentColor: root.theme.accent,
                     cmd: rawQ,
-                    desc: "Runs '" + rawQ + "' directly in Kitty terminal.",
-                    actionLabel: "Run in Kitty",
+                    desc: "Runs '" + rawQ + "' directly in " + root.terminalName + " terminal.",
+                    actionLabel: "Run in " + root.terminalName,
                     action: () => root.runTerminalCmd(rawQ, false)
                 });
             }
