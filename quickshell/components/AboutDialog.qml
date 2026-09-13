@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
@@ -11,6 +12,13 @@ Scope {
 
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
+
+    IpcHandler {
+        target: "about"
+        function open() { Services.SystemService.aboutDialogOpen = true; }
+        function close() { Services.SystemService.aboutDialogOpen = false; }
+        function toggle() { Services.SystemService.aboutDialogOpen = !Services.SystemService.aboutDialogOpen; }
+    }
 
     Variants {
         model: Quickshell.screens
@@ -110,6 +118,8 @@ Scope {
 
                         Text {
                             anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: -6
+                            anchors.verticalCenterOffset: -3
                             text: Services.SystemService.distroGlyph
                             color: root.theme.accent
                             font.pixelSize: 30
