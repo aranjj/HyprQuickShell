@@ -2015,30 +2015,32 @@ Scope {
                                                         font.pixelSize: 10
                                                         font.family: root.font
                                                     }
-                                                    Text {
-                                                        text: "•"
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 8
-                                                        font.family: root.font
-                                                        visible: !!(Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.rate)
-                                                    }
-                                                    Text {
-                                                        text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.rate || "") : ""
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 10
-                                                        font.family: root.font
-                                                        visible: !!(Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.rate)
+                                                    Text { text: "•"; color: root.theme.textMuted; font.pixelSize: 8; font.family: root.font }
+
+                                                    RowLayout {
+                                                        spacing: 5
+                                                        Text {
+                                                            text: "↓ " + Services.SystemService.wifiRxFormatted
+                                                            color: root.theme.accentGreen
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                        }
+                                                        Text {
+                                                            text: "↑ " + Services.SystemService.wifiTxFormatted
+                                                            color: root.theme.accent
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                        }
                                                     }
                                                 }
                                             }
 
-                                            Item { Layout.fillWidth: true }
-
                                             // Disconnect Pill Button
                                             Rectangle {
-                                                width: 72
-                                                height: 26
-                                                radius: 13
+                                                width: 68
+                                                height: 24
+                                                radius: 12
+                                                Layout.alignment: Qt.AlignVCenter
                                                 color: disconWM.pressed ? Qt.darker("#ff453a", 1.2) : (disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.15))
                                                 border.color: disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.3)
                                                 border.width: 1
@@ -2155,6 +2157,14 @@ Scope {
                                                 Text { text: "BSSID (MAC):"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
                                                 Item { Layout.fillWidth: true }
                                                 Text { text: Services.SystemService.wifiActiveNetwork?.bssid || "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                            }
+
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                visible: !!(Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.rate)
+                                                Text { text: "Link Speed:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                                Item { Layout.fillWidth: true }
+                                                Text { text: Services.SystemService.wifiActiveNetwork?.rate || "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
                                             }
 
                                             // Forget this network button

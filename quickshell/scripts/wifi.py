@@ -301,13 +301,38 @@ def rescan():
         except Exception:
             pass
 
+def get_saved_connections_with_uuids():
+    try:
+        out = subprocess.run(['nmcli', '-t', '-f', 'UUID,NAME,TYPE', 'connection', 'show'], 
+                             capture_output=True, text=True, timeout=5).stdout
+        conns = {}
+        for line in out.splitlines():
+            parts = line.strip().split(':')
+            if len(parts) >= 3 and ('802-11-wireless' in parts[2] or 'wifi' in parts[2]):
+                conns[parts[0]] = parts[1]
+        return conns
+    except Exception:
+        return {}
+
+def cleanup_failed_connection(ssid, was_saved, before_conns):
+    """Clean up any connection profiles created during a failed connection attempt."""
+    try:
+        after_conns = get_saved_connections_with_uuids()
+        new_uuids = set(after_conns.keys()) - set(before_conns.keys())
+        for u in new_uuids:
+            subprocess.run(['nmcli', 'connection', 'delete', 'uuid', u], capture_output=True, timeout=5)
+        if not was_saved:
+            subprocess.run(['nmcli', 'connection', 'delete', 'id', ssid], capture_output=True, timeout=5)
+    except Exception:
+        pass
+
 def connect(ssid, password=None, hidden=False):
     iface = get_wifi_interface()
-    st = get_status()
-    saved = st.get('saved_profiles', [])
+    before_conns = get_saved_connections_with_uuids()
+    was_saved = any(name == ssid for name in before_conns.values())
 
     cmd = []
-    if ssid in saved and not password:
+    if was_saved and not password:
         cmd = ['nmcli', 'connection', 'up', 'id', ssid]
     else:
         cmd = ['nmcli', 'device', 'wifi', 'connect', ssid]
@@ -321,8 +346,9 @@ def connect(ssid, password=None, hidden=False):
         if res.returncode == 0:
             return {'success': True, 'error': None, 'ssid': ssid}
         else:
+            cleanup_failed_connection(ssid, was_saved, before_conns)
             err = res.stderr.strip() or res.stdout.strip()
-            if 'Secrets were required' in err or 'property is invalid' in err:
+            if 'Secrets were required' in err or 'property is invalid' in err or 'No agents were available' in err:
                 err_msg = 'Incorrect password. Please try again.'
             elif 'Timeout' in err:
                 err_msg = 'Connection timed out. Check signal and try again.'
@@ -332,8 +358,10 @@ def connect(ssid, password=None, hidden=False):
                 err_msg = err or 'Failed to connect to network.'
             return {'success': False, 'error': err_msg, 'ssid': ssid}
     except subprocess.TimeoutExpired:
+        cleanup_failed_connection(ssid, was_saved, before_conns)
         return {'success': False, 'error': 'Connection timed out after 25 seconds.', 'ssid': ssid}
     except Exception as e:
+        cleanup_failed_connection(ssid, was_saved, before_conns)
         return {'success': False, 'error': str(e), 'ssid': ssid}
 
 def disconnect():

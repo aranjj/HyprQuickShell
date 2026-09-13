@@ -709,6 +709,23 @@ Singleton {
     property string wifiConnectError: ""
     property bool wifiConnecting: false
 
+    // Live Wi-Fi Download / Upload Speeds
+    property real wifiRxSpeed: 0
+    property real wifiTxSpeed: 0
+    property string wifiRxFormatted: "0 B/s"
+    property string wifiTxFormatted: "0 B/s"
+    property real _lastWifiRx: 0
+    property real _lastWifiTx: 0
+    property real _lastWifiTime: 0
+
+    function formatSpeed(bytesPerSec) {
+        if (!bytesPerSec || bytesPerSec <= 0) return "0 B/s";
+        if (bytesPerSec < 1024) return Math.round(bytesPerSec) + " B/s";
+        if (bytesPerSec < 1024 * 1024) return (bytesPerSec / 1024).toFixed(1) + " KB/s";
+        if (bytesPerSec < 1024 * 1024 * 1024) return (bytesPerSec / (1024 * 1024)).toFixed(1) + " MB/s";
+        return (bytesPerSec / (1024 * 1024 * 1024)).toFixed(2) + " GB/s";
+    }
+
     readonly property string wifiBarIcon: {
         if (networkType === "ethernet") return "󰈀";
         if (!wifiEnabled) return "󰖪";
@@ -857,6 +874,44 @@ Singleton {
             root.wifiScanning = false;
             wifiStatusProc.running = true;
         }
+    }
+
+    Process {
+        id: wifiSpeedProc
+        command: ["sh", "-c", "awk -v iface=\"" + (root.wifiInterface || "wlan0") + "\" '$1 ~ (\"^\"iface\":\") {print $2, $10}' /proc/net/dev"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const parts = text.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    const rx = parseFloat(parts[0]) || 0;
+                    const tx = parseFloat(parts[1]) || 0;
+                    const now = Date.now();
+                    if (root._lastWifiTime > 0 && root._lastWifiRx > 0) {
+                        const dt = (now - root._lastWifiTime) / 1000.0;
+                        if (dt > 0.4 && dt < 8.0 && rx >= root._lastWifiRx && tx >= root._lastWifiTx) {
+                            const rxRate = (rx - root._lastWifiRx) / dt;
+                            const txRate = (tx - root._lastWifiTx) / dt;
+                            root.wifiRxSpeed = rxRate;
+                            root.wifiTxSpeed = txRate;
+                            root.wifiRxFormatted = root.formatSpeed(rxRate);
+                            root.wifiTxFormatted = root.formatSpeed(txRate);
+                        }
+                    }
+                    root._lastWifiRx = rx;
+                    root._lastWifiTx = tx;
+                    root._lastWifiTime = now;
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: wifiSpeedTimer
+        interval: 1000
+        running: root.controlCenterOpen && root.controlCenterSubView === "wifi" && (root.wifiConnected || root.networkType === "wifi")
+        repeat: true
+        onTriggered: wifiSpeedProc.running = true
     }
 
     function runWifiAction(action, arg1, arg2) {
@@ -1044,6 +1099,15 @@ Singleton {
     onControlCenterOpenChanged: {
         if (!controlCenterOpen && bluetoothDiscovering) {
             stopBluetoothScan();
+        }
+        if (controlCenterOpen && controlCenterSubView === "wifi") {
+            wifiSpeedProc.running = true;
+        }
+    }
+
+    onControlCenterSubViewChanged: {
+        if (controlCenterOpen && controlCenterSubView === "wifi") {
+            wifiSpeedProc.running = true;
         }
     }
 
