@@ -316,14 +316,14 @@ Scope {
                         Layout.alignment: Qt.AlignVCenter
                     }
 
-                    // ── Modern Morphing Capsule Workspaces ────────
+                    // ── Cohesive Segmented Glass Workspaces ────────
                     Rectangle {
                         id: wsTrack
-                        implicitWidth: wsRow.implicitWidth + 12
+                        implicitWidth: wsRow.implicitWidth + 8
                         implicitHeight: 26
                         radius: 13
-                        color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.07) : Qt.rgba(0, 0, 0, 0.28)
-                        border.color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.10)
+                        color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.04) : Qt.rgba(1, 1, 1, 0.07)
+                        border.color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(1, 1, 1, 0.09)
                         border.width: 1
                         Layout.alignment: Qt.AlignVCenter
 
@@ -332,9 +332,20 @@ Scope {
                             id: activeCapsule
                             visible: root.activeWsIndex >= 0 && wsRepeater.count > 0
                             y: (parent.height - height) / 2
-                            height: 20
-                            radius: 10
-                            color: theme.wsActive
+                            height: 22
+                            radius: 11
+                            color: root.theme.accent
+
+                            // Subtle specular inner reflection
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.topMargin: 1
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: parent.width - 6
+                                height: 1
+                                radius: 0.5
+                                color: Qt.rgba(1, 1, 1, 0.35)
+                            }
 
                             // Target coordinates based on active workspace item
                             x: {
@@ -346,9 +357,9 @@ Scope {
                             }
                             width: {
                                 const idx = root.activeWsIndex;
-                                if (idx < 0 || idx >= wsRepeater.count) return 28;
+                                if (idx < 0 || idx >= wsRepeater.count) return 24;
                                 const it = wsRepeater.itemAt(idx);
-                                if (!it) return 28;
+                                if (!it) return 24;
                                 return it.width;
                             }
 
@@ -362,7 +373,7 @@ Scope {
 
                         Row {
                             id: wsRow
-                            spacing: 4
+                            spacing: 2
                             anchors.centerIn: parent
 
                             Repeater {
@@ -389,49 +400,43 @@ Scope {
                                         return false;
                                     }
 
-                                    // Dynamic width: active is 28px, occupied is 24px, empty is 20px (hover adds +2)
-                                    width: (isActive ? 28 : (isOccupied ? 24 : 20)) + (spaceMouse.containsMouse && !isActive ? 2 : 0)
-                                    height: 20
-
-                                    Behavior on width {
-                                        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-                                    }
+                                    // Balanced, fixed-width pill (consistent rhythm without jittery resizing)
+                                    width: 24
+                                    height: 22
 
                                     // Hover pill for inactive items
                                     Rectangle {
                                         anchors.fill: parent
-                                        radius: 10
+                                        radius: 11
                                         color: spaceMouse.containsMouse && !spacePill.isActive ? root.barPillHover : "transparent"
                                         Behavior on color { ColorAnimation { duration: 120 } }
                                     }
 
-                                    // Item Content: Workspace Number & Occupied Indicator Dot
+                                    // Item Content: Workspace Number & Occupied Indicator
                                     Item {
-                                        anchors.centerIn: parent
-                                        width: parent.width
-                                        height: parent.height
+                                        anchors.fill: parent
 
                                         Text {
                                             anchors.centerIn: parent
-                                            anchors.verticalCenterOffset: spacePill.isOccupied && !spacePill.isActive ? -1 : 0
+                                            anchors.verticalCenterOffset: -0.5
                                             text: spacePill.wsId
-                                            color: spacePill.isActive ? "#ffffff"
+                                            color: spacePill.isActive ? Services.ThemeService.colOnPrimary
                                                  : spacePill.hasUrgent ? "#ff3b30"
                                                  : (spacePill.isOccupied ? root.barFgPrimary : root.barFgMuted)
-                                            font.pixelSize: spacePill.isActive ? 12 : 11
+                                            font.pixelSize: 11
                                             font.family: root.font
-                                            font.weight: spacePill.isActive ? Font.Bold : (spacePill.isOccupied ? Font.Bold : Font.DemiBold)
+                                            font.weight: spacePill.isActive ? Font.Bold : (spacePill.isOccupied ? Font.Bold : Font.Normal)
                                         }
 
-                                        // Subtle Occupied Dot for background workspaces with active windows
+                                        // Refined micro-dash for occupied background workspaces
                                         Rectangle {
                                             anchors.horizontalCenter: parent.horizontalCenter
                                             anchors.bottom: parent.bottom
                                             anchors.bottomMargin: 2
-                                            width: 3
-                                            height: 3
-                                            radius: 1.5
-                                            color: spacePill.hasUrgent ? "#ff3b30" : root.barFgPrimary
+                                            width: 6
+                                            height: 2
+                                            radius: 1
+                                            color: spacePill.hasUrgent ? "#ff3b30" : (root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(1, 1, 1, 0.50))
                                             visible: spacePill.isOccupied && !spacePill.isActive
                                         }
                                     }
@@ -456,6 +461,14 @@ Scope {
                                 else Hyprland.dispatch("hl.dsp.focus({ workspace = 'e+1' })");
                             }
                         }
+                    }
+
+                    // Subtle Divider
+                    Rectangle {
+                        width: 1
+                        height: 14
+                        color: root.barDividerColor
+                        Layout.alignment: Qt.AlignVCenter
                     }
 
                     // ── Active Window / Workspace Indicator ─────────
