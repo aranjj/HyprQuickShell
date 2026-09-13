@@ -1401,8 +1401,6 @@ Scope {
         WlrLayershell.namespace: "quickshell-spotlight"
         exclusionMode: ExclusionMode.Ignore
 
-        BackgroundEffect.blurRegion: Region { item: spotlightBox }
-
         anchors {
             top: true
             bottom: true
@@ -1410,15 +1408,10 @@ Scope {
             right: true
         }
 
-        // Dark Blurred Backdrop (click to dismiss)
-        Rectangle {
+        // Click outside to dismiss (transparent backdrop so Hyprland ignore_alpha rounds blur perfectly)
+        MouseArea {
             anchors.fill: parent
-            color: Services.Aesthetic.backdropColor
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: root.closeLauncher()
-            }
+            onClicked: root.closeLauncher()
         }
 
         // ── Spotlight Floating Card (macOS Tahoe & Raycast Scopes) ──────
@@ -1430,7 +1423,7 @@ Scope {
 
             width: 740
             height: 520
-            radius: 16
+            radius: Services.Aesthetic.cardRadius
             color: Services.Aesthetic.cardBg
             border.color: Services.Aesthetic.cardBorder
             border.width: Services.Aesthetic.borderWidth
@@ -1445,6 +1438,8 @@ Scope {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
+                anchors.leftMargin: Services.Aesthetic.cardRadius
+                anchors.rightMargin: Services.Aesthetic.cardRadius
                 height: 1
                 color: Qt.rgba(1, 1, 1, 0.12)
             }
@@ -1893,7 +1888,7 @@ Scope {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        color: Qt.rgba(0, 0, 0, 0.12)
+                        color: "transparent"
                         clip: true
 
                         ColumnLayout {
@@ -2331,7 +2326,7 @@ Scope {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 28
-                    color: Qt.rgba(0, 0, 0, 0.2)
+                    color: "transparent"
 
                     RowLayout {
                         anchors.fill: parent
