@@ -694,10 +694,18 @@ Singleton {
 
     // ── Wi-Fi ───────────────────────────────────────
     property bool wifiEnabled: true
+    property bool wifiScanning: false
+    property bool wifiConnected: false
     property string wifiSsid: ""
-    property string networkType: "disconnected"
-    property string networkInfo: "Disconnected"
+    property string wifiInterface: "wlan0"
+    property var wifiActiveNetwork: null
+    property var wifiKnownNetworks: []
+    property var wifiOtherNetworks: []
     property var wifiNetworks: []
+    property var wifiSavedProfiles: []
+    property string wifiConnectingSsid: ""
+    property string wifiConnectError: ""
+    property bool wifiConnecting: false
 
     Process {
         id: netProc
@@ -710,71 +718,164 @@ Singleton {
                 root.networkType = result.substring(0, idx);
                 root.networkInfo = result.substring(idx + 1) || "Disconnected";
                 if (root.networkType === "wifi") root.wifiSsid = root.networkInfo;
-                else if (root.networkType === "disconnected") root.wifiSsid = "";
+                else if (root.networkType === "disconnected" && !root.wifiConnected) root.wifiSsid = "";
             }
         }
     }
 
     Process {
-        id: wifiRadioProc
-        command: ["nmcli", "radio", "wifi"]
+        id: wifiStatusProc
+        command: ["/home/aran/.config/quickshell/scripts/wifi.sh", "status"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
-                root.wifiEnabled = text.trim() === "enabled";
+                try {
+                    const data = JSON.parse(text.trim());
+                    root.wifiEnabled = !!data.enabled;
+                    root.wifiScanning = !!data.scanning;
+                    root.wifiConnected = !!data.connected;
+                    root.wifiInterface = data.interface || "wlan0";
+                    root.wifiActiveNetwork = data.active || null;
+                    root.wifiSsid = (data.active && data.active.ssid) ? data.active.ssid : "";
+                    root.wifiKnownNetworks = data.known_networks || [];
+                    root.wifiOtherNetworks = data.other_networks || [];
+                    root.wifiNetworks = data.all_networks || [];
+                    root.wifiSavedProfiles = data.saved_profiles || [];
+
+                    if (root.networkType !== "ethernet") {
+                        if (root.wifiConnected && root.wifiSsid) {
+                            root.networkType = "wifi";
+                            root.networkInfo = root.wifiSsid;
+                        } else if (!root.wifiEnabled) {
+                            root.networkType = "disconnected";
+                            root.networkInfo = "Wi-Fi Off";
+                        } else {
+                            root.networkType = "disconnected";
+                            root.networkInfo = "Disconnected";
+                        }
+                    }
+                } catch(e) {}
             }
         }
     }
 
     Process {
-        id: wifiScanProc
-        command: ["sh", "-c", "nmcli -t -f active,ssid,bars,security dev wifi list --rescan no 2>/dev/null | awk -F: '!seen[$2]++ && $2!=\"\" {printf \"%s|%s|%s|%s\\n\", $1, $2, $3, $4}' | head -15"]
-        running: false
+        id: wifiActionProc
+        command: ["sh", "-c", ""]
+    }
+
+    Process {
+        id: wifiConnectProc
+        command: ["sh", "-c", ""]
         stdout: StdioCollector {
             onStreamFinished: {
-                const lines = text.trim().split("\n");
-                const list = [];
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    const parts = line.split("|");
-                    if (parts.length >= 2 && parts[1]) {
-                        list.push({
-                            active: parts[0] === "yes",
-                            ssid: parts[1],
-                            bars: parts[2] || "▂▄▆█",
-                            security: parts[3] || "Open"
-                        });
+                root.wifiConnecting = false;
+                try {
+                    const res = JSON.parse(text.trim());
+                    if (res.success) {
+                        root.wifiConnectingSsid = "";
+                        root.wifiConnectError = "";
+                    } else {
+                        root.wifiConnectError = res.error || "Failed to connect";
                     }
+                } catch(e) {
+                    root.wifiConnectError = text.trim() || "Connection failed";
                 }
-                root.wifiNetworks = list;
+                wifiRefreshTimer.start();
             }
         }
+    }
+
+    Timer {
+        id: wifiRefreshTimer
+        interval: 350
+        repeat: false
+        onTriggered: {
+            wifiStatusProc.running = true;
+            netProc.running = true;
+        }
+    }
+
+    // Faster polling when wifi view is open
+    Timer {
+        id: wifiScanPollTimer
+        interval: 3000
+        running: root.controlCenterOpen && root.controlCenterSubView === "wifi"
+        repeat: true
+        onTriggered: wifiStatusProc.running = true
+    }
+
+    Timer {
+        id: scanDoneTimer
+        interval: 2200
+        repeat: false
+        onTriggered: {
+            root.wifiScanning = false;
+            wifiStatusProc.running = true;
+        }
+    }
+
+    function runWifiAction(action, arg1, arg2) {
+        let cmd = "/home/aran/.config/quickshell/scripts/wifi.sh " + action;
+        if (arg1) cmd += " '" + arg1 + "'";
+        if (arg2) cmd += " '" + arg2 + "'";
+        wifiActionProc.command = ["sh", "-c", "(" + cmd + ") &"];
+        wifiActionProc.running = true;
+        wifiRefreshTimer.start();
     }
 
     function toggleWifi() {
         const next = !wifiEnabled;
-        runCmd("nmcli radio wifi " + (next ? "on" : "off"));
         wifiEnabled = next;
-        wifiRadioProc.running = true;
-        netProc.running = true;
+        runWifiAction(next ? "on" : "off");
     }
 
     function rescanWifi() {
-        wifiScanProc.running = true;
-        wifiRadioProc.running = true;
+        if (!wifiEnabled) return;
+        wifiScanning = true;
+        wifiActionProc.command = ["sh", "-c", "(/home/aran/.config/quickshell/scripts/wifi.sh rescan) &"];
+        wifiActionProc.running = true;
+        scanDoneTimer.start();
     }
 
     function connectWifi(ssid) {
-        runCmd("nmcli dev wifi connect '" + ssid + "' || kitty --directory " + homeDir + " -e nmcli dev wifi connect '" + ssid + "' --ask");
-        netProc.running = true;
-        wifiScanProc.running = true;
+        if (!ssid) return;
+        wifiConnecting = true;
+        wifiConnectingSsid = ssid;
+        wifiConnectError = "";
+        wifiConnectProc.command = ["/home/aran/.config/quickshell/scripts/wifi.sh", "connect", ssid];
+        wifiConnectProc.running = true;
+    }
+
+    function connectWifiWithPassword(ssid, password) {
+        if (!ssid) return;
+        wifiConnecting = true;
+        wifiConnectingSsid = ssid;
+        wifiConnectError = "";
+        wifiConnectProc.command = ["/home/aran/.config/quickshell/scripts/wifi.sh", "connect", ssid, password];
+        wifiConnectProc.running = true;
+    }
+
+    function connectHiddenWifi(ssid, password) {
+        if (!ssid) return;
+        wifiConnecting = true;
+        wifiConnectingSsid = ssid;
+        wifiConnectError = "";
+        wifiConnectProc.command = ["/home/aran/.config/quickshell/scripts/wifi.sh", "connect-hidden", ssid, password || ""];
+        wifiConnectProc.running = true;
     }
 
     function disconnectWifi() {
-        runCmd("nmcli dev disconnect ifname $(nmcli -t -f DEVICE,TYPE dev 2>/dev/null | grep ':wifi$' | cut -d: -f1 | head -1)");
-        netProc.running = true;
-        wifiScanProc.running = true;
+        runWifiAction("disconnect");
+    }
+
+    function forgetWifi(ssid) {
+        if (!ssid) return;
+        runWifiAction("forget", ssid);
+    }
+
+    function refreshWifi() {
+        wifiStatusProc.running = true;
     }
 
     // ── Bluetooth ───────────────────────────────────
@@ -905,7 +1006,7 @@ Singleton {
             brightProc.running = true;
             btStatusProc.running = true;
             if (controlCenterOpen) {
-                wifiScanProc.running = true;
+                wifiStatusProc.running = true;
             }
         }
     }
