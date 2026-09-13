@@ -401,7 +401,7 @@ Scope {
                             // Left: Connectivity 2x2 Capsule Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                Layout.preferredWidth: 196
+                                Layout.preferredWidth: 184
                                 implicitHeight: 140
                                 radius: 16
                                 color: Services.Aesthetic.innerCardBg
@@ -416,7 +416,7 @@ Scope {
                                     // Wi-Fi Row
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        implicitHeight: 36
+                                        implicitHeight: 38
                                         radius: 10
                                         color: wifiRowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
@@ -426,58 +426,58 @@ Scope {
                                             anchors.rightMargin: 8
                                             spacing: 8
 
-                                            Rectangle {
-                                                width: 28
-                                                height: 28
-                                                radius: 14
-                                                color: Services.SystemService.wifiEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
-                                                Behavior on color { ColorAnimation { duration: 120 } }
+                                             Rectangle {
+                                                 width: 28
+                                                 height: 28
+                                                 radius: 14
+                                                 color: Services.SystemService.wifiEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                                                 Behavior on color { ColorAnimation { duration: 120 } }
 
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "󰖩"
-                                                    color: Services.SystemService.wifiEnabled ? "#ffffff" : root.theme.textMuted
-                                                    font.pixelSize: 14
-                                                    font.family: root.font
-                                                }
+                                                 Text {
+                                                     anchors.centerIn: parent
+                                                     text: "󰖩"
+                                                     color: Services.SystemService.wifiEnabled ? "#ffffff" : root.theme.textMuted
+                                                     font.pixelSize: 14
+                                                     font.family: root.font
+                                                 }
 
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: Services.SystemService.toggleWifi()
-                                                }
-                                            }
+                                                 MouseArea {
+                                                     anchors.fill: parent
+                                                     cursorShape: Qt.PointingHandCursor
+                                                     onClicked: Services.SystemService.toggleWifi()
+                                                 }
+                                             }
 
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 1
+                                             ColumnLayout {
+                                                 Layout.fillWidth: true
+                                                 spacing: 1
 
-                                                Text {
-                                                    text: "Wi-Fi"
-                                                    color: root.theme.textPrimary
-                                                    font.pixelSize: 11
-                                                    font.family: root.font
-                                                    font.weight: Font.DemiBold
-                                                    Layout.fillWidth: true
-                                                    elide: Text.ElideRight
-                                                }
-                                                Text {
-                                                    text: Services.SystemService.wifiEnabled ? (Services.SystemService.wifiSsid || "Not Connected") : "Off"
-                                                    color: root.theme.textMuted
-                                                    font.pixelSize: 9
-                                                    font.family: root.font
-                                                    Layout.fillWidth: true
-                                                    elide: Text.ElideRight
-                                                }
-                                            }
+                                                 Text {
+                                                     text: "Wi-Fi"
+                                                     color: root.theme.textPrimary
+                                                     font.pixelSize: 12
+                                                     font.family: root.font
+                                                     font.weight: Font.DemiBold
+                                                     Layout.fillWidth: true
+                                                     elide: Text.ElideRight
+                                                 }
+                                                 Text {
+                                                     text: Services.SystemService.wifiEnabled ? (Services.SystemService.wifiSsid || "Not Connected") : "Off"
+                                                     color: root.theme.textMuted
+                                                     font.pixelSize: 10
+                                                     font.family: root.font
+                                                     Layout.fillWidth: true
+                                                     elide: Text.ElideRight
+                                                 }
+                                             }
 
-                                            Text {
-                                                text: "›"
-                                                color: root.theme.textMuted
-                                                font.pixelSize: 15
-                                                font.family: root.font
-                                            }
-                                        }
+                                             Text {
+                                                 text: "›"
+                                                 color: root.theme.textMuted
+                                                 font.pixelSize: 15
+                                                 font.family: root.font
+                                             }
+                                         }
 
                                         MouseArea {
                                             id: wifiRowMouse
@@ -494,7 +494,7 @@ Scope {
                                     // Bluetooth Row
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        implicitHeight: 36
+                                        implicitHeight: 38
                                         radius: 10
                                         color: btRowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
@@ -504,65 +504,65 @@ Scope {
                                             anchors.rightMargin: 8
                                             spacing: 8
 
-                                            Rectangle {
-                                                width: 28
-                                                height: 28
-                                                radius: 14
-                                                color: Services.SystemService.bluetoothEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
-                                                Behavior on color { ColorAnimation { duration: 120 } }
+                                             Rectangle {
+                                                 width: 28
+                                                 height: 28
+                                                 radius: 14
+                                                 color: Services.SystemService.bluetoothEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                                                 Behavior on color { ColorAnimation { duration: 120 } }
 
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "󰂯"
-                                                    color: Services.SystemService.bluetoothEnabled ? "#ffffff" : root.theme.textMuted
-                                                    font.pixelSize: 15
-                                                    font.family: root.font
-                                                }
+                                                 Text {
+                                                     anchors.centerIn: parent
+                                                     text: "󰂯"
+                                                     color: Services.SystemService.bluetoothEnabled ? "#ffffff" : root.theme.textMuted
+                                                     font.pixelSize: 15
+                                                     font.family: root.font
+                                                 }
 
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: Services.SystemService.toggleBluetooth()
-                                                }
-                                            }
+                                                 MouseArea {
+                                                     anchors.fill: parent
+                                                     cursorShape: Qt.PointingHandCursor
+                                                     onClicked: Services.SystemService.toggleBluetooth()
+                                                 }
+                                             }
 
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 1
+                                             ColumnLayout {
+                                                 Layout.fillWidth: true
+                                                 spacing: 1
 
-                                                Text {
-                                                    text: "Bluetooth"
-                                                    color: root.theme.textPrimary
-                                                    font.pixelSize: 11
-                                                    font.family: root.font
-                                                    font.weight: Font.DemiBold
-                                                    Layout.fillWidth: true
-                                                    elide: Text.ElideRight
-                                                }
-                                                Text {
-                                                    text: {
-                                                        if (!Services.SystemService.bluetoothEnabled) return "Off";
-                                                        const devs = Services.SystemService.bluetoothDevices || [];
-                                                        for (let i = 0; i < devs.length; i++) {
-                                                            if (devs[i].connected) return devs[i].name || "Connected";
-                                                        }
-                                                        return "On";
-                                                    }
-                                                    color: root.theme.textMuted
-                                                    font.pixelSize: 9
-                                                    font.family: root.font
-                                                    Layout.fillWidth: true
-                                                    elide: Text.ElideRight
-                                                }
-                                            }
+                                                 Text {
+                                                     text: "Bluetooth"
+                                                     color: root.theme.textPrimary
+                                                     font.pixelSize: 12
+                                                     font.family: root.font
+                                                     font.weight: Font.DemiBold
+                                                     Layout.fillWidth: true
+                                                     elide: Text.ElideRight
+                                                 }
+                                                 Text {
+                                                     text: {
+                                                         if (!Services.SystemService.bluetoothEnabled) return "Off";
+                                                         const devs = Services.SystemService.bluetoothDevices || [];
+                                                         for (let i = 0; i < devs.length; i++) {
+                                                             if (devs[i].connected) return devs[i].name || "Connected";
+                                                         }
+                                                         return "On";
+                                                     }
+                                                     color: root.theme.textMuted
+                                                     font.pixelSize: 10
+                                                     font.family: root.font
+                                                     Layout.fillWidth: true
+                                                     elide: Text.ElideRight
+                                                 }
+                                             }
 
-                                            Text {
-                                                text: "›"
-                                                color: root.theme.textMuted
-                                                font.pixelSize: 15
-                                                font.family: root.font
-                                            }
-                                        }
+                                             Text {
+                                                 text: "›"
+                                                 color: root.theme.textMuted
+                                                 font.pixelSize: 15
+                                                 font.family: root.font
+                                             }
+                                         }
 
                                         MouseArea {
                                             id: btRowMouse
@@ -579,7 +579,7 @@ Scope {
                                     // AirDrop / LocalSend Row
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        implicitHeight: 36
+                                        implicitHeight: 38
                                         radius: 10
                                         color: shareRowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
@@ -589,51 +589,51 @@ Scope {
                                             anchors.rightMargin: 8
                                             spacing: 8
 
-                                            Rectangle {
-                                                width: 28
-                                                height: 28
-                                                radius: 14
-                                                color: "#30d158"
+                                             Rectangle {
+                                                 width: 28
+                                                 height: 28
+                                                 radius: 14
+                                                 color: "#30d158"
 
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "󰅠"
-                                                    color: "#ffffff"
-                                                    font.pixelSize: 14
-                                                    font.family: root.font
-                                                }
-                                            }
+                                                 Text {
+                                                     anchors.centerIn: parent
+                                                     text: "󰅠"
+                                                     color: "#ffffff"
+                                                     font.pixelSize: 14
+                                                     font.family: root.font
+                                                 }
+                                             }
 
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 1
+                                             ColumnLayout {
+                                                 Layout.fillWidth: true
+                                                 spacing: 1
 
-                                                Text {
-                                                    text: "AirDrop"
-                                                    color: root.theme.textPrimary
-                                                    font.pixelSize: 11
-                                                    font.family: root.font
-                                                    font.weight: Font.DemiBold
-                                                    Layout.fillWidth: true
-                                                    elide: Text.ElideRight
-                                                }
-                                                Text {
-                                                    text: "LocalSend"
-                                                    color: root.theme.textMuted
-                                                    font.pixelSize: 9
-                                                    font.family: root.font
-                                                    Layout.fillWidth: true
-                                                    elide: Text.ElideRight
-                                                }
-                                            }
+                                                 Text {
+                                                     text: "AirDrop"
+                                                     color: root.theme.textPrimary
+                                                     font.pixelSize: 12
+                                                     font.family: root.font
+                                                     font.weight: Font.DemiBold
+                                                     Layout.fillWidth: true
+                                                     elide: Text.ElideRight
+                                                 }
+                                                 Text {
+                                                     text: "LocalSend"
+                                                     color: root.theme.textMuted
+                                                     font.pixelSize: 10
+                                                     font.family: root.font
+                                                     Layout.fillWidth: true
+                                                     elide: Text.ElideRight
+                                                 }
+                                             }
 
-                                            Text {
-                                                text: "›"
-                                                color: root.theme.textMuted
-                                                font.pixelSize: 15
-                                                font.family: root.font
-                                            }
-                                        }
+                                             Text {
+                                                 text: "›"
+                                                 color: root.theme.textMuted
+                                                 font.pixelSize: 15
+                                                 font.family: root.font
+                                             }
+                                         }
 
                                         MouseArea {
                                             id: shareRowMouse
@@ -651,15 +651,28 @@ Scope {
 
                             // Right: macOS Tahoe Now Playing Card
                             Rectangle {
-                                Layout.preferredWidth: 142
-                                Layout.minimumWidth: 142
-                                Layout.maximumWidth: 142
+                                Layout.preferredWidth: 154
+                                Layout.minimumWidth: 154
+                                Layout.maximumWidth: 154
                                 implicitHeight: 140
                                 radius: 16
-                                color: Services.Aesthetic.innerCardBg
+                                color: mediaCardMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 clip: true
+                                Behavior on color { ColorAnimation { duration: 120 } }
+
+                                // Entire Upper/Middle clickable zone (opens Now Playing detail view)
+                                MouseArea {
+                                    id: mediaCardMouse
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: mediaControlsRow.top
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Services.SystemService.controlCenterSubView = "media"
+                                }
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -671,11 +684,11 @@ Scope {
                                         Layout.fillWidth: true
                                         spacing: 8
 
-                                        // Thumbnail / Art (50x50, radius 12)
+                                        // Thumbnail / Art (46x46, radius 10)
                                         Rectangle {
-                                            width: 50
-                                            height: 50
-                                            radius: 12
+                                            width: 46
+                                            height: 46
+                                            radius: 10
                                             clip: true
                                             color: Qt.rgba(0, 0, 0, 0.3)
                                             border.color: Qt.rgba(1, 1, 1, 0.12)
@@ -702,12 +715,6 @@ Scope {
                                                 font.family: root.font
                                                 visible: !ccIosThumb.visible
                                             }
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: Services.SystemService.controlCenterSubView = "media"
-                                            }
                                         }
 
                                         // Track Info + Live Beat Cava Waveform
@@ -722,7 +729,7 @@ Scope {
                                                     return root.activePlayer.trackTitle || "Media Player";
                                                 }
                                                 color: root.theme.textPrimary
-                                                font.pixelSize: 11
+                                                font.pixelSize: 12
                                                 font.family: root.font
                                                 font.weight: Font.DemiBold
                                                 elide: Text.ElideRight
@@ -732,7 +739,7 @@ Scope {
                                             Text {
                                                 text: root.activePlayer?.trackArtist || ""
                                                 color: root.theme.textMuted
-                                                font.pixelSize: 9
+                                                font.pixelSize: 10
                                                 font.family: root.font
                                                 elide: Text.ElideRight
                                                 Layout.fillWidth: true
@@ -765,17 +772,11 @@ Scope {
                                         // Expand chevron to full media view
                                         Text {
                                             text: "›"
-                                            color: root.theme.textMuted
+                                            color: mediaCardMouse.containsMouse ? root.theme.textPrimary : root.theme.textMuted
                                             font.pixelSize: 16
                                             font.family: root.font
                                             Layout.alignment: Qt.AlignVCenter
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                anchors.margins: -4
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: Services.SystemService.controlCenterSubView = "media"
-                                            }
+                                            Behavior on color { ColorAnimation { duration: 100 } }
                                         }
                                     }
 
@@ -785,19 +786,23 @@ Scope {
 
                                     // Bottom Playback Controls: ⏮  ⏯  ⏭
                                     RowLayout {
+                                        id: mediaControlsRow
                                         Layout.fillWidth: true
                                         Layout.alignment: Qt.AlignHCenter
-                                        spacing: 0
+                                        spacing: 4
 
+                                        // Prev Button (36x36 hit target)
                                         Item {
-                                            width: 28
-                                            height: 28
+                                            width: 36
+                                            height: 36
                                             Layout.alignment: Qt.AlignVCenter
 
                                             Rectangle {
-                                                anchors.fill: parent
-                                                radius: 14
-                                                color: prevIosM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                                                width: 30
+                                                height: 30
+                                                radius: 15
+                                                anchors.centerIn: parent
+                                                color: prevIosM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
                                                 Behavior on color { ColorAnimation { duration: 100 } }
                                             }
 
@@ -820,11 +825,11 @@ Scope {
 
                                         Item { Layout.fillWidth: true }
 
-                                        // Play / Pause Circle Button (iOS Style)
+                                        // Play / Pause Circle Button (iOS Style, 38x38)
                                         Rectangle {
-                                            width: 36
-                                            height: 36
-                                            radius: 18
+                                            width: 38
+                                            height: 38
+                                            radius: 19
                                             color: playIosM.containsMouse ? Qt.lighter(root.playerAccent, 1.15) : (root.isMediaPlaying ? root.playerAccent : Qt.rgba(1, 1, 1, 0.15))
                                             Layout.alignment: Qt.AlignVCenter
                                             Behavior on color { ColorAnimation { duration: 120 } }
@@ -834,7 +839,7 @@ Scope {
                                                 anchors.horizontalCenterOffset: root.isMediaPlaying ? 0 : 1
                                                 text: root.isMediaPlaying ? "󰏤" : "󰐊"
                                                 color: "#ffffff"
-                                                font.pixelSize: 17
+                                                font.pixelSize: 18
                                                 font.family: root.font
                                             }
 
@@ -849,15 +854,18 @@ Scope {
 
                                         Item { Layout.fillWidth: true }
 
+                                        // Next Button (36x36 hit target)
                                         Item {
-                                            width: 28
-                                            height: 28
+                                            width: 36
+                                            height: 36
                                             Layout.alignment: Qt.AlignVCenter
 
                                             Rectangle {
-                                                anchors.fill: parent
-                                                radius: 14
-                                                color: nextIosM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                                                width: 30
+                                                height: 30
+                                                radius: 15
+                                                anchors.centerIn: parent
+                                                color: nextIosM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
                                                 Behavior on color { ColorAnimation { duration: 100 } }
                                             }
 
@@ -892,7 +900,7 @@ Scope {
                             // 1. Focus / DND Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 50
+                                implicitHeight: 52
                                 radius: 14
                                 color: focusMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.NotificationService.dnd ? Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -928,7 +936,7 @@ Scope {
                                         Text {
                                             text: "Focus"
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             font.family: root.font
                                             font.weight: Font.DemiBold
                                             Layout.fillWidth: true
@@ -937,7 +945,7 @@ Scope {
                                         Text {
                                             text: Services.NotificationService.dnd ? "On" : "Off"
                                             color: Services.NotificationService.dnd ? root.theme.accentMauve : root.theme.textMuted
-                                            font.pixelSize: 9
+                                            font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -957,7 +965,7 @@ Scope {
                             // 2. Night Shift Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 50
+                                implicitHeight: 52
                                 radius: 14
                                 color: nightShiftMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.NightLightService.active ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -993,7 +1001,7 @@ Scope {
                                         Text {
                                             text: "Night Shift"
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             font.family: root.font
                                             font.weight: Font.DemiBold
                                             Layout.fillWidth: true
@@ -1002,7 +1010,7 @@ Scope {
                                         Text {
                                             text: Services.NightLightService.active ? "3000K" : "Off"
                                             color: Services.NightLightService.active ? root.theme.accentOrange : root.theme.textMuted
-                                            font.pixelSize: 9
+                                            font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1022,7 +1030,7 @@ Scope {
                             // 3. Caffeine Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 50
+                                implicitHeight: 52
                                 radius: 14
                                 color: caffeineMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.SystemService.caffeineActive ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -1058,7 +1066,7 @@ Scope {
                                         Text {
                                             text: "Caffeine"
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             font.family: root.font
                                             font.weight: Font.DemiBold
                                             Layout.fillWidth: true
@@ -1067,7 +1075,7 @@ Scope {
                                         Text {
                                             text: Services.SystemService.caffeineActive ? "Active" : "Off"
                                             color: Services.SystemService.caffeineActive ? "#ffb340" : root.theme.textMuted
-                                            font.pixelSize: 9
+                                            font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1090,7 +1098,7 @@ Scope {
                         // ═══════════════════════════════════════════
                         Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: 74
+                            implicitHeight: 82
                             radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
@@ -1106,7 +1114,7 @@ Scope {
                                     Text {
                                         text: "Display"
                                         color: root.theme.textPrimary
-                                        font.pixelSize: 11
+                                        font.pixelSize: 12
                                         font.family: root.font
                                         font.weight: Font.DemiBold
                                     }
@@ -1114,7 +1122,7 @@ Scope {
                                     Text {
                                         text: Services.SystemService.brightness + "%"
                                         color: root.theme.textMuted
-                                        font.pixelSize: 11
+                                        font.pixelSize: 12
                                         font.family: root.font
                                     }
                                 }
@@ -1192,7 +1200,7 @@ Scope {
                         // ═══════════════════════════════════════════
                         Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: 74
+                            implicitHeight: 82
                             radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
@@ -1210,7 +1218,7 @@ Scope {
                                     Text {
                                         text: "Sound"
                                         color: root.theme.textPrimary
-                                        font.pixelSize: 11
+                                        font.pixelSize: 12
                                         font.family: root.font
                                         font.weight: Font.DemiBold
                                     }
@@ -1218,15 +1226,15 @@ Scope {
                                     Text {
                                         text: Services.SystemService.volumeMuted ? "Muted" : Services.SystemService.volume + "%"
                                         color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.textMuted
-                                        font.pixelSize: 11
+                                        font.pixelSize: 12
                                         font.family: root.font
                                         font.weight: Services.SystemService.volumeMuted ? Font.DemiBold : Font.Normal
                                     }
                                     // Audio Detail Page Chevron Button
                                     Rectangle {
-                                        width: 22
-                                        height: 22
-                                        radius: 11
+                                        width: 20
+                                        height: 20
+                                        radius: 10
                                         color: soundOpenBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
                                         Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1334,7 +1342,7 @@ Scope {
                             // 1. Screen Capture Tile (opens floating screenshot module)
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 50
+                                implicitHeight: 52
                                 radius: 14
                                 color: snapTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1369,7 +1377,7 @@ Scope {
                                         Text {
                                             text: "Capture"
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             font.family: root.font
                                             font.weight: Font.DemiBold
                                             Layout.fillWidth: true
@@ -1378,7 +1386,7 @@ Scope {
                                         Text {
                                             text: "Screenshot"
                                             color: root.theme.textMuted
-                                            font.pixelSize: 9
+                                            font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1401,7 +1409,7 @@ Scope {
                             // 2. Power Menu Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 50
+                                implicitHeight: 52
                                 radius: 14
                                 color: powerMenuTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1436,7 +1444,7 @@ Scope {
                                         Text {
                                             text: "Power"
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             font.family: root.font
                                             font.weight: Font.DemiBold
                                             Layout.fillWidth: true
@@ -1445,7 +1453,7 @@ Scope {
                                         Text {
                                             text: "Menu"
                                             color: root.theme.textMuted
-                                            font.pixelSize: 9
+                                            font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1472,7 +1480,7 @@ Scope {
                             // Battery Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 50
+                                implicitHeight: 52
                                 radius: 14
                                 color: battTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1508,7 +1516,7 @@ Scope {
                                         Text {
                                             text: Services.SystemService.batteryLevel + "%" + ((Services.SystemService.batteryPlugged || Services.SystemService.batteryCharging) ? " 󱐋" : "")
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             font.family: root.font
                                             font.weight: Font.DemiBold
                                             Layout.fillWidth: true
@@ -1517,7 +1525,7 @@ Scope {
                                         Text {
                                             text: Services.SystemService.batteryCharging ? "Charging" : (Services.SystemService.batteryPlugged ? "AC Connected" : "Battery")
                                             color: root.theme.textMuted
-                                            font.pixelSize: 9
+                                            font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1545,7 +1553,7 @@ Scope {
                             // CPU & RAM Card (Click -> btop)
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 50
+                                implicitHeight: 52
                                 radius: 14
                                 color: sysStatsM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1580,7 +1588,7 @@ Scope {
                                         Text {
                                             text: "CPU " + Services.SystemService.cpuUsage + "  •  RAM " + Services.SystemService.memUsage
                                             color: root.theme.textPrimary
-                                            font.pixelSize: 11
+                                            font.pixelSize: 12
                                             font.family: root.font
                                             font.weight: Font.DemiBold
                                             Layout.fillWidth: true
@@ -1589,7 +1597,7 @@ Scope {
                                         Text {
                                             text: "Activity Monitor"
                                             color: root.theme.textMuted
-                                            font.pixelSize: 9
+                                            font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -4767,16 +4775,17 @@ Scope {
                     // Media Volume Slider Card
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: 60
+                        implicitHeight: 82
                         radius: 16
                         color: Services.Aesthetic.innerCardBg
                         border.color: Services.Aesthetic.innerCardBorder
                         border.width: 1
+                        clip: true
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 4
+                            anchors.margins: 12
+                            spacing: 8
 
                             RowLayout {
                                 Layout.fillWidth: true
@@ -4791,7 +4800,7 @@ Scope {
                                 Text {
                                     text: Services.SystemService.volumeMuted ? "Muted" : (Services.SystemService.volume + "%")
                                     color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.textMuted
-                                    font.pixelSize: 11
+                                    font.pixelSize: 12
                                     font.family: root.font
                                     font.weight: Font.Medium
                                 }
@@ -4801,33 +4810,49 @@ Scope {
                             Rectangle {
                                 id: ccMediaVolBar
                                 Layout.fillWidth: true
-                                height: 26
-                                radius: 13
-                                color: Qt.rgba(1, 1, 1, 0.10)
+                                height: 30
+                                radius: 15
+                                color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
+                                border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (ccVolMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
+                                border.width: 1
                                 clip: true
+                                Behavior on color { ColorAnimation { duration: 140 } }
+                                Behavior on border.color { ColorAnimation { duration: 120 } }
 
+                                // Background glyph
+                                Text {
+                                    x: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Services.SystemService.volumeIcon
+                                    color: Services.SystemService.volumeMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
+                                    font.pixelSize: 15
+                                    font.family: root.font
+                                }
+
+                                // Dynamic fill capsule
                                 Rectangle {
                                     anchors.left: parent.left
                                     anchors.top: parent.top
                                     anchors.bottom: parent.bottom
                                     radius: parent.radius
                                     color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.playerAccent
-                                    width: Services.SystemService.volumeMuted ? 0 : Math.max(26, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
+                                    width: Services.SystemService.volumeMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
+                                    clip: true
 
                                     Behavior on width {
                                         enabled: !ccVolMouse.pressed
-                                        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                                        NumberAnimation { duration: 50 }
                                     }
-                                }
 
-                                Text {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 9
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: Services.SystemService.volumeIcon
-                                    color: "#ffffff"
-                                    font.pixelSize: 13
-                                    font.family: root.font
+                                    // Foreground dark glyph
+                                    Text {
+                                        x: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: Services.SystemService.volumeIcon
+                                        color: "#ffffff"
+                                        font.pixelSize: 15
+                                        font.family: root.font
+                                    }
                                 }
 
                                 MouseArea {
