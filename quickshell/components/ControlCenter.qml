@@ -1892,11 +1892,17 @@ Scope {
                         ColumnLayout {
                             id: wifiContentCol
                             width: parent.width
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: parent.width
+                            Layout.maximumWidth: parent.width
                             spacing: 12
 
                             // ── CONNECTED HERO CARD ───────────────
                             ColumnLayout {
                                 Layout.fillWidth: true
+                                Layout.preferredWidth: wifiContentCol.width
+                                Layout.maximumWidth: wifiContentCol.width
+                                width: wifiContentCol.width
                                 spacing: 6
                                 visible: Services.SystemService.wifiConnected && Services.SystemService.wifiActiveNetwork !== null
 
@@ -1911,8 +1917,12 @@ Scope {
 
                                 Rectangle {
                                     Layout.fillWidth: true
+                                    Layout.preferredWidth: wifiContentCol.width
+                                    Layout.maximumWidth: wifiContentCol.width
+                                    width: wifiContentCol.width
                                     implicitHeight: activeNetCol.implicitHeight + 20
                                     radius: 12
+                                    clip: true
                                     color: Services.Aesthetic.innerCardBg
                                     border.color: Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.35)
                                     border.width: 1
@@ -1945,10 +1955,12 @@ Scope {
 
                                             ColumnLayout {
                                                 Layout.fillWidth: true
-                                                spacing: 2
+                                                spacing: 3
 
                                                 RowLayout {
                                                     spacing: 6
+                                                    Layout.fillWidth: true
+
                                                     Text {
                                                         text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.ssid || Services.SystemService.wifiSsid) : Services.SystemService.wifiSsid
                                                         color: root.theme.textPrimary
@@ -1956,7 +1968,7 @@ Scope {
                                                         font.family: root.font
                                                         font.weight: Font.DemiBold
                                                         elide: Text.ElideRight
-                                                        Layout.maximumWidth: 140
+                                                        Layout.fillWidth: true
                                                     }
 
                                                     // Band badge (5 GHz / 2.4 GHz)
@@ -1998,9 +2010,12 @@ Scope {
                                                     }
                                                 }
 
-                                                // Signal & Speed subtitle
+                                                // Signal & Live Speeds Subtitle
                                                 RowLayout {
                                                     spacing: 5
+                                                    clip: true
+                                                    Layout.fillWidth: true
+
                                                     Text {
                                                         text: "Connected"
                                                         color: root.theme.accentGreen
@@ -2016,21 +2031,17 @@ Scope {
                                                         font.family: root.font
                                                     }
                                                     Text { text: "•"; color: root.theme.textMuted; font.pixelSize: 8; font.family: root.font }
-
-                                                    RowLayout {
-                                                        spacing: 5
-                                                        Text {
-                                                            text: "↓ " + Services.SystemService.wifiRxFormatted
-                                                            color: root.theme.accentGreen
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                        }
-                                                        Text {
-                                                            text: "↑ " + Services.SystemService.wifiTxFormatted
-                                                            color: root.theme.accent
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                        }
+                                                    Text {
+                                                        text: "↓ " + Services.SystemService.wifiRxFormatted
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 10
+                                                        font.family: root.font
+                                                    }
+                                                    Text {
+                                                        text: "↑ " + Services.SystemService.wifiTxFormatted
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 10
+                                                        font.family: root.font
                                                     }
                                                 }
                                             }
