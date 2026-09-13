@@ -1933,12 +1933,16 @@ Scope {
                                         anchors.margins: 12
                                         spacing: 10
 
-                                        // Top Row: Icon + SSID + Badges + Disconnect
-                                        RowLayout {
+                                        // Top Section: Icon + Network Info + Disconnect Button
+                                        Item {
                                             Layout.fillWidth: true
-                                            spacing: 10
+                                            implicitHeight: Math.max(actIconRect.height, actNetInfoCol.implicitHeight)
 
+                                            // Network Icon (left)
                                             Rectangle {
+                                                id: actIconRect
+                                                anchors.left: parent.left
+                                                anchors.top: parent.top
                                                 width: 36
                                                 height: 36
                                                 radius: 10
@@ -1953,13 +1957,54 @@ Scope {
                                                 }
                                             }
 
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
+                                            // Disconnect Pill Button (pinned to right edge - NEVER shifts or clips!)
+                                            Rectangle {
+                                                id: actDisconBtn
+                                                anchors.right: parent.right
+                                                anchors.top: parent.top
+                                                anchors.topMargin: 2
+                                                width: 68
+                                                height: 24
+                                                radius: 12
+                                                color: disconWM.pressed ? Qt.darker("#ff453a", 1.2) : (disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.15))
+                                                border.color: disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.3)
+                                                border.width: 1
+                                                scale: disconWM.pressed ? 0.94 : (disconWM.containsMouse ? 1.04 : 1.0)
+                                                Behavior on color { ColorAnimation { duration: 120 } }
+                                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                                                Behavior on scale { NumberAnimation { duration: 120 } }
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "Disconnect"
+                                                    color: disconWM.containsMouse ? "#ffffff" : "#ff453a"
+                                                    font.pixelSize: 10
+                                                    font.family: root.font
+                                                    font.weight: Font.Medium
+                                                }
+
+                                                MouseArea {
+                                                    id: disconWM
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: Services.SystemService.disconnectWifi()
+                                                }
+                                            }
+
+                                            // Center info column (rigidly bounded between icon and disconnect)
+                                            Column {
+                                                id: actNetInfoCol
+                                                anchors.left: actIconRect.right
+                                                anchors.leftMargin: 10
+                                                anchors.right: actDisconBtn.left
+                                                anchors.rightMargin: 8
                                                 spacing: 3
 
+                                                // Row 1: SSID + Badges
                                                 RowLayout {
+                                                    width: parent.width
                                                     spacing: 6
-                                                    Layout.fillWidth: true
 
                                                     Text {
                                                         text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.ssid || Services.SystemService.wifiSsid) : Services.SystemService.wifiSsid
@@ -2010,11 +2055,9 @@ Scope {
                                                     }
                                                 }
 
-                                                // Signal & Live Speeds Subtitle
-                                                RowLayout {
+                                                // Row 2: Status & Signal subtitle
+                                                Row {
                                                     spacing: 5
-                                                    clip: true
-                                                    Layout.fillWidth: true
 
                                                     Text {
                                                         text: "Connected"
@@ -2023,58 +2066,68 @@ Scope {
                                                         font.family: root.font
                                                         font.weight: Font.Medium
                                                     }
-                                                    Text { text: "•"; color: root.theme.textMuted; font.pixelSize: 8; font.family: root.font }
                                                     Text {
-                                                        text: Services.SystemService.wifiActiveNetwork ? ((Services.SystemService.wifiActiveNetwork.signal || 50) + "%") : ""
+                                                        text: "•"
                                                         color: root.theme.textMuted
-                                                        font.pixelSize: 10
+                                                        font.pixelSize: 8
                                                         font.family: root.font
-                                                    }
-                                                    Text { text: "•"; color: root.theme.textMuted; font.pixelSize: 8; font.family: root.font }
-                                                    Text {
-                                                        text: "↓ " + Services.SystemService.wifiRxFormatted
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 10
-                                                        font.family: root.font
+                                                        anchors.verticalCenter: parent.verticalCenter
                                                     }
                                                     Text {
-                                                        text: "↑ " + Services.SystemService.wifiTxFormatted
+                                                        text: Services.SystemService.wifiActiveNetwork ? ((Services.SystemService.wifiActiveNetwork.signal || 50) + "% Signal") : ""
                                                         color: root.theme.textMuted
                                                         font.pixelSize: 10
                                                         font.family: root.font
                                                     }
                                                 }
-                                            }
 
-                                            // Disconnect Pill Button
-                                            Rectangle {
-                                                width: 68
-                                                height: 24
-                                                radius: 12
-                                                Layout.alignment: Qt.AlignVCenter
-                                                color: disconWM.pressed ? Qt.darker("#ff453a", 1.2) : (disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.15))
-                                                border.color: disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.3)
-                                                border.width: 1
-                                                scale: disconWM.pressed ? 0.94 : (disconWM.containsMouse ? 1.04 : 1.0)
-                                                Behavior on color { ColorAnimation { duration: 120 } }
-                                                Behavior on border.color { ColorAnimation { duration: 120 } }
-                                                Behavior on scale { NumberAnimation { duration: 120 } }
+                                                // Row 3: Live Speeds (rigid fixed width per stream, zero shifting!)
+                                                Row {
+                                                    spacing: 10
 
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "Disconnect"
-                                                    color: disconWM.containsMouse ? "#ffffff" : "#ff453a"
-                                                    font.pixelSize: 10
-                                                    font.family: root.font
-                                                    font.weight: Font.Medium
-                                                }
+                                                    Row {
+                                                        spacing: 3
+                                                        Text {
+                                                            text: "↓"
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                        }
+                                                        Text {
+                                                            text: Services.SystemService.wifiRxFormatted
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                            font.features: { "tnum": 1 }
+                                                            width: 54
+                                                        }
+                                                    }
 
-                                                MouseArea {
-                                                    id: disconWM
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: Services.SystemService.disconnectWifi()
+                                                    Text {
+                                                        text: "•"
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 8
+                                                        font.family: root.font
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                    }
+
+                                                    Row {
+                                                        spacing: 3
+                                                        Text {
+                                                            text: "↑"
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                        }
+                                                        Text {
+                                                            text: Services.SystemService.wifiTxFormatted
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                            font.features: { "tnum": 1 }
+                                                            width: 54
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -2086,23 +2139,26 @@ Scope {
                                             color: Qt.rgba(1, 1, 1, 0.06)
                                         }
 
-                                        // Technical metrics row: IP + Disclosure toggle
-                                        RowLayout {
+                                        // Technical metrics row: IP + Disclosure toggle (pinned to edges!)
+                                        Item {
                                             Layout.fillWidth: true
+                                            implicitHeight: 20
 
                                             Text {
+                                                anchors.left: parent.left
+                                                anchors.verticalCenter: parent.verticalCenter
                                                 text: "IP: " + (Services.SystemService.wifiActiveNetwork ? Services.SystemService.wifiActiveNetwork.ip : "Connected")
                                                 color: root.theme.textMuted
                                                 font.pixelSize: 10
                                                 font.family: root.font
                                             }
 
-                                            Item { Layout.fillWidth: true }
-
-                                            // Details toggle button
+                                            // Details toggle button (pinned to right edge!)
                                             Rectangle {
+                                                anchors.right: parent.right
+                                                anchors.verticalCenter: parent.verticalCenter
                                                 height: 20
-                                                implicitWidth: dtRow.implicitWidth + 12
+                                                width: dtRow.implicitWidth + 12
                                                 radius: 6
                                                 color: dtMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
                                                 Behavior on color { ColorAnimation { duration: 100 } }
