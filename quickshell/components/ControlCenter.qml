@@ -36,6 +36,10 @@ Scope {
         function close(): void {
             Services.SystemService.controlCenterOpen = false;
         }
+
+        function setProfile(profile: string): void {
+            Services.SystemService.setPowerProfile(profile);
+        }
     }
 
     // Quick toggles states
@@ -3493,7 +3497,7 @@ Scope {
                                             implicitHeight: 52
                                             radius: 10
                                             color: isSelected
-                                                   ? Qt.rgba(0, 0.48, 1, 0.16)
+                                                   ? (modeSaverMouse.containsMouse ? Qt.rgba(0, 0.48, 1, 0.22) : Qt.rgba(0, 0.48, 1, 0.16))
                                                    : (modeSaverMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
                                             Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -3510,6 +3514,7 @@ Scope {
                                                     color: modeSaverRow.isSelected
                                                            ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.25)
                                                            : Qt.rgba(1, 1, 1, 0.07)
+                                                    Behavior on color { ColorAnimation { duration: 140 } }
 
                                                     Text {
                                                         anchors.centerIn: parent
@@ -3517,6 +3522,7 @@ Scope {
                                                         color: modeSaverRow.isSelected ? root.theme.accentGreen : root.theme.textSecondary
                                                         font.pixelSize: 14
                                                         font.family: root.font
+                                                        Behavior on color { ColorAnimation { duration: 140 } }
                                                     }
                                                 }
 
@@ -3532,6 +3538,7 @@ Scope {
                                                         font.weight: modeSaverRow.isSelected ? Font.DemiBold : Font.Normal
                                                         Layout.fillWidth: true
                                                         elide: Text.ElideRight
+                                                        Behavior on color { ColorAnimation { duration: 140 } }
                                                     }
 
                                                     Text {
@@ -3550,7 +3557,10 @@ Scope {
                                                     font.pixelSize: 14
                                                     font.weight: Font.Bold
                                                     font.family: root.font
-                                                    visible: modeSaverRow.isSelected
+                                                    opacity: modeSaverRow.isSelected ? 1.0 : 0.0
+                                                    scale: modeSaverRow.isSelected ? 1.0 : 0.6
+                                                    Behavior on opacity { NumberAnimation { duration: 140 } }
+                                                    Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutBack } }
                                                 }
                                             }
 
@@ -3578,7 +3588,7 @@ Scope {
                                             implicitHeight: 52
                                             radius: 10
                                             color: isSelected
-                                                   ? Qt.rgba(0, 0.48, 1, 0.16)
+                                                   ? (modeBalMouse.containsMouse ? Qt.rgba(0, 0.48, 1, 0.22) : Qt.rgba(0, 0.48, 1, 0.16))
                                                    : (modeBalMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
                                             Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -3595,6 +3605,7 @@ Scope {
                                                     color: modeBalRow.isSelected
                                                            ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25)
                                                            : Qt.rgba(1, 1, 1, 0.07)
+                                                    Behavior on color { ColorAnimation { duration: 140 } }
 
                                                     Text {
                                                         anchors.centerIn: parent
@@ -3602,6 +3613,7 @@ Scope {
                                                         color: modeBalRow.isSelected ? root.theme.accent : root.theme.textSecondary
                                                         font.pixelSize: 14
                                                         font.family: root.font
+                                                        Behavior on color { ColorAnimation { duration: 140 } }
                                                     }
                                                 }
 
@@ -3617,6 +3629,7 @@ Scope {
                                                         font.weight: modeBalRow.isSelected ? Font.DemiBold : Font.Normal
                                                         Layout.fillWidth: true
                                                         elide: Text.ElideRight
+                                                        Behavior on color { ColorAnimation { duration: 140 } }
                                                     }
 
                                                     Text {
@@ -3635,7 +3648,10 @@ Scope {
                                                     font.pixelSize: 14
                                                     font.weight: Font.Bold
                                                     font.family: root.font
-                                                    visible: modeBalRow.isSelected
+                                                    opacity: modeBalRow.isSelected ? 1.0 : 0.0
+                                                    scale: modeBalRow.isSelected ? 1.0 : 0.6
+                                                    Behavior on opacity { NumberAnimation { duration: 140 } }
+                                                    Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutBack } }
                                                 }
                                             }
 
@@ -3663,7 +3679,7 @@ Scope {
                                             implicitHeight: 52
                                             radius: 10
                                             color: isSelected
-                                                   ? Qt.rgba(0, 0.48, 1, 0.16)
+                                                   ? (modePerfMouse.containsMouse ? Qt.rgba(0, 0.48, 1, 0.22) : Qt.rgba(0, 0.48, 1, 0.16))
                                                    : (modePerfMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
                                             Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -3680,6 +3696,7 @@ Scope {
                                                     color: modePerfRow.isSelected
                                                            ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.25)
                                                            : Qt.rgba(1, 1, 1, 0.07)
+                                                    Behavior on color { ColorAnimation { duration: 140 } }
 
                                                     Text {
                                                         anchors.centerIn: parent
@@ -3687,6 +3704,7 @@ Scope {
                                                         color: modePerfRow.isSelected ? root.theme.accentOrange : root.theme.textSecondary
                                                         font.pixelSize: 14
                                                         font.family: root.font
+                                                        Behavior on color { ColorAnimation { duration: 140 } }
                                                     }
                                                 }
 
@@ -3702,6 +3720,7 @@ Scope {
                                                         font.weight: modePerfRow.isSelected ? Font.DemiBold : Font.Normal
                                                         Layout.fillWidth: true
                                                         elide: Text.ElideRight
+                                                        Behavior on color { ColorAnimation { duration: 140 } }
                                                     }
 
                                                     Text {
@@ -3720,7 +3739,10 @@ Scope {
                                                     font.pixelSize: 14
                                                     font.weight: Font.Bold
                                                     font.family: root.font
-                                                    visible: modePerfRow.isSelected
+                                                    opacity: modePerfRow.isSelected ? 1.0 : 0.0
+                                                    scale: modePerfRow.isSelected ? 1.0 : 0.6
+                                                    Behavior on opacity { NumberAnimation { duration: 140 } }
+                                                    Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutBack } }
                                                 }
                                             }
 

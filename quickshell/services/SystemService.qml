@@ -299,22 +299,56 @@ Singleton {
 
     // ── Power Profiles ──────────────────────────────
     property string powerProfile: "balanced"
+    property bool _profileSwitching: false
+
     Process {
         id: profileProc
         command: ["powerprofilesctl", "get"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root._profileSwitching) return;
                 const p = text.trim();
                 if (p) root.powerProfile = p;
             }
         }
     }
 
+    Process {
+        id: setProfileProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                profileSwitchTimer.start();
+            }
+        }
+    }
+
+    Timer {
+        id: profileSwitchTimer
+        interval: 350
+        onTriggered: {
+            root._profileSwitching = false;
+            profileProc.running = true;
+        }
+    }
+
+    Timer {
+        id: profileSafetyTimer
+        interval: 2500
+        onTriggered: {
+            root._profileSwitching = false;
+            profileProc.running = true;
+        }
+    }
+
     function setPowerProfile(profile) {
-        runCmd("powerprofilesctl set " + profile);
+        if (!profile || powerProfile === profile) return;
         powerProfile = profile;
-        profileProc.running = true;
+        _profileSwitching = true;
+        profileSwitchTimer.stop();
+        profileSafetyTimer.restart();
+        setProfileProc.command = ["powerprofilesctl", "set", profile];
+        setProfileProc.running = true;
         OsdService.showPowerProfile(profile);
     }
 
