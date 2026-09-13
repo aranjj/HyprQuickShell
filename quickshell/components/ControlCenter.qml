@@ -662,13 +662,10 @@ Scope {
                                 clip: true
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
-                                // Entire Upper/Middle clickable zone (opens Now Playing detail view)
+                                // Entire card clickable zone (opens Now Playing detail view)
                                 MouseArea {
                                     id: mediaCardMouse
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.bottom: mediaControlsRow.top
+                                    anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: Services.SystemService.controlCenterSubView = "media"
@@ -790,6 +787,7 @@ Scope {
                                         Layout.fillWidth: true
                                         Layout.alignment: Qt.AlignHCenter
                                         spacing: 4
+                                        z: 2
 
                                         // Prev Button (36x36 hit target)
                                         Item {
