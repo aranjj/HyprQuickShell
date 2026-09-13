@@ -305,7 +305,7 @@ Scope {
                         blur: 0.95
                         blurMax: 64
                         brightness: -0.22
-                        saturation: 1.10
+                        saturation: -0.15
                     }
 
                     // GNOME Frosted Dark Overlay
