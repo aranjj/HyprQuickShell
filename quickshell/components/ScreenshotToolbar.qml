@@ -22,7 +22,7 @@ Scope {
             color: "transparent"
 
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+            WlrLayershell.keyboardFocus: (Services.ScreenshotService.directSnipMode || Services.ScreenshotService.isSelecting) ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand
             WlrLayershell.namespace: "quickshell-screenshot-toolbar"
             exclusionMode: ExclusionMode.Ignore
 
@@ -33,16 +33,35 @@ Scope {
                 right: true
             }
 
+            // ── Frozen Display Background ─────────────────
+            Image {
+                id: frozenView
+                anchors.fill: parent
+                source: Services.ScreenshotService.freezeImagePath !== "" ? ("file://" + Services.ScreenshotService.freezeImagePath + "?v=" + Services.ScreenshotService.freezeVersion) : ""
+                sourceClipRect: Qt.rect(modelData.x, modelData.y, modelData.width, modelData.height)
+                fillMode: Image.PreserveAspectCrop
+                cache: false
+                visible: Services.ScreenshotService.freezeImagePath !== ""
+            }
+
+            // Subtle Dimming Overlay (indicating freeze mode)
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.rgba(0, 0, 0, 0.16)
+                visible: Services.ScreenshotService.freezeImagePath !== ""
+            }
+
             // Click outside toolbar capsule to dismiss
             MouseArea {
                 anchors.fill: parent
-                onClicked: Services.ScreenshotService.toolbarVisible = false
+                enabled: !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode
+                onClicked: Services.ScreenshotService.closeToolbar()
             }
 
             // Keyboard shortcuts (1 = Full, 2 = Window, 3 = Region, Esc = Close)
             Item {
-                focus: toolbarWindow.visible
-                Keys.onEscapePressed: Services.ScreenshotService.toolbarVisible = false
+                focus: toolbarWindow.visible && !Services.ScreenshotService.directSnipMode && !Services.ScreenshotService.isSelecting
+                Keys.onEscapePressed: Services.ScreenshotService.closeToolbar()
                 Keys.onDigit1Pressed: Services.ScreenshotService.capture("fullscreen", Services.ScreenshotService.delayTimer)
                 Keys.onDigit2Pressed: Services.ScreenshotService.capture("window", Services.ScreenshotService.delayTimer)
                 Keys.onDigit3Pressed: Services.ScreenshotService.capture("region", Services.ScreenshotService.delayTimer)
@@ -64,6 +83,10 @@ Scope {
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
+
+                visible: !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode
+                opacity: (!Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode) ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 120 } }
 
                 // Prevent click dismissal inside card
                 MouseArea {
@@ -326,7 +349,7 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Services.ScreenshotService.toolbarVisible = false
+                            onClicked: Services.ScreenshotService.closeToolbar()
                         }
                     }
                 }

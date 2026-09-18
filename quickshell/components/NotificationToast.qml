@@ -65,6 +65,18 @@ Scope {
                         border.width: Services.Aesthetic.borderWidth
                         clip: true
 
+                        // Top specular highlight line (macOS glass edge)
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: Services.Aesthetic.cardRadius
+                            anchors.rightMargin: Services.Aesthetic.cardRadius
+                            height: 1
+                            color: Qt.rgba(1, 1, 1, Services.Aesthetic.preset === "oled" ? 0.06 : (Services.Aesthetic.preset === "crystal" ? 0.20 : 0.12))
+                            visible: Services.Aesthetic.preset !== "solid"
+                        }
+
                         // Slide & Fade entrance
                         opacity: 1
                         Behavior on opacity { NumberAnimation { duration: 180 } }
@@ -158,7 +170,9 @@ Scope {
                                     width: 18
                                     height: 18
                                     radius: 9
-                                    color: closeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                                    color: closeMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
                                     Layout.alignment: Qt.AlignVCenter
 
                                     Text {
@@ -205,7 +219,7 @@ Scope {
                                     Text {
                                         Layout.fillWidth: true
                                         text: bannerCard.modelData.body
-                                        color: Qt.rgba(0.90, 0.90, 0.95, 0.85)
+                                        color: root.theme.textSecondary
                                         font.pixelSize: 12
                                         font.family: root.font
                                         wrapMode: Text.Wrap
@@ -241,14 +255,16 @@ Scope {
                                         required property var modelData
                                         height: 24
                                         implicitWidth: actText.implicitWidth + 16
-                                        radius: 6
-                                        color: actMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.12)
+                                        radius: 7
+                                        color: actMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                        border.color: Services.Aesthetic.innerCardBorder
+                                        border.width: 1
 
                                         Text {
                                             id: actText
                                             anchors.centerIn: parent
                                             text: actBtn.modelData.text
-                                            color: "#ffffff"
+                                            color: root.theme.textPrimary
                                             font.pixelSize: 11
                                             font.family: root.font
                                             font.weight: Font.Medium

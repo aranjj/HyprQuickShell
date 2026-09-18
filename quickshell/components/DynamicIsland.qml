@@ -1,11 +1,13 @@
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Widgets
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import "../services" as Services
 import "../bar" as Bar
 
@@ -377,11 +379,12 @@ Scope {
                         return 0;
                     }
 
-                color: Services.Aesthetic.preset === "oled" ? "#000000" : (root.islandMode === "mediaExpanded" ? Qt.rgba(0.04, 0.04, 0.06, 0.98) : "#000000")
+                color: Services.Aesthetic.cardBg
                 border.color: Services.Aesthetic.cardBorder
-                border.width: 1
+                border.width: Services.Aesthetic.borderWidth
 
-                Behavior on border.color { ColorAnimation { duration: 200 } }
+                Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                Behavior on border.color { ColorAnimation { duration: 250 } }
 
                 // Organic Spring Physics (Apple-grade micro-spring)
                 Behavior on width {
@@ -393,6 +396,7 @@ Scope {
                 Behavior on radius {
                     NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
                 }
+
 
                 // ═══════════════════════════════════════════
                 // VIEW 1: COMPACT MEDIA PILL (True macOS Bar Island)
@@ -1019,9 +1023,17 @@ Scope {
                             width: 38
                             height: 38
                             radius: 19
-                            color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16)
-                            border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4)
+                            color: Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
                             border.width: 1
+
+                            IconImage {
+                                id: notifIconImg
+                                anchors.fill: parent
+                                anchors.margins: 7
+                                source: Quickshell.iconPath(notificationView.notifData?.appIcon ?? "", true)
+                                visible: (notificationView.notifData?.appIcon ?? "") !== "" && status === Image.Ready
+                            }
 
                             Text {
                                 anchors.centerIn: parent
@@ -1029,6 +1041,7 @@ Scope {
                                 color: root.theme.accent
                                 font.pixelSize: 18
                                 font.family: root.font
+                                visible: !notifIconImg.visible
                             }
                         }
 
@@ -1078,7 +1091,7 @@ Scope {
 
                             Text {
                                 text: notificationView.notifData?.summary ?? ""
-                                color: "#ffffff"
+                                color: root.theme.textPrimary
                                 font.pixelSize: 12
                                 font.weight: Font.Bold
                                 font.family: root.font
@@ -1088,7 +1101,7 @@ Scope {
 
                             Text {
                                 text: notificationView.notifData?.body ?? ""
-                                color: "#b0b0b8"
+                                color: root.theme.textSecondary
                                 font.pixelSize: 11
                                 font.family: root.font
                                 elide: Text.ElideRight
@@ -1103,7 +1116,9 @@ Scope {
                             width: 24
                             height: 24
                             radius: 12
-                            color: notifCloseM.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08)
+                            color: notifCloseM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
+                            border.width: 1
                             Behavior on color { ColorAnimation { duration: 120 } }
 
                             Text {
@@ -1133,7 +1148,7 @@ Scope {
                         width: 160
                         height: 3
                         radius: 1.5
-                        color: Qt.rgba(1, 1, 1, 0.12)
+                        color: Services.Aesthetic.sliderTrackBg
                         clip: true
 
                         Rectangle {
@@ -1203,8 +1218,8 @@ Scope {
                             width: 32
                             height: 32
                             radius: 16
-                            color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, 0.14)
-                            border.color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, 0.28)
+                            color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, Services.Aesthetic.preset === "oled" ? 0.16 : 0.12)
+                            border.color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, Services.Aesthetic.preset === "oled" ? 0.32 : 0.24)
                             border.width: 1
                             Layout.alignment: Qt.AlignVCenter
 
@@ -1243,7 +1258,7 @@ Scope {
 
                                 Text {
                                     text: Services.OsdService.valueText
-                                    color: "#ffffff"
+                                    color: root.theme.textPrimary
                                     font.pixelSize: 11
                                     font.weight: Font.DemiBold
                                     font.family: root.font
@@ -1255,7 +1270,9 @@ Scope {
                                 Layout.fillWidth: true
                                 height: 6
                                 radius: 3
-                                color: Qt.rgba(1, 1, 1, 0.16)
+                                color: Services.Aesthetic.sliderTrackBg
+                                border.color: Services.Aesthetic.innerCardBorder
+                                border.width: Services.Aesthetic.preset === "solid" ? 1 : 0
                                 clip: true
 
                                 Rectangle {
@@ -1290,7 +1307,7 @@ Scope {
 
                             Text {
                                 text: Services.OsdService.valueText
-                                color: "#ffffff"
+                                color: root.theme.textPrimary
                                 font.pixelSize: 12
                                 font.weight: Font.Bold
                                 font.family: root.font
@@ -1310,9 +1327,12 @@ Scope {
                 height: 28
                 radius: 14
                 clip: true
-                color: "#000000"
+                color: Services.Aesthetic.cardBg
                 border.color: Services.Aesthetic.cardBorder
-                border.width: 1
+                border.width: Services.Aesthetic.borderWidth
+
+                Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                Behavior on border.color { ColorAnimation { duration: 200 } }
 
                 visible: root.satelliteActive || opacity > 0.01
                 opacity: root.satelliteActive ? 1.0 : 0.0
@@ -1334,15 +1354,35 @@ Scope {
                         radius: 10
                         clip: true
                         color: Qt.rgba(0.12, 0.12, 0.15, 0.8)
+                        border.color: Services.Aesthetic.innerCardBorder
+                        border.width: 1
 
                         Image {
                             id: satArt
                             anchors.fill: parent
                             source: root.activePlayer?.trackArtUrl ?? ""
                             fillMode: Image.PreserveAspectCrop
-                            visible: status === Image.Ready && source != ""
+                            visible: false
                             asynchronous: true
                             cache: true
+                        }
+
+                        Rectangle {
+                            id: satArtMask
+                            anchors.fill: parent
+                            radius: 10
+                            color: "#ffffff"
+                            visible: false
+                            layer.enabled: true
+                        }
+
+                        MultiEffect {
+                            id: satArtEffect
+                            anchors.fill: parent
+                            source: satArt
+                            maskEnabled: true
+                            maskSource: satArtMask
+                            visible: satArt.status === Image.Ready && satArt.source != ""
                         }
 
                         Text {
@@ -1351,7 +1391,7 @@ Scope {
                             color: root.playerAccent
                             font.pixelSize: 11
                             font.family: root.font
-                            visible: !satArt.visible
+                            visible: !satArtEffect.visible
                         }
                     }
 

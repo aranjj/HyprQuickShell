@@ -14,6 +14,7 @@ Scope {
 
     property Theme theme: Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
+    readonly property int barHeight: 35
 
     property bool appleMenuOpen: false
 
@@ -219,8 +220,13 @@ Scope {
                 right: true
             }
 
-            implicitHeight: 34
+            implicitHeight: root.barHeight
             color: "transparent"
+
+            IdleInhibitor {
+                window: barWindow
+                enabled: Services.SystemService.idleInhibited
+            }
 
             BackgroundEffect.blurRegion: Region { item: (Services.Aesthetic.preset === "crystal" || Services.Aesthetic.preset === "oled") ? null : barGlassBg }
 
@@ -279,9 +285,9 @@ Scope {
                     // ── Unified OS System Menu Button (Dynamic Distro Nerd Font) ──
                     Rectangle {
                         id: distroBtn
-                        implicitWidth: 26
-                        implicitHeight: 26
-                        radius: 13
+                        implicitWidth: 28
+                        implicitHeight: 28
+                        radius: 14
                         color: root.appleMenuOpen || appleMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 100 } }
 
@@ -291,7 +297,7 @@ Scope {
                             anchors.verticalCenterOffset: -1
                             text: Services.SystemService.distroGlyph
                             color: root.appleMenuOpen || appleMouse.containsMouse ? root.theme.accent : root.barFgPrimary
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
                             verticalAlignment: Text.AlignVCenter
@@ -311,7 +317,7 @@ Scope {
                     // Subtle Divider
                     Rectangle {
                         width: 1
-                        height: 14
+                        height: 16
                         color: root.barDividerColor
                         Layout.alignment: Qt.AlignVCenter
                     }
@@ -320,8 +326,8 @@ Scope {
                     Rectangle {
                         id: wsTrack
                         implicitWidth: wsRow.implicitWidth + 8
-                        implicitHeight: 26
-                        radius: 13
+                        implicitHeight: 28
+                        radius: 14
                         color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.04) : Qt.rgba(1, 1, 1, 0.07)
                         border.color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(1, 1, 1, 0.09)
                         border.width: 1
@@ -332,8 +338,8 @@ Scope {
                             id: activeCapsule
                             visible: root.activeWsIndex >= 0 && wsRepeater.count > 0
                             y: (parent.height - height) / 2
-                            height: 22
-                            radius: 11
+                            height: 24
+                            radius: 12
                             color: root.theme.accent
 
                             // Subtle specular inner reflection
@@ -401,13 +407,13 @@ Scope {
                                     }
 
                                     // Balanced, fixed-width pill (consistent rhythm without jittery resizing)
-                                    width: 24
-                                    height: 22
+                                    width: 26
+                                    height: 24
 
                                     // Hover pill for inactive items
                                     Rectangle {
                                         anchors.fill: parent
-                                        radius: 11
+                                        radius: 12
                                         color: spaceMouse.containsMouse && !spacePill.isActive ? root.barPillHover : "transparent"
                                         Behavior on color { ColorAnimation { duration: 120 } }
                                     }
@@ -423,7 +429,7 @@ Scope {
                                             color: spacePill.isActive ? Services.ThemeService.colOnPrimary
                                                  : spacePill.hasUrgent ? "#ff3b30"
                                                  : (spacePill.isOccupied ? root.barFgPrimary : root.barFgMuted)
-                                            font.pixelSize: 11
+                                            font.pixelSize: 13
                                             font.family: root.font
                                             font.weight: spacePill.isActive ? Font.Bold : (spacePill.isOccupied ? Font.Bold : Font.Normal)
                                         }
@@ -433,9 +439,9 @@ Scope {
                                             anchors.horizontalCenter: parent.horizontalCenter
                                             anchors.bottom: parent.bottom
                                             anchors.bottomMargin: 2
-                                            width: 6
-                                            height: 2
-                                            radius: 1
+                                            width: 8
+                                            height: 2.5
+                                            radius: 1.25
                                             color: spacePill.hasUrgent ? "#ff3b30" : (root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(1, 1, 1, 0.50))
                                             visible: spacePill.isOccupied && !spacePill.isActive
                                         }
@@ -466,7 +472,7 @@ Scope {
                     // Subtle Divider
                     Rectangle {
                         width: 1
-                        height: 14
+                        height: 16
                         color: root.barDividerColor
                         Layout.alignment: Qt.AlignVCenter
                     }
@@ -474,9 +480,9 @@ Scope {
                     // ── Active Window / Workspace Indicator ─────────
                     Rectangle {
                         id: activeWinPill
-                        implicitHeight: 26
-                        implicitWidth: activeWinRow.implicitWidth + 14
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: activeWinRow.implicitWidth + 16
+                        radius: 14
                         color: activeWinMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 100 } }
                         Layout.alignment: Qt.AlignVCenter
@@ -488,8 +494,8 @@ Scope {
 
                             // Icon (App Icon or Hyprland glyph)
                             Item {
-                                width: 18
-                                height: 18
+                                width: 20
+                                height: 20
                                 Layout.alignment: Qt.AlignVCenter
 
                                 IconImage {
@@ -503,7 +509,7 @@ Scope {
                                     anchors.centerIn: parent
                                     text: root.isWorkspaceEmpty ? "" : "󱂬"
                                     color: root.barFgPrimary
-                                    font.pixelSize: 15
+                                    font.pixelSize: 17
                                     font.family: root.font
                                     font.weight: Font.Bold
                                     visible: !activeAppIconImg.visible
@@ -517,7 +523,7 @@ Scope {
                                     return root.activeAppName.length > 0 ? root.activeAppName : root.activeAppTitle;
                                 }
                                 color: root.barFgPrimary
-                                font.pixelSize: 13
+                                font.pixelSize: 15
                                 font.family: root.font
                                 font.weight: Font.Bold
                                 Layout.alignment: Qt.AlignVCenter
@@ -537,11 +543,11 @@ Scope {
                                     return t;
                                 }
                                 color: root.barFgSecondary
-                                font.pixelSize: 12
+                                font.pixelSize: 14
                                 font.family: root.font
                                 font.weight: Font.Medium
                                 elide: Text.ElideRight
-                                Layout.maximumWidth: 240
+                                Layout.maximumWidth: 260
                                 Layout.alignment: Qt.AlignVCenter
                                 visible: text.length > 0
                             }
@@ -580,8 +586,8 @@ Scope {
                                 id: trayDelegate
                                 required property SystemTrayItem modelData
 
-                                Layout.preferredWidth: 26
-                                Layout.preferredHeight: 26
+                                Layout.preferredWidth: 28
+                                Layout.preferredHeight: 28
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                                 onClicked: (mouse) => {
@@ -592,7 +598,7 @@ Scope {
                                 IconImage {
                                     anchors.centerIn: parent
                                     source: trayDelegate.modelData.icon
-                                    implicitSize: 16
+                                    implicitSize: 18
                                 }
 
                                 QsMenuAnchor {
@@ -614,17 +620,17 @@ Scope {
 
                     // ── 2. Volume Icon (macOS-style icon-only) ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
-                        color: volMacMouse.containsMouse ? root.barPillHover : "transparent"
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
+                        color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterSubView === "audio") || volMacMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Text {
                             anchors.centerIn: parent
                             text: Services.SystemService.volumeIcon
                             color: Services.SystemService.volumeMuted ? "#ff453a" : root.barFgPrimary
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
                         }
@@ -637,11 +643,11 @@ Scope {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                             onClicked: (mouse) => {
                                 if (mouse.button === Qt.RightButton) {
+                                    Services.SystemService.toggleMute();
+                                } else {
                                     Services.SystemService.rescanAudioSinks();
                                     Services.SystemService.rescanAudioSources();
                                     Services.SystemService.openControlCenter("controls", "audio");
-                                } else {
-                                    Services.SystemService.toggleMute();
                                 }
                             }
                             onWheel: (wheel) => {
@@ -654,9 +660,9 @@ Scope {
                     // ── 2b. Global Microphone Status / Privacy Indicator ──
                     Rectangle {
                         visible: Services.SystemService.micMuted || Services.SystemService.micInUse
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
                         color: Services.SystemService.micMuted
                             ? (micBarMouse.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.28) : Qt.rgba(1, 0.27, 0.23, 0.16))
                             : (micBarMouse.containsMouse ? Qt.rgba(1, 0.58, 0.0, 0.28) : Qt.rgba(1, 0.58, 0.0, 0.16))
@@ -666,7 +672,7 @@ Scope {
                             anchors.centerIn: parent
                             text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
                             color: Services.SystemService.micMuted ? "#ff453a" : "#ff9f0a"
-                            font.pixelSize: 15
+                            font.pixelSize: 17
                             font.family: root.font
                             font.weight: Font.Bold
                         }
@@ -695,9 +701,9 @@ Scope {
 
                     // ── 3. Night Shift Indicator ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
                         visible: Services.NightLightService.active
                         color: nsBarMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
@@ -706,7 +712,7 @@ Scope {
                             anchors.centerIn: parent
                             text: "󰔎"
                             color: "#ff9f0a"
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
                         }
@@ -722,18 +728,18 @@ Scope {
 
                     // ── 3b. Caffeine Indicator ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
-                        visible: Services.SystemService.caffeineActive
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
+                        visible: Services.SystemService.idleInhibited
                         color: caffBarMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Text {
                             anchors.centerIn: parent
                             text: "󰅶"
-                            color: "#ff9f0a"
-                            font.pixelSize: 15
+                            color: Services.SystemService.caffeineActive ? "#ff9f0a" : Qt.rgba(1, 0.62, 0.04, 0.8)
+                            font.pixelSize: 17
                             font.family: root.font
                         }
 
@@ -748,9 +754,9 @@ Scope {
 
                     // ── 4. Battery Widget (horizontal capsule, % on hover) ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: battMacRow.implicitWidth + 10
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: battMacRow.implicitWidth + 12
+                        radius: 14
                         color: battMacMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -761,10 +767,10 @@ Scope {
 
                             Item {
                                 id: battIconItem
-                                width: 25
-                                implicitWidth: 25
-                                height: 12
-                                implicitHeight: 12
+                                width: 27
+                                implicitWidth: 27
+                                height: 14
+                                implicitHeight: 14
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 readonly property color battColor: {
@@ -776,9 +782,9 @@ Scope {
                                 // Outer capsule
                                 Rectangle {
                                     id: battBody
-                                    width: 22
-                                    height: 11
-                                    radius: 3
+                                    width: 24
+                                    height: 13
+                                    radius: 3.5
                                     color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.08)
                                     border.width: 1
                                     border.color: Qt.rgba(battIconItem.battColor.r, battIconItem.battColor.g, battIconItem.battColor.b, 0.8)
@@ -808,7 +814,7 @@ Scope {
                                         visible: Services.SystemService.batteryCharging || Services.SystemService.batteryPlugged
                                         text: "󱐋"
                                         font.family: root.font
-                                        font.pixelSize: 9
+                                        font.pixelSize: 10
                                         font.weight: Font.Black
                                         color: Services.SystemService.batteryLevel > 45 ? "#000000" : battIconItem.battColor
                                     }
@@ -817,9 +823,9 @@ Scope {
                                 // Positive terminal nub
                                 Rectangle {
                                     id: battNub
-                                    width: 1.5
-                                    height: 4
-                                    radius: 0.75
+                                    width: 2
+                                    height: 5
+                                    radius: 1
                                     color: Qt.rgba(battIconItem.battColor.r, battIconItem.battColor.g, battIconItem.battColor.b, 0.8)
                                     anchors.left: battBody.right
                                     anchors.leftMargin: 1
@@ -830,7 +836,7 @@ Scope {
                             Text {
                                 text: Services.SystemService.batteryLevel + "%"
                                 color: root.barFgPrimary
-                                font.pixelSize: 11
+                                font.pixelSize: 13
                                 font.family: root.font
                                 font.weight: Font.DemiBold
                                 anchors.verticalCenter: parent.verticalCenter
@@ -852,9 +858,9 @@ Scope {
 
                     // ── 5. Wi-Fi Icon ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
                         color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterSubView === "wifi") || wifiIconMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -862,7 +868,7 @@ Scope {
                             anchors.centerIn: parent
                             text: Services.SystemService.wifiBarIcon
                             color: (Services.SystemService.networkType === "disconnected" && !Services.SystemService.wifiConnected) ? root.barFgMuted : root.barFgPrimary
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
                         }
@@ -882,9 +888,9 @@ Scope {
                     // ── 6. Bluetooth Icon ──
                     Rectangle {
                         visible: Services.SystemService.bluetoothEnabled
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
                         color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterSubView === "bluetooth") || btIconMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -892,7 +898,7 @@ Scope {
                             anchors.centerIn: parent
                             text: "󰂯"
                             color: Services.SystemService.bluetoothDevices.some(d => d.connected) ? theme.accent : root.barFgPrimary
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
                         }
@@ -911,9 +917,9 @@ Scope {
 
                     // ── 7. Spotlight Search Icon ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
                         color: spotIconMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -921,7 +927,7 @@ Scope {
                             anchors.centerIn: parent
                             text: "󰍉"
                             color: root.barFgPrimary
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
                         }
@@ -931,22 +937,22 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Services.SystemService.runCmd("quickshell ipc call launcher toggle")
+                            onClicked: Services.SystemService.runCmd("quickshell ipc call launcher toggleCategory all")
                         }
                     }
 
                     // ── 8. Control Center Icon (macOS switch.2) ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
                         color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "controls") || ccIconMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Item {
                             anchors.centerIn: parent
-                            width: 16
-                            height: 12
+                            width: 18
+                            height: 14
 
                             property color iconColor: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "controls") ? theme.accent : root.barFgPrimary
                             Behavior on iconColor { ColorAnimation { duration: 120 } }
@@ -954,9 +960,9 @@ Scope {
                             // Top Toggle Switch (knob on right)
                             Rectangle {
                                 y: 0
-                                width: 16
-                                height: 5
-                                radius: 2.5
+                                width: 18
+                                height: 6
+                                radius: 3
                                 color: "transparent"
                                 border.color: parent.iconColor
                                 border.width: 1.2
@@ -964,19 +970,19 @@ Scope {
                                 Rectangle {
                                     x: parent.width - width - 1
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 3
-                                    height: 3
-                                    radius: 1.5
+                                    width: 3.5
+                                    height: 3.5
+                                    radius: 1.75
                                     color: parent.border.color
                                 }
                             }
 
                             // Bottom Toggle Switch (knob on left)
                             Rectangle {
-                                y: 7
-                                width: 16
-                                height: 5
-                                radius: 2.5
+                                y: 8
+                                width: 18
+                                height: 6
+                                radius: 3
                                 color: "transparent"
                                 border.color: parent.iconColor
                                 border.width: 1.2
@@ -984,9 +990,9 @@ Scope {
                                 Rectangle {
                                     x: 1
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 3
-                                    height: 3
-                                    radius: 1.5
+                                    width: 3.5
+                                    height: 3.5
+                                    radius: 1.75
                                     color: parent.border.color
                                 }
                             }
@@ -1006,9 +1012,9 @@ Scope {
 
                     // ── 9. Notification Bell ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: 26
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: 28
+                        radius: 14
                         color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "notifications") || notifBellMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1016,16 +1022,16 @@ Scope {
                             anchors.centerIn: parent
                             text: Services.NotificationService.dnd ? "󰂛" : "󰂚"
                             color: Services.NotificationService.dnd ? theme.accentMauve : ((Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "notifications") ? theme.accent : root.barFgPrimary)
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
                         }
 
                         // Unread Dot
                         Rectangle {
-                            width: 6
-                            height: 6
-                            radius: 3
+                            width: 7
+                            height: 7
+                            radius: 3.5
                             color: theme.accentRed
                             anchors.top: parent.top
                             anchors.topMargin: 3
@@ -1056,9 +1062,9 @@ Scope {
 
                     // ── 10. Clock (Opens Calendar) ──
                     Rectangle {
-                        implicitHeight: 26
-                        implicitWidth: clockMacText.implicitWidth + 14
-                        radius: 13
+                        implicitHeight: 28
+                        implicitWidth: clockMacText.implicitWidth + 16
+                        radius: 14
                         color: Services.ClockService.calendarOpen || clockMacMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1067,7 +1073,7 @@ Scope {
                             anchors.centerIn: parent
                             text: Services.ClockService.macClock
                             color: root.barFgPrimary
-                            font.pixelSize: 13
+                            font.pixelSize: 15
                             font.family: root.font
                             font.weight: Font.Bold
                         }
@@ -1126,7 +1132,7 @@ Scope {
             Rectangle {
                 id: appleMenuCard
                 anchors.top: parent.top
-                anchors.topMargin: 38
+                anchors.topMargin: root.barHeight + 4
                 anchors.left: parent.left
                 anchors.leftMargin: 8
 
@@ -1229,7 +1235,7 @@ Scope {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.appleMenuOpen = false;
-                                Services.SystemService.runCmd("quickshell ipc call launcher toggle");
+                                Services.SystemService.runCmd("quickshell ipc call launcher toggleCategory all");
                             }
                         }
                     }

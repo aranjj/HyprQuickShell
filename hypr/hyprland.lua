@@ -40,17 +40,18 @@ local terminal    = "kitty"
 local fileManager = "dolphin"
 local menu        = "hyprlauncher"
 local browser     = "firefox"
+local editor      = "code"
+
+
+
+
 -------------------
 ---- AUTOSTART ----
 -------------------
 
 -- See https://wiki.hypr.land/Configuring/Basics/Autostart/
 
--- KWallet auto-unlock + KDE services (must run before apps that need credentials)
 hl.on("hyprland.start", function()
-    hl.exec_cmd("/usr/lib/pam_kwallet_init")
-    hl.exec_cmd("dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-    hl.exec_cmd("/usr/bin/kwalletd6")
     hl.exec_cmd("quickshell -p /home/aran/.config/quickshell/shell.qml")
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
@@ -96,7 +97,7 @@ hl.env("HYPRCURSOR_SIZE", "24")
 -- Refer to https://wiki.hypr.land/Configuring/Basics/Variables/
 hl.config({
     general = {
-        gaps_in  = 2,
+        gaps_in  = 5,
         gaps_out = 5,
 
         border_size = 2,
@@ -116,7 +117,7 @@ hl.config({
     },
 
     decoration = {
-        rounding       = 2,
+        rounding       = 5,
         rounding_power = 5,
 
         -- Change transparency of focused and unfocused windows
@@ -132,8 +133,8 @@ hl.config({
 
         blur = {
             enabled   = true,
-            size      = 7,
-            passes    = 3,
+            size      = 6,
+            passes    = 2,
             vibrancy  = 0.420,
         },
     },
@@ -223,6 +224,7 @@ hl.config({
     misc = {
         force_default_wallpaper = 0,    -- Set to 0 or 1 to disable the anime mascot wallpapers
         disable_hyprland_logo   = true, -- If true disables the random hyprland logo / anime girl background. :(
+        background_color        = "rgba(000000ff)",
     },
 })
 
@@ -277,6 +279,8 @@ hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("quickshell ipc call clipboard toggle"))
+hl.bind(mainMod .. " + CTRL + E", hl.dsp.exec_cmd("quickshell ipc call emojis toggle"))
+hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("quickshell ipc call emojis toggle"))
 hl.bind(mainMod .. " + T", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("quickshell ipc call lock lock"))
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
@@ -324,7 +328,7 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 -- Laptop multimedia keys for volume and LCD brightness
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && wpctl set-mute @DEFAULT_AUDIO_SINK@ 0"), { locked = true, repeating = true })
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
 hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
 hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
@@ -399,6 +403,7 @@ hl.window_rule({
 -- ── Quickshell Frosted Glass Blur ─────────────────────────
 local quickshell_layers = {
     "quickshell-bar",
+    "quickshell-apple-menu",
     "quickshell-control-center",
     "quickshell-dynamic-island",
     "quickshell-calendar",
@@ -411,6 +416,7 @@ local quickshell_layers = {
     "quickshell-osd",
     "quickshell-screenshot-toolbar",
     "quickshell-screenshot-preview",
+    "quickshell-emojis",
 }
 
 for _, ns in ipairs(quickshell_layers) do

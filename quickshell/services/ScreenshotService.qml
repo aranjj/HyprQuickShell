@@ -3,6 +3,7 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import "." as Services
 
 Singleton {
     id: root
@@ -12,6 +13,14 @@ Singleton {
     property bool previewVisible: false
     property int delayTimer: 0
     property string captureMode: "region"
+
+    // Freeze-frame state
+    property string freezeImagePath: ""
+    property int freezeVersion: 0
+    property bool isSelecting: false
+    property bool isFreezing: false
+    property bool directSnipMode: false
+    property string _pendingDirectMode: ""
 
     // Preview auto-dismiss state
     property bool previewHovered: false
@@ -36,11 +45,6 @@ Singleton {
     }
 
     // ── Delayed Capture Timer ──────────────────────────
-    // When capture is triggered from a GUI overlay (Control Center
-    // or Toolbar), we must wait for the layer-shell surface to fully
-    // unmap and release the Wayland seat pointer grab before spawning
-    // hyprshot/slurp. A QML Timer is more reliable than a bash sleep
-    // because the event loop has already processed the overlay close.
     Timer {
         id: captureDelayTimer
         interval: 400
@@ -50,12 +54,15 @@ Singleton {
         }
     }
 
+    // ── Control Center Unmap Delay for Freeze ──────────
+    Timer {
+        id: ccUnmapTimer
+        interval: 120
+        repeat: false
+        onTriggered: root._startFreeze()
+    }
+
     // ── Dedicated Process for Hyprland Dispatch ────────
-    // We invoke screenshot.sh and GUI actions via Hyprland's native
-    // dispatcher (hl.dsp.exec_cmd) just like Hyprland keybindings do.
-    // hyprctl dispatch executes in ~5ms, detaching the process completely
-    // into the compositor session. This avoids QProcess lifecycle bugs,
-    // hanging pipe locks, and ensures 100% identical behavior to keybinds.
     Process {
         id: dispatchProc
         command: ["sh", "-c", ""]
@@ -65,6 +72,101 @@ Singleton {
         dispatchProc.running = false;
         dispatchProc.command = ["hyprctl", "dispatch", "hl.dsp.exec_cmd(\"" + cmd.replace(/"/g, '\\"') + "\")"];
         dispatchProc.running = true;
+    }
+
+    // ── Kill Slurp Process ─────────────────────────────
+    Process {
+        id: killSlurpProc
+        command: ["pkill", "-x", "slurp"]
+    }
+
+    // ── Freeze Process ─────────────────────────────────
+    // Takes a snapshot at the exact millisecond toolbar or snip is requested
+    Process {
+        id: freezeProc
+        command: ["grim", "-l", "1", "/tmp/quickshell_freeze.png"]
+        onExited: (code, status) => {
+            root.isFreezing = false;
+            if (code === 0) {
+                root.freezeVersion++;
+                root.freezeImagePath = "/tmp/quickshell_freeze.png";
+                root.toolbarVisible = true;
+                if (root.directSnipMode) {
+                    const m = (root._pendingDirectMode === "window") ? "window_frozen" : "region_frozen";
+                    root._runCommand("/home/aran/.config/quickshell/scripts/screenshot.sh " + m + " 0 /tmp/quickshell_freeze.png");
+                }
+            } else {
+                root.freezeImagePath = "";
+                const wasDirect = root.directSnipMode;
+                const pendingMode = root._pendingDirectMode;
+                root.closeToolbar();
+                if (wasDirect) {
+                    root._runCapture(pendingMode === "window" ? "window" : "region", 0);
+                }
+            }
+        }
+    }
+
+    function _startFreeze() {
+        root.isFreezing = true;
+        freezeProc.running = false;
+        freezeProc.command = ["grim", "-l", "1", "/tmp/quickshell_freeze.png"];
+        freezeProc.running = true;
+    }
+
+    function startDirectSnip(mode) {
+        if (root.isFreezing) return;
+        const m = (mode === "window") ? "window" : "region";
+
+        // If toolbar is already open with a valid freeze frame, snip immediately from it
+        if (root.toolbarVisible && root.freezeImagePath !== "") {
+            root.isSelecting = true;
+            _runCommand("/home/aran/.config/quickshell/scripts/screenshot.sh " + m + "_frozen 0 /tmp/quickshell_freeze.png");
+            return;
+        }
+
+        root.directSnipMode = true;
+        root.isSelecting = true;
+        root._pendingDirectMode = m;
+
+        if (Services.SystemService.controlCenterOpen) {
+            Services.SystemService.controlCenterOpen = false;
+            ccUnmapTimer.restart();
+            return;
+        }
+
+        _startFreeze();
+    }
+
+    function openToolbar() {
+        if (root.toolbarVisible) return;
+        root.directSnipMode = false;
+        root.isSelecting = false;
+        if (Services.SystemService.controlCenterOpen) {
+            Services.SystemService.controlCenterOpen = false;
+            ccUnmapTimer.restart();
+            return;
+        }
+        _startFreeze();
+    }
+
+    function closeToolbar() {
+        toolbarVisible = false;
+        isSelecting = false;
+        directSnipMode = false;
+        _pendingDirectMode = "";
+        freezeImagePath = "";
+        killSlurpProc.running = false;
+        killSlurpProc.running = true;
+    }
+
+    // ── Toolbar Toggle ─────────────────────────────────
+    function toggleToolbar() {
+        if (toolbarVisible) {
+            closeToolbar();
+        } else {
+            openToolbar();
+        }
     }
 
     // ── Preview Functions ──────────────────────────────
@@ -77,11 +179,6 @@ Singleton {
     function dismissPreview() {
         previewVisible = false;
         previewProgress = 1.0;
-    }
-
-    // ── Toolbar Toggle ─────────────────────────────────
-    function toggleToolbar() {
-        toolbarVisible = !toolbarVisible;
     }
 
     // ── Post-Capture Actions ───────────────────────────
@@ -119,26 +216,51 @@ Singleton {
     }
 
     // ── Public Capture API ─────────────────────────────
-    // Called by toolbar buttons, Control Center buttons, and IPC.
-    // Detects whether a GUI overlay is open and, if so, delays the
-    // capture to let the overlay unmap and release pointer grabs.
     function capture(mode, delaySecs) {
-        const overlayWasOpen = toolbarVisible || SystemService.controlCenterOpen;
-
-        toolbarVisible = false;
-        SystemService.controlCenterOpen = false;
-
         const d = (delaySecs !== undefined && delaySecs > 0) ? delaySecs : 0;
         const m = mode || root.captureMode || "region";
 
-        if (overlayWasOpen) {
-            // Delay: let the overlay surface fully unmap and release compositor grab
+        if (d > 0) {
+            // User requested delayed capture: close overlay, let user set up screen, then capture
+            closeToolbar();
+            Services.SystemService.controlCenterOpen = false;
             root._pendingMode = m;
             root._pendingDelay = d;
             captureDelayTimer.restart();
+            return;
+        }
+
+        // Instant freeze-frame capture from toolbar:
+        if (root.toolbarVisible && root.freezeImagePath !== "") {
+            if (m === "fullscreen") {
+                closeToolbar();
+                _runCommand("/home/aran/.config/quickshell/scripts/screenshot.sh save_frozen 0 /tmp/quickshell_freeze.png");
+            } else if (m === "window") {
+                root.isSelecting = true;
+                _runCommand("/home/aran/.config/quickshell/scripts/screenshot.sh window_frozen 0 /tmp/quickshell_freeze.png");
+            } else {
+                // region
+                root.isSelecting = true;
+                _runCommand("/home/aran/.config/quickshell/scripts/screenshot.sh region_frozen 0 /tmp/quickshell_freeze.png");
+            }
+            return;
+        }
+
+        // Direct shortcut or background invocation
+        if (m === "fullscreen") {
+            const overlayWasOpen = toolbarVisible || Services.SystemService.controlCenterOpen;
+            closeToolbar();
+            Services.SystemService.controlCenterOpen = false;
+
+            if (overlayWasOpen) {
+                root._pendingMode = m;
+                root._pendingDelay = d;
+                captureDelayTimer.restart();
+            } else {
+                _runCapture(m, d);
+            }
         } else {
-            // Keyboard shortcut or background invocation — execute immediately
-            _runCapture(m, d);
+            startDirectSnip(m);
         }
     }
 
@@ -161,11 +283,19 @@ Singleton {
         }
 
         function region(): void {
-            root.capture("region", 0);
+            root.startDirectSnip("region");
         }
 
         function window(): void {
-            root.capture("window", 0);
+            root.startDirectSnip("window");
+        }
+
+        function snipRegion(): void {
+            root.startDirectSnip("region");
+        }
+
+        function snipWindow(): void {
+            root.startDirectSnip("window");
         }
 
         function toolbar(): void {
@@ -174,6 +304,14 @@ Singleton {
 
         function toggle(): void {
             root.toggleToolbar();
+        }
+
+        function close(): void {
+            root.closeToolbar();
+        }
+
+        function closeToolbar(): void {
+            root.closeToolbar();
         }
     }
 }

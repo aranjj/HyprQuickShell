@@ -2,6 +2,7 @@ pragma Singleton
 
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import QtQuick
 
@@ -36,13 +37,18 @@ Singleton {
                 } else if (targetSub === "audio") {
                     rescanAudioSinks();
                     rescanAudioSources();
+                    rescanAppAudioStreams();
                 } else if (targetSub === "battery") {
                     refreshBattery();
+                } else if (targetSub === "displays") {
+                    rescanMonitors();
                 } else {
                     rescanWifi();
                     refreshBluetooth();
                     rescanAudioSinks();
                     rescanAudioSources();
+                    rescanAppAudioStreams();
+                    rescanMonitors();
                 }
             }
         }
@@ -59,10 +65,162 @@ Singleton {
 
     property bool aboutDialogOpen: false
     property bool caffeineActive: false
+    property bool preventLockOnFullscreen: true
+    property bool isFullscreenVideoActive: false
+    property string fullscreenVideoApp: ""
     property bool isIdleOrLocked: false
+
+    readonly property bool idleInhibited: caffeineActive || (preventLockOnFullscreen && isFullscreenVideoActive)
 
     function toggleCaffeine() {
         caffeineActive = !caffeineActive;
+    }
+
+    Process {
+        id: fullscreenCheckProc
+        command: ["python3", "-c", "import subprocess, json\ntry:\n    clients = json.loads(subprocess.check_output(['hyprctl', '-i', '0', '-j', 'clients'], text=True))\nexcept:\n    clients = []\nhas_fs = False\nfs_app = ''\nhas_inhibit = False\nfor c in clients:\n    if c.get('inhibitingIdle'):\n        has_inhibit = True\n    if c.get('fullscreen', 0) != 0 or c.get('fullscreenClient', 0) != 0:\n        has_fs = True\n        if not fs_app:\n            fs_app = c.get('class') or c.get('initialClass') or ''\nhas_audio = False\nif has_fs or has_inhibit:\n    try:\n        sinks = json.loads(subprocess.check_output(['pactl', '-f', 'json', 'list', 'sink-inputs'], text=True))\n        for s in sinks:\n            if not s.get('corked', False):\n                has_audio = True\n                break\n    except:\n        pass\nmedia_apps = {'mpv', 'vlc', 'celluloid', 'totem', 'kodi', 'stremio', 'plex', 'jellyfin', 'netflix', 'youtube', 'bilibili'}\nbrowsers = {'firefox', 'chrome', 'chromium', 'brave', 'zen', 'edge', 'google-chrome'}\napp_lower = fs_app.lower()\nis_video = has_inhibit or (has_fs and (has_audio or app_lower in media_apps or app_lower in browsers))\nprint(json.dumps({'active': is_video, 'app': fs_app}))\n"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const res = JSON.parse(text.trim() || "{}");
+                    root.isFullscreenVideoActive = !!res.active;
+                    root.fullscreenVideoApp = res.app || "";
+                } catch (e) {}
+            }
+        }
+    }
+
+    Timer {
+        id: fullscreenPollTimer
+        interval: 3000
+        running: !root.isIdleOrLocked
+        repeat: true
+        onTriggered: {
+            if (!fullscreenCheckProc.running) fullscreenCheckProc.running = true;
+        }
+    }
+
+    // ── Displays & Monitor Management ────────────────
+    property var monitorsList: []
+    property int selectedMonitorIndex: 0
+    property var currentMonitor: (monitorsList && monitorsList.length > selectedMonitorIndex) ? monitorsList[selectedMonitorIndex] : (monitorsList && monitorsList.length > 0 ? monitorsList[0] : null)
+    property real monitorScale: currentMonitor ? (currentMonitor.scale || 1.0) : 1.0
+    property real targetMonitorScale: monitorScale
+    property bool isMonitorScalingDragging: false
+
+    onCurrentMonitorChanged: {
+        if (currentMonitor && !isMonitorScalingDragging) {
+            monitorScale = currentMonitor.scale || 1.0;
+            targetMonitorScale = monitorScale;
+        }
+    }
+
+    Process {
+        id: monitorsProc
+        command: ["/home/aran/.config/quickshell/scripts/monitors.py", "list"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const data = JSON.parse(text.trim() || "[]");
+                    root.monitorsList = data;
+                    if (root.selectedMonitorIndex >= data.length) {
+                        root.selectedMonitorIndex = 0;
+                    }
+                    if (data.length > 0 && !root.isMonitorScalingDragging) {
+                        const m = data[root.selectedMonitorIndex] || data[0];
+                        root.monitorScale = m.scale || 1.0;
+                        root.targetMonitorScale = root.monitorScale;
+                    }
+                } catch(e) {}
+            }
+        }
+    }
+
+    Process {
+        id: applyMonitorProc
+        command: ["sh", "-c", ""]
+        onExited: (code) => {
+            monitorsRefreshTimer.restart();
+        }
+    }
+
+    Timer {
+        id: monitorsRefreshTimer
+        interval: 350
+        repeat: false
+        onTriggered: monitorsProc.running = true
+    }
+
+    Timer {
+        id: monitorScaleDebounceTimer
+        interval: 220
+        repeat: false
+        onTriggered: {
+            if (root.currentMonitor) {
+                root.applyMonitorScale(root.currentMonitor.name, root.targetMonitorScale);
+            }
+        }
+    }
+
+    function rescanMonitors() {
+        monitorsProc.running = true;
+    }
+
+    function setTargetScale(val) {
+        const clamped = Math.max(0.75, Math.min(2.0, Math.round(val * 20) / 20));
+        root.targetMonitorScale = clamped;
+        root.monitorScale = clamped;
+        monitorScaleDebounceTimer.restart();
+    }
+
+    function applyMonitorScale(name, scale) {
+        const m = root.currentMonitor;
+        const mode = (m && m.width && m.height && m.refreshRate) ? (m.width + "x" + m.height + "@" + Math.round(m.refreshRate)) : "preferred";
+        const transform = m ? (m.transform || 0) : 0;
+        const vrr = (m && m.vrr) ? 1 : 0;
+        applyMonitorProc.command = ["/home/aran/.config/quickshell/scripts/monitors.py", "apply", name, mode, "auto", scale.toFixed(2), transform.toString(), vrr.toString()];
+        applyMonitorProc.running = true;
+    }
+
+    function applyMonitorMode(name, modeStr) {
+        const m = root.currentMonitor;
+        const scale = m ? (m.scale || 1.0) : 1.0;
+        const transform = m ? (m.transform || 0) : 0;
+        const vrr = (m && m.vrr) ? 1 : 0;
+        applyMonitorProc.command = ["/home/aran/.config/quickshell/scripts/monitors.py", "apply", name, modeStr, "auto", scale.toFixed(2), transform.toString(), vrr.toString()];
+        applyMonitorProc.running = true;
+    }
+
+    function setMonitorTransform(name, transformIdx) {
+        const m = root.currentMonitor;
+        const mode = (m && m.width && m.height && m.refreshRate) ? (m.width + "x" + m.height + "@" + Math.round(m.refreshRate)) : "preferred";
+        const scale = m ? (m.scale || 1.0) : 1.0;
+        const vrr = (m && m.vrr) ? 1 : 0;
+        applyMonitorProc.command = ["/home/aran/.config/quickshell/scripts/monitors.py", "apply", name, mode, "auto", scale.toFixed(2), transformIdx.toString(), vrr.toString()];
+        applyMonitorProc.running = true;
+    }
+
+    function toggleMonitorDpms(name) {
+        applyMonitorProc.command = ["/home/aran/.config/quickshell/scripts/monitors.py", "dpms", name, "toggle"];
+        applyMonitorProc.running = true;
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            const name = (event && event.name) ? event.name : "";
+            if (name === "fullscreen" || name === "activewindow" || name === "closewindow") {
+                if (!fullscreenCheckProc.running) fullscreenCheckProc.running = true;
+            }
+            if (name.includes("monitor") || name === "focusedmon") {
+                if (!monitorsProc.running) monitorsProc.running = true;
+            }
+        }
+        function onActiveToplevelChanged() {
+            if (!fullscreenCheckProc.running) fullscreenCheckProc.running = true;
+        }
     }
 
     function closeAllPopups() {
@@ -78,6 +236,7 @@ Singleton {
     }
 
     function runCmd(cmd) {
+        execProc.running = false;
         execProc.command = ["sh", "-c", "cd " + homeDir + " && (" + cmd + ")"];
         execProc.running = true;
     }
@@ -167,7 +326,7 @@ Singleton {
         } else if (term === "konsole") {
             runCmd("konsole --workdir " + homeDir);
         } else {
-            runCmd(term + " || kitty || alacritty");
+            runCmd(term || "kitty");
         }
     }
 
@@ -547,18 +706,23 @@ Singleton {
         }
     }
 
+    // ── Drag & Sync Protection Flags ──────────────
+    property bool isVolumeDragging: false
+    property bool isMicDragging: false
+    property bool isBrightnessDragging: false
+
     Connections {
         target: Pipewire.defaultAudioSink?.audio ?? null
 
         function onVolumeChanged() {
-            if (Pipewire.defaultAudioSink?.audio) {
+            if (!root.isVolumeDragging && Pipewire.defaultAudioSink?.audio) {
                 root.volume = Math.round(Pipewire.defaultAudioSink.audio.volume * 100);
                 root.volumeMuted = Pipewire.defaultAudioSink.audio.muted;
             }
         }
 
         function onMutedChanged() {
-            if (Pipewire.defaultAudioSink?.audio) {
+            if (!root.isVolumeDragging && Pipewire.defaultAudioSink?.audio) {
                 root.volume = Math.round(Pipewire.defaultAudioSink.audio.volume * 100);
                 root.volumeMuted = Pipewire.defaultAudioSink.audio.muted;
             }
@@ -569,14 +733,14 @@ Singleton {
         target: Pipewire.defaultAudioSource?.audio ?? null
 
         function onVolumeChanged() {
-            if (Pipewire.defaultAudioSource?.audio) {
+            if (!root.isMicDragging && Pipewire.defaultAudioSource?.audio) {
                 root.micVolume = Math.round(Pipewire.defaultAudioSource.audio.volume * 100);
                 root.micMuted = Pipewire.defaultAudioSource.audio.muted;
             }
         }
 
         function onMutedChanged() {
-            if (Pipewire.defaultAudioSource?.audio) {
+            if (!root.isMicDragging && Pipewire.defaultAudioSource?.audio) {
                 root.micVolume = Math.round(Pipewire.defaultAudioSource.audio.volume * 100);
                 root.micMuted = Pipewire.defaultAudioSource.audio.muted;
             }
@@ -587,12 +751,23 @@ Singleton {
         target: OsdService
 
         function onVolumeUpdated(vol, muted) {
-            root.volume = vol;
-            root.volumeMuted = muted;
+            if (!root.isVolumeDragging) {
+                root.volume = vol;
+                root.volumeMuted = muted;
+            }
+        }
+
+        function onMicUpdated(vol, muted) {
+            if (!root.isMicDragging) {
+                root.micVolume = vol;
+                root.micMuted = muted;
+            }
         }
 
         function onBrightnessUpdated(pct) {
-            root.brightness = pct;
+            if (!root.isBrightnessDragging) {
+                root.brightness = pct;
+            }
         }
     }
 
@@ -602,34 +777,105 @@ Singleton {
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.isVolumeDragging) return;
                 const lines = text.trim().split("\n");
-                root.volume = parseInt(lines[0]) || 0;
-                root.volumeMuted = lines[1] === "muted";
+                if (lines.length >= 2) {
+                    root.volume = parseInt(lines[0]) || 0;
+                    root.volumeMuted = lines[1] === "muted";
+                }
+            }
+        }
+    }
+
+    Process {
+        id: volSetProc
+        command: ["sh", "-c", ""]
+    }
+
+    Timer {
+        id: volSyncTimer
+        interval: 140
+        repeat: false
+        onTriggered: {
+            if (!root.isVolumeDragging) {
+                volProc.running = false;
+                volProc.running = true;
+            }
+        }
+    }
+
+    property int _pendingSinkVolume: -1
+
+    Timer {
+        id: volThrottleTimer
+        interval: 35
+        repeat: false
+        onTriggered: {
+            if (root._pendingSinkVolume >= 0) {
+                const vol = root._pendingSinkVolume;
+                root._pendingSinkVolume = -1;
+                const frac = Math.max(0, Math.min(1.5, vol / 100)).toFixed(2);
+                volSetProc.running = false;
+                volSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ " + frac + (vol === 0 ? " && wpctl set-mute @DEFAULT_AUDIO_SINK@ 1" : " && wpctl set-mute @DEFAULT_AUDIO_SINK@ 0")];
+                volSetProc.running = true;
+            }
+        }
+    }
+
+    function flushVolume() {
+        if (volThrottleTimer.running) volThrottleTimer.stop();
+        if (root._pendingSinkVolume >= 0) {
+            const vol = root._pendingSinkVolume;
+            root._pendingSinkVolume = -1;
+            const frac = Math.max(0, Math.min(1.5, vol / 100)).toFixed(2);
+            volSetProc.running = false;
+            volSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ " + frac + (vol === 0 ? " && wpctl set-mute @DEFAULT_AUDIO_SINK@ 1" : " && wpctl set-mute @DEFAULT_AUDIO_SINK@ 0")];
+            volSetProc.running = true;
+        }
+        volSyncTimer.restart();
+    }
+
+    Process {
+        id: muteSinkProc
+        command: ["sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{printf \"%.0f\\n\", $2*100; if ($3==\"[MUTED]\") print \"muted\"; else print \"unmuted\"}'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (root.isVolumeDragging) return;
+                const lines = text.trim().split("\n");
+                if (lines.length >= 2) {
+                    root.volume = parseInt(lines[0]) || 0;
+                    root.volumeMuted = lines[1] === "muted";
+                }
             }
         }
     }
 
     function adjustVolume(delta) {
         root.volume = Math.max(0, Math.min(150, root.volume + delta));
-        root.volumeMuted = false;
+        root.volumeMuted = (root.volume === 0);
         const sign = delta > 0 ? "+" : "-";
         const abs = Math.abs(delta);
-        runCmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ " + abs + "%" + sign + "; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0");
-        volProc.running = true;
+        volSetProc.running = false;
+        volSetProc.command = ["sh", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ " + abs + "%" + sign + "; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0"];
+        volSetProc.running = true;
+        volSyncTimer.restart();
     }
 
     function setVolumePercent(pct) {
-        root.volume = Math.max(0, Math.min(150, Math.round(pct)));
-        root.volumeMuted = false;
-        const frac = Math.max(0, Math.min(1.5, pct / 100)).toFixed(2);
-        runCmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ " + frac + "; wpctl set-mute @DEFAULT_AUDIO_SINK@ 0");
-        volProc.running = true;
+        const clamped = Math.max(0, Math.min(150, Math.round(pct)));
+        root.volume = clamped;
+        root.volumeMuted = (clamped === 0);
+        root._pendingSinkVolume = clamped;
+        if (!volThrottleTimer.running) {
+            volThrottleTimer.start();
+        }
+        volSyncTimer.restart();
     }
 
     function toggleMute() {
         root.volumeMuted = !root.volumeMuted;
-        runCmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle");
-        volProc.running = true;
+        muteSinkProc.running = false;
+        muteSinkProc.running = true;
     }
     // ── Audio Sinks (Outputs) Discovery ──────────
     property var audioSinks: []
@@ -715,27 +961,94 @@ Singleton {
         }
     }
 
+    Process {
+        id: muteSourceProc
+        command: ["sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | awk '{printf \"%.0f\\n\", $2*100; if ($3==\"[MUTED]\") print \"muted\"; else print \"unmuted\"}'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split("\n");
+                if (lines.length >= 2) {
+                    root.micVolume = parseInt(lines[0]) || 0;
+                    root.micMuted = lines[1] === "muted";
+                }
+            }
+        }
+    }
+
+    Process {
+        id: micSetProc
+        command: ["sh", "-c", ""]
+    }
+
+    Timer {
+        id: micSyncTimer
+        interval: 140
+        repeat: false
+        onTriggered: {
+            if (!root.isMicDragging) {
+                micProc.running = false;
+                micProc.running = true;
+            }
+        }
+    }
+
+    property int _pendingSourceVolume: -1
+
+    Timer {
+        id: micThrottleTimer
+        interval: 35
+        repeat: false
+        onTriggered: {
+            if (root._pendingSourceVolume >= 0) {
+                const vol = root._pendingSourceVolume;
+                root._pendingSourceVolume = -1;
+                const frac = Math.max(0, Math.min(1.5, vol / 100)).toFixed(2);
+                micSetProc.running = false;
+                micSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ " + frac + (vol === 0 ? " && wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 1" : " && wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0")];
+                micSetProc.running = true;
+            }
+        }
+    }
+
+    function flushMicVolume() {
+        if (micThrottleTimer.running) micThrottleTimer.stop();
+        if (root._pendingSourceVolume >= 0) {
+            const vol = root._pendingSourceVolume;
+            root._pendingSourceVolume = -1;
+            const frac = Math.max(0, Math.min(1.5, vol / 100)).toFixed(2);
+            micSetProc.running = false;
+            micSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ " + frac + (vol === 0 ? " && wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 1" : " && wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0")];
+            micSetProc.running = true;
+        }
+        micSyncTimer.restart();
+    }
+
     function adjustMicVolume(delta) {
         root.micVolume = Math.max(0, Math.min(150, root.micVolume + delta));
-        root.micMuted = false;
+        root.micMuted = (root.micVolume === 0);
         const sign = delta > 0 ? "+" : "-";
         const abs = Math.abs(delta);
-        runCmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SOURCE@ " + abs + "%" + sign + "; wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0");
-        micProc.running = true;
+        micSetProc.running = false;
+        micSetProc.command = ["sh", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SOURCE@ " + abs + "%" + sign + "; wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0"];
+        micSetProc.running = true;
+        micSyncTimer.restart();
     }
 
     function setMicVolumePercent(pct) {
-        root.micVolume = Math.max(0, Math.min(150, Math.round(pct)));
-        root.micMuted = false;
-        const frac = Math.max(0, Math.min(1.5, pct / 100)).toFixed(2);
-        runCmd("wpctl set-volume @DEFAULT_AUDIO_SOURCE@ " + frac + "; wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0");
-        micProc.running = true;
+        const clamped = Math.max(0, Math.min(150, Math.round(pct)));
+        root.micVolume = clamped;
+        root.micMuted = (clamped === 0);
+        root._pendingSourceVolume = clamped;
+        if (!micThrottleTimer.running) {
+            micThrottleTimer.start();
+        }
+        micSyncTimer.restart();
     }
 
     function toggleMicMute() {
         root.micMuted = !root.micMuted;
-        runCmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle");
-        micProc.running = true;
+        muteSourceProc.running = false;
+        muteSourceProc.running = true;
     }
 
     function rescanAudioSources() {
@@ -749,6 +1062,108 @@ Singleton {
         micProc.running = true;
     }
 
+    // ── Per-Application Audio Streams (Mixer) ────
+    property var appAudioStreams: []
+    property bool isAppVolumeDragging: false
+
+    Process {
+        id: appStreamsProc
+        command: ["python3", "-c", "import subprocess, json\ntry:\n    out = subprocess.check_output(['pactl', '-f', 'json', 'list', 'sink-inputs'], text=True)\n    data = json.loads(out)\n    streams = []\n    for item in data:\n        idx = item.get('index')\n        props = item.get('properties', {})\n        name = props.get('application.name') or props.get('media.name') or props.get('node.name') or 'Application'\n        icon = props.get('application.icon_name') or ''\n        binary = props.get('application.process.binary') or ''\n        media_name = props.get('media.name') or ''\n        muted = bool(item.get('mute', False))\n        corked = bool(item.get('corked', False))\n        vol_obj = item.get('volume', {})\n        pct = 100\n        for ch in ['front-left', 'mono']:\n            if ch in vol_obj:\n                pct = int(vol_obj[ch].get('value_percent', '100%').replace('%', ''))\n                break\n        else:\n            for ch, v in vol_obj.items():\n                if isinstance(v, dict) and 'value_percent' in v:\n                    pct = int(v['value_percent'].replace('%', ''))\n                    break\n        streams.append({'id': idx, 'name': name, 'icon': icon, 'binary': binary, 'media_name': media_name if media_name != name else '', 'volume': pct, 'muted': muted, 'corked': corked})\n    print(json.dumps(streams))\nexcept:\n    print('[]')\n"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (root.isAppVolumeDragging) return;
+                try {
+                    const parsed = JSON.parse(text.trim() || "[]");
+                    root.appAudioStreams = parsed;
+                } catch(e) {}
+            }
+        }
+    }
+
+    Timer {
+        id: appStreamPollTimer
+        interval: 1200
+        running: root.controlCenterOpen && root.controlCenterSubView === "audio"
+        repeat: true
+        onTriggered: root.rescanAppAudioStreams()
+    }
+
+    Timer {
+        id: appStreamSyncTimer
+        interval: 150
+        repeat: false
+        onTriggered: root.rescanAppAudioStreams()
+    }
+
+    function rescanAppAudioStreams() {
+        if (!appStreamsProc.running && !root.isAppVolumeDragging) {
+            appStreamsProc.running = true;
+        }
+    }
+
+    property int _pendingAppStreamId: -1
+    property int _pendingAppStreamVol: -1
+
+    Process {
+        id: appVolSetProc
+        command: ["sh", "-c", ""]
+    }
+
+    Timer {
+        id: appVolThrottleTimer
+        interval: 30
+        repeat: false
+        onTriggered: {
+            if (root._pendingAppStreamId >= 0 && root._pendingAppStreamVol >= 0) {
+                const sId = root._pendingAppStreamId;
+                const vol = root._pendingAppStreamVol;
+                root._pendingAppStreamId = -1;
+                root._pendingAppStreamVol = -1;
+                const cmd = "pactl set-sink-input-volume " + sId + " " + vol + "%" + (vol === 0 ? " && pactl set-sink-input-mute " + sId + " 1" : " && pactl set-sink-input-mute " + sId + " 0");
+                appVolSetProc.running = false;
+                appVolSetProc.command = ["sh", "-c", cmd];
+                appVolSetProc.running = true;
+            }
+        }
+    }
+
+    function setAppStreamVolume(streamId, pct) {
+        const clamped = Math.max(0, Math.min(150, Math.round(pct)));
+        root._pendingAppStreamId = streamId;
+        root._pendingAppStreamVol = clamped;
+        if (!appVolThrottleTimer.running) {
+            appVolThrottleTimer.start();
+        }
+    }
+
+    function flushAppStreamVolume() {
+        if (appVolThrottleTimer.running) appVolThrottleTimer.stop();
+        if (root._pendingAppStreamId >= 0 && root._pendingAppStreamVol >= 0) {
+            const sId = root._pendingAppStreamId;
+            const vol = root._pendingAppStreamVol;
+            root._pendingAppStreamId = -1;
+            root._pendingAppStreamVol = -1;
+            const cmd = "pactl set-sink-input-volume " + sId + " " + vol + "%" + (vol === 0 ? " && pactl set-sink-input-mute " + sId + " 1" : " && pactl set-sink-input-mute " + sId + " 0");
+            appVolSetProc.running = false;
+            appVolSetProc.command = ["sh", "-c", cmd];
+            appVolSetProc.running = true;
+        }
+        appStreamSyncTimer.restart();
+    }
+
+    Process {
+        id: appMuteProc
+        command: ["sh", "-c", ""]
+    }
+
+    function toggleAppStreamMute(streamId) {
+        appMuteProc.running = false;
+        appMuteProc.command = ["sh", "-c", "pactl set-sink-input-mute " + streamId + " toggle"];
+        appMuteProc.running = true;
+        appStreamSyncTimer.restart();
+    }
+
     // ── Display Brightness ──────────────────────────
     property int brightness: 100
 
@@ -757,23 +1172,78 @@ Singleton {
         command: ["sh", "-c", "brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d '%' || echo '100'"]
         running: true
         stdout: StdioCollector {
-            onStreamFinished: root.brightness = parseInt(text.trim()) || 100
+            onStreamFinished: {
+                if (root.isBrightnessDragging) return;
+                const val = parseInt(text.trim());
+                root.brightness = isNaN(val) ? 100 : Math.max(0, Math.min(100, val));
+            }
         }
     }
 
+    Process {
+        id: brightSetProc
+        command: ["sh", "-c", ""]
+    }
+
+    Timer {
+        id: brightSyncTimer
+        interval: 140
+        repeat: false
+        onTriggered: {
+            if (!root.isBrightnessDragging) {
+                brightProc.running = false;
+                brightProc.running = true;
+            }
+        }
+    }
+
+    property int _pendingBrightness: -1
+
+    Timer {
+        id: brightThrottleTimer
+        interval: 35
+        repeat: false
+        onTriggered: {
+            if (root._pendingBrightness >= 0) {
+                const b = root._pendingBrightness;
+                root._pendingBrightness = -1;
+                brightSetProc.running = false;
+                brightSetProc.command = ["sh", "-c", "brightnessctl -n set " + b + "%"];
+                brightSetProc.running = true;
+            }
+        }
+    }
+
+    function flushBrightness() {
+        if (brightThrottleTimer.running) brightThrottleTimer.stop();
+        if (root._pendingBrightness >= 0) {
+            const b = root._pendingBrightness;
+            root._pendingBrightness = -1;
+            brightSetProc.running = false;
+            brightSetProc.command = ["sh", "-c", "brightnessctl -n set " + b + "%"];
+            brightSetProc.running = true;
+        }
+        brightSyncTimer.restart();
+    }
+
     function adjustBrightness(delta) {
-        root.brightness = Math.max(1, Math.min(100, root.brightness + delta));
+        root.brightness = Math.max(0, Math.min(100, root.brightness + delta));
         const sign = delta > 0 ? "+" : "-";
         const abs = Math.abs(delta);
-        runCmd("brightnessctl -n set " + abs + "%" + sign);
-        brightProc.running = true;
+        brightSetProc.running = false;
+        brightSetProc.command = ["sh", "-c", "brightnessctl -n set " + abs + "%" + sign];
+        brightSetProc.running = true;
+        brightSyncTimer.restart();
     }
 
     function setBrightnessPercent(pct) {
-        const clamped = Math.max(1, Math.min(100, Math.round(pct)));
+        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
         root.brightness = clamped;
-        runCmd("brightnessctl -n set " + clamped + "%");
-        brightProc.running = true;
+        root._pendingBrightness = clamped;
+        if (!brightThrottleTimer.running) {
+            brightThrottleTimer.start();
+        }
+        brightSyncTimer.restart();
     }
 
     // ── Wi-Fi ───────────────────────────────────────
@@ -813,15 +1283,7 @@ Singleton {
     readonly property string wifiBarIcon: {
         if (networkType === "ethernet") return "󰈀";
         if (!wifiEnabled) return "󰖪";
-        if (networkType === "wifi" || wifiConnected) {
-            const sig = wifiActiveNetwork ? (wifiActiveNetwork.signal || 0) : 0;
-            if (sig >= 75) return "󰤨";
-            if (sig >= 50) return "󰤥";
-            if (sig >= 25) return "󰤢";
-            if (sig > 0) return "󰤟";
-            return "󰖩";
-        }
-        return "󰤯";
+        return "";
     }
 
     Process {
@@ -1181,6 +1643,9 @@ Singleton {
     }
 
     onControlCenterOpenChanged: {
+        if (controlCenterOpen) {
+            monitorsProc.running = true;
+        }
         if (!controlCenterOpen && bluetoothDiscovering) {
             stopBluetoothScan();
         }

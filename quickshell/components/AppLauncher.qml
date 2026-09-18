@@ -21,6 +21,15 @@ Scope {
     property string activeCategory: "apps" // Default to Apps tab (Launchpad behavior)
     property var hyprWindows: []
 
+    // Actively bind DesktopEntries so applications list is fully loaded and watched
+    readonly property var allApplications: DesktopEntries.applications.values
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() {
+            root.updateSearchResults();
+        }
+    }
+
     // ── Hyprland Configured Default Programs ─────────
     readonly property string terminalApp: Services.SystemService.defaultTerminal || "kitty"
     readonly property string browserApp: Services.SystemService.defaultBrowser || "firefox"
@@ -193,12 +202,12 @@ Scope {
             if (launcherPanel.visible) {
                 root.closeLauncher();
             } else {
-                root.openLauncher();
+                root.openLauncher("", "apps");
             }
         }
 
         function open(): void {
-            root.openLauncher();
+            root.openLauncher("", "apps");
         }
 
         function query(text: string): void {
@@ -206,11 +215,24 @@ Scope {
         }
 
         function setCategory(cat: string): void {
-            if (!launcherPanel.visible) launcherPanel.visible = true;
-            root.activeCategory = cat || "apps";
-            root.selectedIndex = 0;
-            root.updateSearchResults();
-            searchInput.forceActiveFocus();
+            if (!launcherPanel.visible) {
+                root.openLauncher("", cat || "apps");
+            } else {
+                root.activeCategory = cat || "apps";
+                root.selectedIndex = 0;
+                root.fetchWindows();
+                root.updateSearchResults();
+                searchInput.forceActiveFocus();
+            }
+        }
+
+        function toggleCategory(cat: string): void {
+            const targetCat = cat || "all";
+            if (launcherPanel.visible && root.activeCategory === targetCat) {
+                root.closeLauncher();
+            } else {
+                root.openLauncher("", targetCat);
+            }
         }
 
         function close(): void {
@@ -218,11 +240,13 @@ Scope {
         }
     }
 
-    function openLauncher(initialText) {
+    function openLauncher(initialText, category) {
         launcherPanel.visible = true;
         const text = initialText || "";
         searchInput.text = text;
-        if (text.startsWith(">")) {
+        if (category) {
+            root.activeCategory = category;
+        } else if (text.startsWith(">")) {
             root.activeCategory = "commands";
         } else if (text && root.evaluateMath(text) !== "" && (/[+\-*/^%=]|sqrt|sin|cos|tan|pi/i.test(text) || text.startsWith("="))) {
             root.activeCategory = "math";
@@ -237,6 +261,7 @@ Scope {
 
     function closeLauncher() {
         launcherPanel.visible = false;
+        searchInput.text = "";
     }
 
     // ── Math / Calculator Evaluation ─────────────────
@@ -299,6 +324,27 @@ Scope {
     function copyToClipboard(text) {
         Services.SystemService.runCmd("printf '%s' " + JSON.stringify(text) + " | wl-copy");
         closeLauncher();
+    }
+
+    function launchApp(app) {
+        if (!app) return;
+        closeLauncher();
+        try {
+            if (app.runInTerminal === true) {
+                const cmd = (app.command && app.command.length > 0) ? app.command.join(" ") : (app.execString || app.id);
+                root.runTerminalCmd(cmd, false);
+                return;
+            }
+            app.execute();
+        } catch (e) {
+            console.warn("[AppLauncher] app.execute failed, falling back to direct command:", e);
+            if (app.command && app.command.length > 0) {
+                Services.SystemService.runCmd(app.command.join(" "));
+            } else if (app.execString) {
+                const clean = app.execString.replace(/%[a-zA-Z]/g, "").trim();
+                Services.SystemService.runCmd(clean);
+            }
+        }
     }
 
     // ── Built-in System Shortcuts Library ────────────
@@ -795,53 +841,15 @@ Scope {
         const allApps = allAppsRaw.filter(a => a && a.name && !a.noDisplay);
 
         // ─────────────────────────────────────────────────────────────
-        // 1. APPS TAB (Launchpad behavior with suggestions)
+        // 1. APPS TAB (Launchpad behavior A-Z)
         // ─────────────────────────────────────────────────────────────
         if (root.activeCategory === "apps") {
             if (q === "") {
-                const suggestedNames = [root.terminalApp, root.browserApp, root.fileManagerApp, "code", "antigravity", "spotify", "discord", "steam", "obs"];
-                const suggestedApps = [];
-                const otherApps = [];
-
-                for (let i = 0; i < allApps.length; i++) {
-                    const a = allApps[i];
-                    const n = (a.name || "").toLowerCase();
-                    const id = (a.id || "").toLowerCase();
-                    const isSuggested = suggestedNames.some(s => s && (n.includes(s) || id.includes(s)));
-                    if (isSuggested && suggestedApps.length < 5) {
-                        suggestedApps.push(a);
-                    } else {
-                        otherApps.push(a);
-                    }
-                }
-
-                // Suggestions Section
-                for (let i = 0; i < suggestedApps.length; i++) {
-                    const app = suggestedApps[i];
+                const sortedApps = allApps.slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                for (let i = 0; i < sortedApps.length; i++) {
+                    const app = sortedApps[i];
                     out.push({
-                        id: "app_sug_" + (app.id || app.name),
-                        type: "app",
-                        title: app.name ?? "Application",
-                        subtitle: app.genericName || app.comment || "Suggested Application",
-                        category: "SUGGESTIONS",
-                        kindTag: "Suggested",
-                        icon: app.icon ?? "",
-                        glyph: "󰣆",
-                        accentColor: root.theme.accent,
-                        entry: app,
-                        exec: app.id || app.name,
-                        desc: app.comment || app.genericName || "Desktop Application",
-                        actionLabel: "Launch Application",
-                        action: () => { app.execute(); closeLauncher(); }
-                    });
-                }
-
-                // Applications Section (A-Z)
-                otherApps.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-                for (let i = 0; i < otherApps.length; i++) {
-                    const app = otherApps[i];
-                    out.push({
-                        id: "app_other_" + (app.id || app.name),
+                        id: "app_" + (app.id || app.name),
                         type: "app",
                         title: app.name ?? "Application",
                         subtitle: app.genericName || app.comment || "Application",
@@ -854,7 +862,7 @@ Scope {
                         exec: app.id || app.name,
                         desc: app.comment || app.genericName || "Desktop Application",
                         actionLabel: "Launch Application",
-                        action: () => { app.execute(); closeLauncher(); }
+                        action: () => root.launchApp(app)
                     });
                 }
 
@@ -898,13 +906,17 @@ Scope {
                 const n = (app.name ?? "").toLowerCase();
                 const gen = (app.genericName ?? "").toLowerCase();
                 const com = (app.comment ?? "").toLowerCase();
-                const exec = (app.id ?? "").toLowerCase();
-                return n.includes(q) || gen.includes(q) || com.includes(q) || exec.includes(q);
+                const id = (app.id ?? "").toLowerCase();
+                const exec = (app.execString ?? "").toLowerCase();
+                const cmd = (app.command && app.command.length > 0 ? app.command.join(" ") : "").toLowerCase();
+                return n.includes(q) || gen.includes(q) || com.includes(q) || id.includes(q) || exec.includes(q) || cmd.includes(q);
             }).sort((a, b) => {
                 const an = (a.name ?? "").toLowerCase();
                 const bn = (b.name ?? "").toLowerCase();
-                const aStarts = an.startsWith(q);
-                const bStarts = bn.startsWith(q);
+                const aid = (a.id ?? "").toLowerCase();
+                const bid = (b.id ?? "").toLowerCase();
+                const aStarts = an.startsWith(q) || aid.startsWith(q);
+                const bStarts = bn.startsWith(q) || bid.startsWith(q);
                 if (aStarts && !bStarts) return -1;
                 if (!aStarts && bStarts) return 1;
                 return an.localeCompare(bn);
@@ -926,7 +938,7 @@ Scope {
                     exec: app.id || app.name,
                     desc: app.comment || app.genericName || "Desktop Application",
                     actionLabel: "Open Application",
-                    action: () => { app.execute(); closeLauncher(); }
+                    action: () => root.launchApp(app)
                 });
             }
 
@@ -1153,7 +1165,7 @@ Scope {
                            (root.browserApp && (n.includes(root.browserApp) || id.includes(root.browserApp))) ||
                            (root.fileManagerApp && (n.includes(root.fileManagerApp) || id.includes(root.fileManagerApp))) ||
                            n.includes("code");
-                }).slice(0, 3);
+                }).slice(0, 4);
 
                 for (let i = 0; i < topApps.length; i++) {
                     const app = topApps[i];
@@ -1171,7 +1183,7 @@ Scope {
                         exec: app.id || app.name,
                         desc: app.comment || app.genericName || "Desktop Application",
                         actionLabel: "Open Application",
-                        action: () => { app.execute(); closeLauncher(); }
+                        action: () => root.launchApp(app)
                     });
                 }
 
@@ -1183,11 +1195,6 @@ Scope {
                 const topSc = [root.systemShortcuts[0], root.systemShortcuts[1], root.systemShortcuts[2]];
                 for (let i = 0; i < topSc.length; i++) {
                     if (topSc[i]) out.push(topSc[i]);
-                }
-
-                const topCmd = [root.suggestedCommands[0], root.suggestedCommands[1]];
-                for (let i = 0; i < topCmd.length; i++) {
-                    if (topCmd[i]) out.push(topCmd[i]);
                 }
 
                 root.results = out;
@@ -1256,18 +1263,23 @@ Scope {
                 const n = (app.name ?? "").toLowerCase();
                 const gen = (app.genericName ?? "").toLowerCase();
                 const com = (app.comment ?? "").toLowerCase();
-                return n.includes(q) || gen.includes(q) || com.includes(q);
+                const id = (app.id ?? "").toLowerCase();
+                const exec = (app.execString ?? "").toLowerCase();
+                const cmd = (app.command && app.command.length > 0 ? app.command.join(" ") : "").toLowerCase();
+                return n.includes(q) || gen.includes(q) || com.includes(q) || id.includes(q) || exec.includes(q) || cmd.includes(q);
             }).sort((a, b) => {
                 const an = (a.name ?? "").toLowerCase();
                 const bn = (b.name ?? "").toLowerCase();
-                const aStarts = an.startsWith(q);
-                const bStarts = bn.startsWith(q);
+                const aid = (a.id ?? "").toLowerCase();
+                const bid = (b.id ?? "").toLowerCase();
+                const aStarts = an.startsWith(q) || aid.startsWith(q);
+                const bStarts = bn.startsWith(q) || bid.startsWith(q);
                 if (aStarts && !bStarts) return -1;
                 if (!aStarts && bStarts) return 1;
                 return an.localeCompare(bn);
             });
 
-            for (let i = 0; i < Math.min(6, appMatches.length); i++) {
+            for (let i = 0; i < Math.min(8, appMatches.length); i++) {
                 const app = appMatches[i];
                 matchedApps.push({
                     id: "app_" + (app.id || app.name),
@@ -1283,7 +1295,7 @@ Scope {
                     exec: app.id || app.name,
                     desc: app.comment || app.genericName || "Desktop Application",
                     actionLabel: "Open Application",
-                    action: () => { app.execute(); closeLauncher(); }
+                    action: () => root.launchApp(app)
                 });
             }
 
@@ -1296,36 +1308,23 @@ Scope {
                 if (tMatch || sMatch || kMatch) matchedShortcuts.push(sc);
             }
 
-            // Commands match
-            for (let i = 0; i < root.suggestedCommands.length; i++) {
-                const cmd = root.suggestedCommands[i];
-                const tMatch = cmd.title.toLowerCase().includes(q);
-                const cMatch = cmd.cmd.toLowerCase().includes(q);
-                const kMatch = cmd.keywords.some(k => k.includes(q));
-                if (tMatch || cMatch || kMatch) matchedCommands.push(cmd);
-            }
-
-            // Determine TOP HIT
+            // Determine TOP HIT: Always prioritize application matches!
             let topHit = null;
             if (matchedCalc && (rawQ.startsWith("=") || /^[0-9+\-*/().%^ eE]+$/.test(rawQ))) {
                 topHit = matchedCalc;
                 matchedCalc = null;
-            } else if (matchedApps.length > 0 && matchedApps[0].title.toLowerCase().startsWith(q)) {
+            } else if (matchedApps.length > 0 && (matchedApps[0].title.toLowerCase().startsWith(q) || (matchedApps[0].exec && matchedApps[0].exec.toLowerCase().startsWith(q)))) {
                 topHit = matchedApps.shift();
             } else if (matchedWins.length > 0 && matchedWins[0].title.toLowerCase().startsWith(q)) {
                 topHit = matchedWins.shift();
-            } else if (matchedShortcuts.length > 0 && matchedShortcuts[0].title.toLowerCase().startsWith(q)) {
-                topHit = matchedShortcuts.shift();
-            } else if (matchedCommands.length > 0 && matchedCommands[0].cmd.toLowerCase().startsWith(q)) {
-                topHit = matchedCommands.shift();
             } else if (matchedApps.length > 0) {
                 topHit = matchedApps.shift();
             } else if (matchedWins.length > 0) {
                 topHit = matchedWins.shift();
+            } else if (matchedShortcuts.length > 0 && matchedShortcuts[0].title.toLowerCase().startsWith(q)) {
+                topHit = matchedShortcuts.shift();
             } else if (matchedShortcuts.length > 0) {
                 topHit = matchedShortcuts.shift();
-            } else if (matchedCommands.length > 0) {
-                topHit = matchedCommands.shift();
             } else if (matchedCalc) {
                 topHit = matchedCalc;
                 matchedCalc = null;
@@ -1348,28 +1347,6 @@ Scope {
                 matchedShortcuts[i].category = "SHORTCUTS";
                 out.push(matchedShortcuts[i]);
             }
-            for (let i = 0; i < matchedCommands.length; i++) {
-                matchedCommands[i].category = "COMMANDS";
-                out.push(matchedCommands[i]);
-            }
-
-            if (rawQ.length > 1 && !topHit && matchedApps.length === 0 && matchedWins.length === 0) {
-                out.push({
-                    id: "typed_cmd_" + rawQ,
-                    type: "cmd",
-                    title: "Run: " + rawQ,
-                    subtitle: "Execute terminal command in " + root.terminalName,
-                    category: "COMMANDS",
-                    kindTag: "Terminal Command",
-                    icon: "󰞷",
-                    glyph: "󰞷",
-                    accentColor: root.theme.accent,
-                    cmd: rawQ,
-                    desc: "Runs '" + rawQ + "' directly in " + root.terminalName + " terminal.",
-                    actionLabel: "Run in " + root.terminalName,
-                    action: () => root.runTerminalCmd(rawQ, false)
-                });
-            }
 
             out.push(root.makeWebSearchItem(rawQ));
 
@@ -1383,14 +1360,16 @@ Scope {
     readonly property var selectedItem: (results.length > 0 && selectedIndex >= 0 && selectedIndex < results.length) ? results[selectedIndex] : null
 
     function executeSelectedItem() {
-        if (!selectedItem) {
+        const item = selectedItem;
+        if (!item) {
             const q = searchInput.text.trim();
+            closeLauncher();
             if (q) searchWeb(q);
             return;
         }
         closeLauncher();
-        if (selectedItem.action) {
-            selectedItem.action();
+        if (item && item.action) {
+            item.action();
         }
     }
 
@@ -1506,6 +1485,7 @@ Scope {
                             }
 
                             onTextChanged: {
+                                if (!launcherPanel.visible) return;
                                 root.selectedIndex = 0;
                                 root.updateSearchResults();
                             }
@@ -1878,7 +1858,12 @@ Scope {
                                         onEntered: root.selectedIndex = index
                                         onClicked: {
                                             root.selectedIndex = index;
-                                            root.executeSelectedItem();
+                                            if (modelData && modelData.action) {
+                                                root.closeLauncher();
+                                                modelData.action();
+                                            } else {
+                                                root.executeSelectedItem();
+                                            }
                                         }
                                     }
                                 }

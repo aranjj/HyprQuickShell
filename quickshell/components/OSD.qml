@@ -23,7 +23,7 @@ Scope {
         target: Pipewire.defaultAudioSink?.audio ?? null
 
         function onVolumeChanged() {
-            if (root._ready && Pipewire.defaultAudioSink?.audio) {
+            if (root._ready && Pipewire.defaultAudioSink?.audio && !Services.SystemService.isVolumeDragging) {
                 const vol = Math.round(Pipewire.defaultAudioSink.audio.volume * 100);
                 const muted = Pipewire.defaultAudioSink.audio.muted;
                 Services.OsdService.showVolume(vol, muted);
@@ -31,7 +31,7 @@ Scope {
         }
 
         function onMutedChanged() {
-            if (root._ready && Pipewire.defaultAudioSink?.audio) {
+            if (root._ready && Pipewire.defaultAudioSink?.audio && !Services.SystemService.isVolumeDragging) {
                 const vol = Math.round(Pipewire.defaultAudioSink.audio.volume * 100);
                 const muted = Pipewire.defaultAudioSink.audio.muted;
                 Services.OsdService.showVolume(vol, muted);
@@ -43,7 +43,7 @@ Scope {
         target: Pipewire.defaultAudioSource?.audio ?? null
 
         function onVolumeChanged() {
-            if (root._ready && Pipewire.defaultAudioSource?.audio) {
+            if (root._ready && Pipewire.defaultAudioSource?.audio && !Services.SystemService.isMicDragging) {
                 const vol = Math.round(Pipewire.defaultAudioSource.audio.volume * 100);
                 const muted = Pipewire.defaultAudioSource.audio.muted;
                 Services.OsdService.showMic(vol, muted);
@@ -51,7 +51,7 @@ Scope {
         }
 
         function onMutedChanged() {
-            if (root._ready && Pipewire.defaultAudioSource?.audio) {
+            if (root._ready && Pipewire.defaultAudioSource?.audio && !Services.SystemService.isMicDragging) {
                 const vol = Math.round(Pipewire.defaultAudioSource.audio.volume * 100);
                 const muted = Pipewire.defaultAudioSource.audio.muted;
                 Services.OsdService.showMic(vol, muted);
@@ -65,19 +65,22 @@ Scope {
         id: brightnessFile
         path: ""
         watchChanges: true
-        onFileChanged: brightReadProc.running = true
+        onFileChanged: {
+            if (root._ready && !Services.OsdService.suppressBrightness && !Services.SystemService.isBrightnessDragging) {
+                brightReadProc.running = true;
+            }
+        }
     }
 
     Process {
         id: brightReadProc
         command: ["cat", "/sys/class/backlight/intel_backlight/brightness"]
-        running: false
         stdout: StdioCollector {
             onStreamFinished: {
                 const cur = parseInt(text.trim());
                 if (!isNaN(cur) && root.maxBrightness > 0) {
                     const pct = Math.round((cur / root.maxBrightness) * 100);
-                    if (root._ready && !Services.OsdService.suppressBrightness) {
+                    if (root._ready && !Services.OsdService.suppressBrightness && !Services.SystemService.isBrightnessDragging) {
                         Services.OsdService.showBrightness(pct);
                     }
                 }
@@ -106,9 +109,13 @@ Scope {
     // Avoid triggering OSD during initial startup discovery
     Timer {
         id: readyTimer
-        interval: 1200
+        interval: 1000
+        running: true
+        repeat: false
         onTriggered: root._ready = true
     }
+
+    Component.onCompleted: readyTimer.restart()
 
     Variants {
         model: Quickshell.screens
@@ -150,6 +157,19 @@ Scope {
                 color: Services.Aesthetic.cardBg
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
+                clip: true
+
+                // Top specular highlight line (macOS glass edge)
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 22
+                    anchors.rightMargin: 22
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, Services.Aesthetic.preset === "oled" ? 0.06 : (Services.Aesthetic.preset === "crystal" ? 0.20 : 0.12))
+                    visible: Services.Aesthetic.preset !== "solid"
+                }
 
                 opacity: Services.OsdService.visible ? 1 : 0
                 scale: Services.OsdService.visible ? 1 : 0.92
@@ -172,7 +192,9 @@ Scope {
                         width: 32
                         height: 32
                         radius: 16
-                        color: Qt.rgba(1, 1, 1, 0.08)
+                        color: Services.Aesthetic.innerCardBg
+                        border.color: Services.Aesthetic.innerCardBorder
+                        border.width: 1
 
                         Text {
                             anchors.centerIn: parent
@@ -215,7 +237,9 @@ Scope {
                             Layout.fillWidth: true
                             height: 5
                             radius: 2.5
-                            color: root.theme.barBg
+                            color: Services.Aesthetic.sliderTrackBg
+                            border.color: Services.Aesthetic.innerCardBorder
+                            border.width: Services.Aesthetic.preset === "solid" ? 1 : 0
                             visible: Services.OsdService.progress >= 0
 
                             Rectangle {

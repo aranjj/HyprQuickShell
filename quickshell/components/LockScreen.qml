@@ -52,6 +52,45 @@ Scope {
         onTriggered: root.playerTick++
     }
 
+    // ── Transition and Audio Feedback State ─────────────
+    property bool unlocking: false
+
+    Timer {
+        id: unlockFinishTimer
+        interval: 130
+        repeat: false
+        onTriggered: {
+            root.unlocking = false;
+            sessionLock.locked = false;
+        }
+    }
+
+    Process {
+        id: soundProc
+        command: ["sh", "-c", ""]
+    }
+
+   function playLockSound() {
+        soundProc.running = false;
+        soundProc.command = ["sh", "-c", "pw-play /home/aran/.config/quickshell/sounds/lock.wav 2>/dev/null || paplay /home/aran/.config/quickshell/sounds/lock.wav 2>/dev/null || canberra-gtk-play -i service-logout 2>/dev/null &"];
+        soundProc.running = true;
+    }
+
+    function playUnlockSound() {
+        soundProc.running = false;
+        soundProc.command = ["sh", "-c", "pw-play /home/aran/.config/quickshell/sounds/unlock.wav 2>/dev/null || paplay /home/aran/.config/quickshell/sounds/unlock.wav 2>/dev/null || canberra-gtk-play -i service-login 2>/dev/null &"];
+        soundProc.running = true;
+    }
+
+    function triggerUnlock() {
+        if (root.unlocking) return;
+        root.unlocking = true;
+        root.authError = false;
+        root.errorMessage = "";
+        playUnlockSound();
+        unlockFinishTimer.restart();
+    }
+
     // ── IPC Handler for External / Hyprland Lock Trigger ────────
     IpcHandler {
         target: "lock"
@@ -63,7 +102,7 @@ Scope {
         function unlock(): void {
             root.authenticating = false;
             root.authError = false;
-            sessionLock.locked = false;
+            root.triggerUnlock();
         }
 
         function isLocked(): bool {
@@ -86,6 +125,8 @@ Scope {
         root.errorMessage = "";
         root.authenticating = false;
         root.pendingPassword = "";
+        root.unlocking = false;
+        playLockSound();
         sessionLock.locked = true;
     }
 
@@ -102,7 +143,7 @@ Scope {
         id: dimMonitor
         timeout: Services.SystemService.batteryPlugged ? 180 : 120
         respectInhibitors: true
-        enabled: !Services.SystemService.caffeineActive
+        enabled: !Services.SystemService.idleInhibited
 
         onIsIdleChanged: {
             Services.OsdService.suppressBrightness = true;
@@ -121,7 +162,7 @@ Scope {
         id: lockMonitor
         timeout: 300
         respectInhibitors: true
-        enabled: root.idleAutoLockEnabled && !Services.SystemService.caffeineActive
+        enabled: root.idleAutoLockEnabled && !Services.SystemService.idleInhibited
 
         onIsIdleChanged: {
             if (isIdle && !sessionLock.locked) {
@@ -150,7 +191,7 @@ Scope {
         id: sessionDpmsMonitor
         timeout: Services.SystemService.batteryPlugged ? 720 : 480
         respectInhibitors: true
-        enabled: !sessionLock.locked && !Services.SystemService.caffeineActive
+        enabled: !sessionLock.locked && !Services.SystemService.idleInhibited
 
         onIsIdleChanged: {
             if (isIdle) {
@@ -166,11 +207,23 @@ Scope {
         id: suspendMonitor
         timeout: Services.SystemService.batteryPlugged ? 2100 : 1200
         respectInhibitors: true
-        enabled: !Services.SystemService.caffeineActive
+        enabled: !Services.SystemService.idleInhibited
 
         onIsIdleChanged: {
             if (isIdle) {
                 Services.SystemService.runCmd("systemctl suspend");
+            }
+        }
+    }
+
+    Connections {
+        target: Services.SystemService
+        function onIdleInhibitedChanged() {
+            if (Services.SystemService.idleInhibited && !sessionLock.locked) {
+                Services.OsdService.suppressBrightness = true;
+                unsuppressBrightnessTimer.restart();
+                Services.SystemService.runCmd("brightnessctl -r >/dev/null 2>&1");
+                Services.SystemService.isIdleOrLocked = false;
             }
         }
     }
@@ -184,9 +237,7 @@ Scope {
         onCompleted: (result) => {
             root.authenticating = false;
             if (result === PamResult.Success || result === 0) {
-                root.authError = false;
-                root.errorMessage = "";
-                sessionLock.locked = false;
+                root.triggerUnlock();
             } else {
                 root.authError = true;
                 root.errorMessage = "Sorry, that didn't work. Please try again.";
@@ -207,7 +258,7 @@ Scope {
     property string pendingPassword: ""
 
     function submitPassword(pwd) {
-        if (!pwd || root.authenticating) return;
+        if (!pwd || root.authenticating || root.unlocking) return;
         root.authenticating = true;
         root.authError = false;
         root.errorMessage = "";
@@ -266,11 +317,21 @@ Scope {
         surface: Component {
             WlSessionLockSurface {
                 id: lockSurface
+                color: "#000000"
 
                 Rectangle {
+                    id: surfaceRoot
                     anchors.fill: parent
-                    color: "#000000"
+                    color: Services.Aesthetic.preset === "oled" ? "#000000"
+                         : (Services.Aesthetic.preset === "solid" ? Services.ThemeService.colSurface : "#000000")
                     focus: true
+
+                    property bool surfaceRevealed: false
+                    Component.onCompleted: {
+                        surfaceRevealed = true;
+                    }
+
+                    Behavior on color { ColorAnimation { duration: 250 } }
 
                     // Global Focus Router
                     Keys.onPressed: (event) => {
@@ -288,7 +349,7 @@ Scope {
                         }
                     }
 
-                    // ── Wallpaper Background with GNOME Blur ───────
+                    // ── Wallpaper Background with Aesthetic Blur ───
                     Image {
                         id: bgWallpaper
                         anchors.fill: parent
@@ -302,16 +363,32 @@ Scope {
                         anchors.fill: parent
                         source: bgWallpaper
                         blurEnabled: true
-                        blur: 0.95
+                        blur: Services.Aesthetic.preset === "crystal" ? 0.50 : 0.95
                         blurMax: 64
-                        brightness: -0.22
-                        saturation: -0.15
+                        brightness: Services.Aesthetic.preset === "crystal" ? -0.10 : -0.22
+                        saturation: Services.Aesthetic.preset === "crystal" ? 0.05 : -0.15
+                        visible: Services.Aesthetic.preset !== "oled" && Services.Aesthetic.preset !== "solid"
+
+                        opacity: surfaceRoot.surfaceRevealed ? 1.0 : 0.0
+                        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                     }
 
-                    // GNOME Frosted Dark Overlay
+                    // Aesthetic Themed Dark Overlay
                     Rectangle {
                         anchors.fill: parent
-                        color: Qt.rgba(0.08, 0.09, 0.14, 0.45)
+                        color: {
+                            switch (Services.Aesthetic.preset) {
+                                case "oled": return "#000000";
+                                case "solid": return Services.ThemeService.colSurface;
+                                case "crystal": return Qt.rgba(0.04, 0.04, 0.08, 0.25);
+                                case "frosted":
+                                default: return Qt.rgba(0.08, 0.09, 0.14, 0.45);
+                            }
+                        }
+                        Behavior on color { ColorAnimation { duration: 250 } }
+
+                        opacity: surfaceRoot.surfaceRevealed ? 1.0 : 0.0
+                        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                     }
 
                     // Click anywhere to focus password
@@ -320,13 +397,41 @@ Scope {
                         onClicked: passField.forceActiveFocus()
                     }
 
-                    // ── GNOME Top Bar ────────────────────────────────
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 36
-                        color: "transparent"
+                    // ── Smooth Interactive Content Container ──────────
+                    Item {
+                        id: contentContainer
+                        anchors.fill: parent
+                        opacity: (!surfaceRoot.surfaceRevealed || root.unlocking) ? 0.0 : 1.0
+                        scale: root.unlocking ? 1.02 : (surfaceRoot.surfaceRevealed ? 1.0 : 1.02)
+                        y: root.unlocking ? -8 : (surfaceRoot.surfaceRevealed ? 0 : 10)
+                        transformOrigin: Item.Center
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: root.unlocking ? 120 : 250
+                                easing.type: root.unlocking ? Easing.InQuad : Easing.OutCubic
+                            }
+                        }
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: root.unlocking ? 140 : 280
+                                easing.type: root.unlocking ? Easing.OutQuad : Easing.OutCubic
+                            }
+                        }
+                        Behavior on y {
+                            NumberAnimation {
+                                duration: root.unlocking ? 120 : 250
+                                easing.type: root.unlocking ? Easing.InQuad : Easing.OutCubic
+                            }
+                        }
+
+                        // ── GNOME Top Bar ────────────────────────────────
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: 36
+                            color: "transparent"
 
                         RowLayout {
                             anchors.fill: parent
@@ -419,21 +524,57 @@ Scope {
 
                         // User Avatar
                         Rectangle {
+                            id: avatarContainer
                             width: 96
                             height: 96
-                            radius: 48
-                            color: Qt.rgba(1, 1, 1, 0.14)
-                            border.color: Qt.rgba(1, 1, 1, 0.20)
+                            radius: width / 2
+                            color: Services.Aesthetic.preset === "oled" ? Qt.rgba(1, 1, 1, 0.05)
+                                 : (Services.Aesthetic.preset === "solid" ? Services.Aesthetic.innerCardBg : Qt.rgba(1, 1, 1, 0.14))
+                            border.color: Services.Aesthetic.preset === "oled" ? Qt.rgba(1, 1, 1, 0.12)
+                                        : (Services.Aesthetic.preset === "solid" ? Services.Aesthetic.innerCardBorder : Qt.rgba(1, 1, 1, 0.20))
                             border.width: 1
                             Layout.alignment: Qt.AlignHCenter
-                            clip: true
+
+                            Behavior on color { ColorAnimation { duration: 250 } }
+                            Behavior on border.color { ColorAnimation { duration: 250 } }
 
                             Image {
                                 id: userAvatarImg
                                 anchors.fill: parent
                                 source: "file:///var/lib/AccountsService/icons/aran"
                                 fillMode: Image.PreserveAspectCrop
-                                visible: status === Image.Ready
+                                visible: false
+                                asynchronous: true
+                                cache: true
+                            }
+
+                            Rectangle {
+                                id: userAvatarMask
+                                anchors.fill: parent
+                                radius: width / 2
+                                color: "#ffffff"
+                                antialiasing: true
+                                visible: false
+                                layer.enabled: true
+                            }
+
+                            MultiEffect {
+                                id: userAvatarEffect
+                                anchors.fill: parent
+                                source: userAvatarImg
+                                maskEnabled: true
+                                maskSource: userAvatarMask
+                                visible: userAvatarImg.status === Image.Ready
+                            }
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: width / 2
+                                color: "transparent"
+                                border.color: avatarContainer.border.color
+                                border.width: avatarContainer.border.width
+                                antialiasing: true
+                                z: 2
                             }
 
                             Text {
@@ -456,16 +597,29 @@ Scope {
                             Layout.alignment: Qt.AlignHCenter
                         }
 
-                        // GNOME Password Input Pill
+                        // Password Input Pill
                         Rectangle {
                             width: 300
                             height: 46
                             radius: 23
-                            color: Qt.rgba(1, 1, 1, 0.12)
-                            border.color: root.authError ? "#e01b24" : (passField.activeFocus ? "#3584e4" : Qt.rgba(1, 1, 1, 0.16))
+                            color: {
+                                switch (Services.Aesthetic.preset) {
+                                    case "oled": return Qt.rgba(1, 1, 1, 0.06);
+                                    case "solid": return Services.ThemeService.colSurfaceContainer;
+                                    case "crystal": return Qt.rgba(1, 1, 1, 0.10);
+                                    case "frosted":
+                                    default: return Qt.rgba(1, 1, 1, 0.12);
+                                }
+                            }
+                            border.color: root.authError ? "#e01b24"
+                                        : (passField.activeFocus ? root.theme.accent
+                                        : (Services.Aesthetic.preset === "oled" ? Qt.rgba(1, 1, 1, 0.14)
+                                        : (Services.Aesthetic.preset === "solid" ? Services.Aesthetic.cardBorder
+                                        : Qt.rgba(1, 1, 1, 0.16))))
                             border.width: root.authError ? 2 : 1
                             Layout.alignment: Qt.AlignHCenter
 
+                            Behavior on color { ColorAnimation { duration: 200 } }
                             Behavior on border.color { ColorAnimation { duration: 150 } }
 
                             RowLayout {
@@ -510,12 +664,14 @@ Scope {
                                     }
                                 }
 
-                                // GNOME Arrow Submit Button
+                                // Arrow Submit Button
                                 Rectangle {
                                     width: 34
                                     height: 34
                                     radius: 17
-                                    color: submitMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : (passField.text.length > 0 ? "#3584e4" : Qt.rgba(1, 1, 1, 0.10))
+                                    color: submitMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.25)
+                                         : (passField.text.length > 0 ? root.theme.accent
+                                         : (Services.Aesthetic.preset === "oled" ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.10)))
                                     Layout.alignment: Qt.AlignVCenter
 
                                     Behavior on color { ColorAnimation { duration: 150 } }
@@ -575,10 +731,29 @@ Scope {
                         height: 52
                         implicitWidth: mediaContentRow.implicitWidth + 30
                         radius: 26
-                        color: Qt.rgba(0.10, 0.11, 0.16, 0.85)
-                        border.color: Qt.rgba(1, 1, 1, 0.14)
-                        border.width: 1
+                        color: {
+                            switch (Services.Aesthetic.preset) {
+                                case "oled": return "#000000";
+                                case "solid": return Services.ThemeService.colSurfaceContainer;
+                                case "crystal": return Qt.rgba(0.04, 0.04, 0.08, 0.50);
+                                case "frosted":
+                                default: return Qt.rgba(0.10, 0.11, 0.16, 0.85);
+                            }
+                        }
+                        border.color: {
+                            switch (Services.Aesthetic.preset) {
+                                case "oled": return Qt.rgba(1, 1, 1, 0.14);
+                                case "solid": return Services.Aesthetic.cardBorder;
+                                case "crystal": return Qt.rgba(1, 1, 1, 0.22);
+                                case "frosted":
+                                default: return Qt.rgba(1, 1, 1, 0.14);
+                            }
+                        }
+                        border.width: Services.Aesthetic.borderWidth
                         visible: Boolean(root.activePlayer && (root.activePlayer.trackTitle || root.isMediaPlaying))
+
+                        Behavior on color { ColorAnimation { duration: 250 } }
+                        Behavior on border.color { ColorAnimation { duration: 250 } }
 
                         RowLayout {
                             id: mediaContentRow
@@ -589,7 +764,7 @@ Scope {
                             Rectangle {
                                 width: 36
                                 height: 36
-                                radius: 8
+                                radius: 18
                                 clip: true
                                 color: Qt.rgba(1, 1, 1, 0.10)
                                 Layout.alignment: Qt.AlignVCenter
@@ -677,7 +852,12 @@ Scope {
                                     width: 32
                                     height: 32
                                     radius: 16
-                                    color: playM.containsMouse ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.16)
+                                    color: playM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                                               : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.20)
+                                    border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.40)
+                                    border.width: 1
+
+                                    Behavior on color { ColorAnimation { duration: 150 } }
 
                                     Text {
                                         anchors.centerIn: parent
@@ -728,6 +908,7 @@ Scope {
                             }
                         }
                     }
+                }
                 }
             }
         }

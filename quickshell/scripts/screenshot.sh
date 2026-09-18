@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────
-# QuickShell Screenshot Helper  —  Clean Rebuild
-# Uses hyprshot for region (battle-tested interactive selection)
-# Uses custom window picker (hyprshot window mode has a grim
-#   race condition — screencopy fires before compositor redraws
-#   after slurp unmaps, causing silent failure)
-# Uses grim directly for fullscreen
+# QuickShell Screenshot Helper — Freeze-Frame Enabled
+# Captures display state at the exact moment of invocation.
+# Supports frozen mode (crops from instant freeze snapshot)
+# and direct keybinding mode (freezes at T=0 before slurp).
 # ─────────────────────────────────────────────────────────
 
 MODE="${1:-region}"
 DELAY="${2:-0}"
+FREEZE_FILE="${3:-}"
 
 SAVE_DIR="$HOME/Pictures/Screenshots"
 mkdir -p "$SAVE_DIR"
@@ -18,7 +17,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 FILENAME="Screenshot_${TIMESTAMP}.png"
 FILE="$SAVE_DIR/$FILENAME"
 
-# Countdown delay (3s, 5s, 10s timer from toolbar)
+# Countdown delay (3s, 5s, 10s timer from toolbar if requested)
 if [ "$DELAY" -gt 0 ] 2>/dev/null; then
     sleep "$DELAY"
 fi
@@ -37,14 +36,44 @@ SLURP_BG="#00000050"
 SLURP_BOX="#${HEX}25"
 
 case "$MODE" in
-    fullscreen)
-        pkill -9 -x slurp 2>/dev/null || true
-        grim "$FILE" || exit 0
+    save_frozen)
+        # 1:1 instantaneous full screen from toolbar freeze snapshot
+        if [ -n "$FREEZE_FILE" ] && [ -f "$FREEZE_FILE" ]; then
+            cp "$FREEZE_FILE" "$FILE"
+        else
+            grim "$FILE" || exit 0
+        fi
         wl-copy --type image/png < "$FILE" 2>/dev/null || true
+        quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
         ;;
 
-    window)
-        # 1. Get visible window geometries on active workspaces
+    region_frozen)
+        # Selection on top of toolbar's frozen display
+        pkill -9 -x slurp 2>/dev/null || true
+        GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 2>/dev/null)
+        if [ -z "$GEOM" ]; then
+            quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
+            exit 0
+        fi
+
+        X=$(echo "$GEOM" | cut -d',' -f1)
+        Y=$(echo "$GEOM" | cut -d' ' -f1 | cut -d',' -f2)
+        W=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f1)
+        H=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f2)
+
+        if [ -n "$FREEZE_FILE" ] && [ -f "$FREEZE_FILE" ]; then
+            magick "$FREEZE_FILE" -crop "${W}x${H}+${X}+${Y}" +repage "$FILE" || grim -g "$GEOM" "$FILE" || exit 0
+        else
+            grim -g "$GEOM" "$FILE" || exit 0
+        fi
+
+        wl-copy --type image/png < "$FILE" 2>/dev/null || true
+        quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
+        ;;
+
+    window_frozen)
+        # Window selection on top of toolbar's frozen display
+        pkill -9 -x slurp 2>/dev/null || true
         MONITORS=$(hyprctl -j monitors 2>/dev/null)
         ACTIVE_WS=$(echo "$MONITORS" | jq -r 'map(.activeWorkspace.id) | join(",")' 2>/dev/null)
         CLIENTS=$(hyprctl -j clients 2>/dev/null)
@@ -57,51 +86,120 @@ case "$MODE" in
         ' 2>/dev/null)
 
         if [ -z "$BOXES" ]; then
-            # Fallback: all mapped windows
             BOXES=$(echo "$CLIENTS" | jq -r '.[] | select(.mapped == true and .hidden == false) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' 2>/dev/null)
         fi
 
-        [ -z "$BOXES" ] && exit 0
+        if [ -z "$BOXES" ]; then
+            quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
+            exit 0
+        fi
 
-        # 2. Let user click a window (slurp -r = restrict to boxes)
-        GEOM=$(echo "$BOXES" | slurp -r -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -B "$SLURP_BOX" -w 2 2>/dev/null) || exit 0
-        [ -z "$GEOM" ] && exit 0
+        GEOM=$(echo "$BOXES" | slurp -r -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -B "$SLURP_BOX" -w 2 2>/dev/null)
+        if [ -z "$GEOM" ]; then
+            quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
+            exit 0
+        fi
 
-        # 3. Trim geometry to monitor bounds
         X=$(echo "$GEOM" | cut -d',' -f1)
         Y=$(echo "$GEOM" | cut -d' ' -f1 | cut -d',' -f2)
         W=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f1)
         H=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f2)
 
-        MAX_W=$(echo "$MONITORS" | jq -r '[.[] | if (.transform % 2 == 0) then (.x + .width) else (.x + .height) end] | max')
-        MAX_H=$(echo "$MONITORS" | jq -r '[.[] | if (.transform % 2 == 0) then (.y + .height) else (.y + .width) end] | max')
+        if [ -n "$FREEZE_FILE" ] && [ -f "$FREEZE_FILE" ]; then
+            magick "$FREEZE_FILE" -crop "${W}x${H}+${X}+${Y}" +repage "$FILE" || grim -g "$GEOM" "$FILE" || exit 0
+        else
+            grim -g "$GEOM" "$FILE" || exit 0
+        fi
 
-        [ $((X + W)) -gt "$MAX_W" ] && W=$((MAX_W - X))
-        [ $((Y + H)) -gt "$MAX_H" ] && H=$((MAX_H - Y))
-        GEOM="${X},${Y} ${W}x${H}"
+        wl-copy --type image/png < "$FILE" 2>/dev/null || true
+        quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
+        ;;
 
-        # 4. Wait for slurp surface to fully unmap and compositor to
-        #    redraw a clean frame. This is the critical fix — without
-        #    this delay, grim's screencopy captures a stale frame that
-        #    may include slurp's selection overlay or fail entirely.
-        sleep 0.2
+    fullscreen)
+        pkill -9 -x slurp 2>/dev/null || true
+        grim "$FILE" || exit 0
+        wl-copy --type image/png < "$FILE" 2>/dev/null || true
+        ;;
 
-        # 5. Capture
-        grim -g "$GEOM" "$FILE" || exit 0
+    window)
+        # Try visual freeze-frame overlay via Quickshell first
+        if quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot snipWindow 2>/dev/null; then
+            exit 0
+        fi
+
+        # Fallback to direct grim + slurp if Quickshell is not running
+        pkill -9 -x slurp 2>/dev/null || true
+        FREEZE_TMP="/tmp/qs_direct_$$.png"
+        grim -l 1 "$FREEZE_TMP" 2>/dev/null || true
+
+        MONITORS=$(hyprctl -j monitors 2>/dev/null)
+        ACTIVE_WS=$(echo "$MONITORS" | jq -r 'map(.activeWorkspace.id) | join(",")' 2>/dev/null)
+        CLIENTS=$(hyprctl -j clients 2>/dev/null)
+
+        BOXES=$(echo "$CLIENTS" | jq -r --arg ws "$ACTIVE_WS" '
+            ($ws | split(",")) as $aws |
+            .[] | select(.mapped == true and .hidden == false and
+                         (.workspace.id | tostring as $w | $aws | index($w)))
+            | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"
+        ' 2>/dev/null)
+
+        if [ -z "$BOXES" ]; then
+            BOXES=$(echo "$CLIENTS" | jq -r '.[] | select(.mapped == true and .hidden == false) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' 2>/dev/null)
+        fi
+
+        if [ -z "$BOXES" ]; then
+            rm -f "$FREEZE_TMP"
+            exit 0
+        fi
+
+        GEOM=$(echo "$BOXES" | slurp -r -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -B "$SLURP_BOX" -w 2 2>/dev/null)
+        if [ -z "$GEOM" ]; then
+            rm -f "$FREEZE_TMP"
+            exit 0
+        fi
+
+        X=$(echo "$GEOM" | cut -d',' -f1)
+        Y=$(echo "$GEOM" | cut -d' ' -f1 | cut -d',' -f2)
+        W=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f1)
+        H=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f2)
+
+        if [ -f "$FREEZE_TMP" ]; then
+            magick "$FREEZE_TMP" -crop "${W}x${H}+${X}+${Y}" +repage "$FILE" || grim -g "$GEOM" "$FILE" || true
+            rm -f "$FREEZE_TMP"
+        else
+            grim -g "$GEOM" "$FILE" || exit 0
+        fi
         wl-copy --type image/png < "$FILE" 2>/dev/null || true
         ;;
 
     region)
+        # Try visual freeze-frame overlay via Quickshell first
+        if quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot snipRegion 2>/dev/null; then
+            exit 0
+        fi
+
+        # Fallback to direct grim + slurp if Quickshell is not running
         pkill -9 -x slurp 2>/dev/null || true
-        # Interactive region selection
-        GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 2>/dev/null) || exit 0
-        [ -z "$GEOM" ] && exit 0
+        FREEZE_TMP="/tmp/qs_direct_$$.png"
+        grim -l 1 "$FREEZE_TMP" 2>/dev/null || true
 
-        # Wait for slurp surface to fully unmap and compositor to redraw clean frame
-        sleep 0.15
+        GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 2>/dev/null)
+        if [ -z "$GEOM" ]; then
+            rm -f "$FREEZE_TMP"
+            exit 0
+        fi
 
-        # Capture region
-        grim -g "$GEOM" "$FILE" || exit 0
+        X=$(echo "$GEOM" | cut -d',' -f1)
+        Y=$(echo "$GEOM" | cut -d' ' -f1 | cut -d',' -f2)
+        W=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f1)
+        H=$(echo "$GEOM" | cut -d' ' -f2 | cut -d'x' -f2)
+
+        if [ -f "$FREEZE_TMP" ]; then
+            magick "$FREEZE_TMP" -crop "${W}x${H}+${X}+${Y}" +repage "$FILE" || grim -g "$GEOM" "$FILE" || true
+            rm -f "$FREEZE_TMP"
+        else
+            grim -g "$GEOM" "$FILE" || exit 0
+        fi
         wl-copy --type image/png < "$FILE" 2>/dev/null || true
         ;;
 

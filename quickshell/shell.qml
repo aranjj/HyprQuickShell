@@ -17,6 +17,7 @@ ShellRoot {
     AppLauncher {}
     CalendarView {}
     Clipboard {}
+    EmojiPicker {}
     LockScreen {}
     // NotificationToast {} - Handled directly by Dynamic Island morphing!
     AboutDialog {}

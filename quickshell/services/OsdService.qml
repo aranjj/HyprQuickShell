@@ -27,6 +27,7 @@ Singleton {
     }
 
     signal volumeUpdated(int vol, bool muted)
+    signal micUpdated(int vol, bool muted)
     signal brightnessUpdated(int pct)
 
     function showVolume(vol, muted) {
@@ -42,6 +43,7 @@ Singleton {
         const ic = muted ? "󰍭" : "󰍬";
         const col = muted ? Services.ThemeService.accentRed : Services.ThemeService.accent;
         show(ic, col, "Microphone", muted ? "Muted" : vol + "%", muted ? 0 : Math.min(1.0, vol / 100), col);
+        micUpdated(vol, muted);
     }
 
     property bool suppressBrightness: false

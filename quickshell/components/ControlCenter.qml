@@ -220,7 +220,7 @@ Scope {
             // ── macOS Style Floating Bezel Card ─────────
             Rectangle {
                 id: card
-                width: 370
+                width: 382
                 height: 640
                 anchors.top: parent.top
                 anchors.topMargin: 44
@@ -243,11 +243,11 @@ Scope {
                     id: tabSegmentedBar
                     visible: root.activeView === "main"
                     width: parent.width - 24
-                    height: 32
+                    height: 34
                     anchors.top: parent.top
                     anchors.topMargin: 12
                     anchors.horizontalCenter: parent.horizontalCenter
-                    radius: 10
+                    radius: 11
                     color: Qt.rgba(1, 1, 1, 0.05)
                     border.color: Qt.rgba(1, 1, 1, 0.07)
                     border.width: 1
@@ -256,8 +256,8 @@ Scope {
                     Rectangle {
                         id: tabIndicator
                         width: (parent.width - 6) / 2
-                        height: 26
-                        radius: 8
+                        height: 28
+                        radius: 9
                         color: Qt.rgba(1, 1, 1, 0.12)
                         anchors.verticalCenter: parent.verticalCenter
                         x: Services.SystemService.controlCenterTab === "controls" ? 3 : (parent.width / 2)
@@ -443,15 +443,15 @@ Scope {
                                             spacing: 8
 
                                              Rectangle {
-                                                 width: 28
-                                                 height: 28
-                                                 radius: 14
+                                                 width: 30
+                                                 height: 30
+                                                 radius: 15
                                                  color: Services.SystemService.wifiEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
                                                  Behavior on color { ColorAnimation { duration: 120 } }
 
                                                  Text {
                                                      anchors.centerIn: parent
-                                                     text: "󰖩"
+                                                     text: ""
                                                      color: Services.SystemService.wifiEnabled ? "#ffffff" : root.theme.textMuted
                                                      font.pixelSize: 14
                                                      font.family: root.font
@@ -521,9 +521,9 @@ Scope {
                                             spacing: 8
 
                                              Rectangle {
-                                                 width: 28
-                                                 height: 28
-                                                 radius: 14
+                                                 width: 30
+                                                 height: 30
+                                                 radius: 15
                                                  color: Services.SystemService.bluetoothEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
                                                  Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -606,9 +606,9 @@ Scope {
                                             spacing: 8
 
                                              Rectangle {
-                                                 width: 28
-                                                 height: 28
-                                                 radius: 14
+                                                 width: 30
+                                                 height: 30
+                                                 radius: 15
                                                  color: "#30d158"
 
                                                  Text {
@@ -703,8 +703,8 @@ Scope {
                                             height: 46
                                             radius: 10
                                             clip: true
-                                            color: Qt.rgba(0, 0, 0, 0.3)
-                                            border.color: Qt.rgba(1, 1, 1, 0.12)
+                                            color: Services.Aesthetic.innerCardBg
+                                            border.color: Services.Aesthetic.innerCardBorder
                                             border.width: 1
                                             Layout.alignment: Qt.AlignVCenter
 
@@ -816,7 +816,7 @@ Scope {
                                                 height: 30
                                                 radius: 15
                                                 anchors.centerIn: parent
-                                                color: prevIosM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+                                                color: prevIosM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
                                                 Behavior on color { ColorAnimation { duration: 100 } }
                                             }
 
@@ -879,7 +879,7 @@ Scope {
                                                 height: 30
                                                 radius: 15
                                                 anchors.centerIn: parent
-                                                color: nextIosM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+                                                color: nextIosM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
                                                 Behavior on color { ColorAnimation { duration: 100 } }
                                             }
 
@@ -927,9 +927,9 @@ Scope {
                                     spacing: 6
 
                                     Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
+                                        width: 30
+                                        height: 30
+                                        radius: 15
                                         color: Services.NotificationService.dnd ? root.theme.accentMauve : Qt.rgba(1, 1, 1, 0.12)
                                         Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -992,9 +992,9 @@ Scope {
                                     spacing: 6
 
                                     Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
+                                        width: 30
+                                        height: 30
+                                        radius: 15
                                         color: Services.NightLightService.active ? root.theme.accentOrange : Qt.rgba(1, 1, 1, 0.12)
                                         Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -1047,7 +1047,7 @@ Scope {
                                 implicitHeight: 52
                                 radius: 14
                                 color: caffeineMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                border.color: Services.SystemService.caffeineActive ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.45) : Services.Aesthetic.innerCardBorder
+                                border.color: Services.SystemService.caffeineActive ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.45) : (Services.SystemService.idleInhibited ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.3) : Services.Aesthetic.innerCardBorder)
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -1057,16 +1057,16 @@ Scope {
                                     spacing: 6
 
                                     Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
-                                        color: Services.SystemService.caffeineActive ? root.theme.accentYellow : Qt.rgba(1, 1, 1, 0.12)
+                                        width: 30
+                                        height: 30
+                                        radius: 15
+                                        color: Services.SystemService.caffeineActive ? root.theme.accentYellow : (Services.SystemService.idleInhibited ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.25) : Qt.rgba(1, 1, 1, 0.12))
                                         Behavior on color { ColorAnimation { duration: 150 } }
 
                                         Text {
                                             anchors.centerIn: parent
                                             text: "󰅶"
-                                            color: Services.SystemService.caffeineActive ? "#000000" : root.theme.textMuted
+                                            color: Services.SystemService.caffeineActive ? "#000000" : (Services.SystemService.idleInhibited ? root.theme.accentYellow : root.theme.textMuted)
                                             font.pixelSize: 13
                                             font.family: root.font
                                         }
@@ -1087,8 +1087,8 @@ Scope {
                                             elide: Text.ElideRight
                                         }
                                         Text {
-                                            text: Services.SystemService.caffeineActive ? "Active" : "Off"
-                                            color: Services.SystemService.caffeineActive ? "#ffb340" : root.theme.textMuted
+                                            text: Services.SystemService.caffeineActive ? "Active" : (Services.SystemService.idleInhibited ? "Auto (Fullscreen)" : "Off")
+                                            color: Services.SystemService.idleInhibited ? "#ffb340" : root.theme.textMuted
                                             font.pixelSize: 10
                                             font.family: root.font
                                             Layout.fillWidth: true
@@ -1145,8 +1145,8 @@ Scope {
                                 Rectangle {
                                     id: brightBar
                                     Layout.fillWidth: true
-                                    height: 30
-                                    radius: 15
+                                    height: 32
+                                    radius: 16
                                     color: Services.Aesthetic.sliderTrackBg
                                     border.color: brightMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09)
                                     border.width: 1
@@ -1166,12 +1166,15 @@ Scope {
                                     // Dynamic Filled Capsule (with dual-layer clipped dark glyph)
                                     Rectangle {
                                         id: brightFill
-                                        width: Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.brightness / 100)))
+                                        width: Services.SystemService.brightness <= 0 ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.brightness / 100)))
                                         height: parent.height
-                                        radius: 15
+                                        radius: 16
                                         color: Services.Aesthetic.sliderFill
                                         clip: true
-                                        Behavior on width { NumberAnimation { duration: 50 } }
+                                        Behavior on width {
+                                            enabled: !brightMouse.pressed
+                                            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                        }
 
                                         // Foreground Dark Glyph (uncovered smoothly as fill expands)
                                         Text {
@@ -1189,15 +1192,31 @@ Scope {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: (mouse) => {
-                                            const pct = Math.max(1, Math.min(100, Math.round((mouse.x / brightBar.width) * 100)));
+
+                                        function applyBrightness(mouseX) {
+                                            const rawPct = (mouseX / brightBar.width) * 100;
+                                            const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
                                             Services.SystemService.setBrightnessPercent(pct);
+                                        }
+
+                                        onPressed: (mouse) => {
+                                            Services.SystemService.isBrightnessDragging = true;
+                                            applyBrightness(mouse.x);
                                         }
                                         onPositionChanged: (mouse) => {
                                             if (pressed) {
-                                                const pct = Math.max(1, Math.min(100, Math.round((mouse.x / brightBar.width) * 100)));
-                                                Services.SystemService.setBrightnessPercent(pct);
+                                                Services.SystemService.isBrightnessDragging = true;
+                                                applyBrightness(mouse.x);
                                             }
+                                        }
+                                        onReleased: (mouse) => {
+                                            applyBrightness(mouse.x);
+                                            Services.SystemService.flushBrightness();
+                                            Services.SystemService.isBrightnessDragging = false;
+                                        }
+                                        onCanceled: {
+                                            Services.SystemService.flushBrightness();
+                                            Services.SystemService.isBrightnessDragging = false;
                                         }
                                         onWheel: (wheel) => {
                                             wheel.accepted = true;
@@ -1277,14 +1296,14 @@ Scope {
                                 Rectangle {
                                     id: soundBar
                                     Layout.fillWidth: true
-                                    height: 30
-                                    radius: 15
+                                    height: 32
+                                    radius: 16
                                     color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
                                     border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (soundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
                                     border.width: 1
                                     clip: true
-                                    Behavior on color { ColorAnimation { duration: 140 } }
-                                    Behavior on border.color { ColorAnimation { duration: 120 } }
+                                    Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                    Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                                     // Background Unfilled Glyph
                                     Text {
@@ -1299,12 +1318,15 @@ Scope {
                                     // Dynamic Filled Capsule (with dual-layer clipped dark glyph)
                                     Rectangle {
                                         id: soundFill
-                                        width: Services.SystemService.volumeMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
+                                        width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
                                         height: parent.height
-                                        radius: 15
+                                        radius: 16
                                         color: Services.Aesthetic.sliderFill
                                         clip: true
-                                        Behavior on width { NumberAnimation { duration: 50 } }
+                                        Behavior on width {
+                                            enabled: !soundMouse.pressed
+                                            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                        }
 
                                         // Foreground Dark Glyph
                                         Text {
@@ -1322,20 +1344,62 @@ Scope {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: (mouse) => {
-                                            if (mouse.x < 28) {
-                                                Services.SystemService.toggleMute();
-                                            } else {
-                                                const pct = Math.max(0, Math.min(100, Math.round((mouse.x / soundBar.width) * 100)));
-                                                Services.SystemService.setVolumePercent(pct);
+                                        property real startX: 0
+                                        property real startY: 0
+                                        property bool isDragging: false
+                                        property bool startedInIcon: false
+
+                                        function applyVolume(mouseX) {
+                                            const rawPct = (mouseX / soundBar.width) * 100;
+                                            const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
+                                            Services.SystemService.setVolumePercent(pct);
+                                        }
+
+                                        onPressed: (mouse) => {
+                                            startX = mouse.x;
+                                            startY = mouse.y;
+                                            isDragging = false;
+                                            startedInIcon = (mouse.x <= 36);
+                                            if (!startedInIcon) {
+                                                isDragging = true;
+                                                Services.SystemService.isVolumeDragging = true;
+                                                applyVolume(mouse.x);
                                             }
                                         }
+
                                         onPositionChanged: (mouse) => {
                                             if (pressed) {
-                                                const pct = Math.max(0, Math.min(100, Math.round((mouse.x / soundBar.width) * 100)));
-                                                Services.SystemService.setVolumePercent(pct);
+                                                const dx = Math.abs(mouse.x - startX);
+                                                if (!isDragging && (dx > 4 || mouse.x > 36)) {
+                                                    isDragging = true;
+                                                    startedInIcon = false;
+                                                    Services.SystemService.isVolumeDragging = true;
+                                                }
+                                                if (isDragging) {
+                                                    applyVolume(mouse.x);
+                                                }
                                             }
                                         }
+
+                                        onReleased: (mouse) => {
+                                            if (isDragging) {
+                                                applyVolume(mouse.x);
+                                                Services.SystemService.flushVolume();
+                                                Services.SystemService.isVolumeDragging = false;
+                                                isDragging = false;
+                                            } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
+                                                Services.SystemService.toggleMute();
+                                            }
+                                            startedInIcon = false;
+                                        }
+
+                                        onCanceled: {
+                                            isDragging = false;
+                                            startedInIcon = false;
+                                            Services.SystemService.flushVolume();
+                                            Services.SystemService.isVolumeDragging = false;
+                                        }
+
                                         onWheel: (wheel) => {
                                             wheel.accepted = true;
                                             const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
@@ -1369,9 +1433,9 @@ Scope {
                                     spacing: 6
 
                                     Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
+                                        width: 30
+                                        height: 30
+                                        radius: 15
                                         color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)
 
                                         Text {
@@ -1436,9 +1500,9 @@ Scope {
                                     spacing: 8
 
                                     Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
+                                        width: 30
+                                        height: 30
+                                        radius: 15
                                         color: Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2)
 
                                         Text {
@@ -1507,9 +1571,9 @@ Scope {
                                     spacing: 8
 
                                     Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
+                                        width: 30
+                                        height: 30
+                                        radius: 15
                                         color: Qt.rgba(1, 1, 1, 0.08)
 
                                         Text {
@@ -1564,12 +1628,12 @@ Scope {
                                 }
                             }
 
-                            // CPU & RAM Card (Click -> btop)
+                            // Displays & Monitor Management Tile (Opens Displays Subview)
                             Rectangle {
                                 Layout.fillWidth: true
                                 implicitHeight: 52
                                 radius: 14
-                                color: sysStatsM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                color: dispTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Behavior on color { ColorAnimation { duration: 120 } }
@@ -1580,15 +1644,15 @@ Scope {
                                     spacing: 8
 
                                     Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 14
-                                        color: Qt.rgba(1, 1, 1, 0.08)
+                                        width: 30
+                                        height: 30
+                                        radius: 15
+                                        color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16)
 
                                         Text {
                                             anchors.centerIn: parent
-                                            text: "󰻠"
-                                            color: "#bf5af2"
+                                            text: "󰍹"
+                                            color: root.theme.accent
                                             font.pixelSize: 15
                                             font.family: root.font
                                         }
@@ -1600,7 +1664,7 @@ Scope {
                                         spacing: 1
 
                                         Text {
-                                            text: "CPU " + Services.SystemService.cpuUsage + "  •  RAM " + Services.SystemService.memUsage
+                                            text: Services.SystemService.currentMonitor ? (Services.SystemService.currentMonitor.name + "  •  " + Math.round(Services.SystemService.monitorScale * 100) + "%") : "Displays"
                                             color: root.theme.textPrimary
                                             font.pixelSize: 12
                                             font.family: root.font
@@ -1609,7 +1673,7 @@ Scope {
                                             elide: Text.ElideRight
                                         }
                                         Text {
-                                            text: "Activity Monitor"
+                                            text: "Displays & Scaling"
                                             color: root.theme.textMuted
                                             font.pixelSize: 10
                                             font.family: root.font
@@ -1621,19 +1685,20 @@ Scope {
                                     Text {
                                         text: "›"
                                         color: root.theme.textMuted
-                                        font.pixelSize: 15
+                                        font.pixelSize: 16
                                         font.family: root.font
+                                        Layout.alignment: Qt.AlignVCenter
                                     }
                                 }
 
                                 MouseArea {
-                                    id: sysStatsM
+                                    id: dispTileMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        Services.SystemService.controlCenterOpen = false;
-                                        Services.SystemService.openBtop();
+                                        Services.SystemService.rescanMonitors();
+                                        Services.SystemService.controlCenterSubView = "displays";
                                     }
                                 }
                             }
@@ -1950,7 +2015,7 @@ Scope {
 
                                                 Text {
                                                     anchors.centerIn: parent
-                                                    text: "󰖩"
+                                                    text: ""
                                                     color: root.theme.accentGreen
                                                     font.pixelSize: 18
                                                     font.family: root.font
@@ -3469,9 +3534,9 @@ Scope {
 
                                         // Forget / Remove Device button with generous hit target & hover scale
                                         Rectangle {
-                                            width: 28
-                                            height: 28
-                                            radius: 14
+                                            width: 30
+                                            height: 30
+                                            radius: 15
                                             color: forgetMouse.pressed ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.35) : (forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.22) : Qt.rgba(1, 1, 1, 0.06))
                                             border.color: forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.5) : Qt.rgba(1, 1, 1, 0.08)
                                             border.width: 1
@@ -3861,9 +3926,9 @@ Scope {
 
                         // Rescan button
                         Rectangle {
-                            width: 28
-                            height: 28
-                            radius: 14
+                            width: 30
+                            height: 30
+                            radius: 15
                             color: rescAudioM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
                             Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -3882,6 +3947,7 @@ Scope {
                                 onClicked: {
                                     Services.SystemService.rescanAudioSinks();
                                     Services.SystemService.rescanAudioSources();
+                                    Services.SystemService.rescanAppAudioStreams();
                                 }
                             }
                         }
@@ -3939,14 +4005,14 @@ Scope {
                                     Rectangle {
                                         id: subSoundBar
                                         Layout.fillWidth: true
-                                        height: 30
-                                        radius: 15
+                                        height: 32
+                                        radius: 16
                                         color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
                                         border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (subSoundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
                                         border.width: 1
                                         clip: true
-                                        Behavior on color { ColorAnimation { duration: 140 } }
-                                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                        Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                                         Text {
                                             x: 10
@@ -3959,12 +4025,15 @@ Scope {
 
                                         Rectangle {
                                             id: subSoundFill
-                                            width: Services.SystemService.volumeMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
+                                            width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
                                             height: parent.height
-                                            radius: 15
+                                            radius: 16
                                             color: Services.Aesthetic.sliderFill
                                             clip: true
-                                            Behavior on width { NumberAnimation { duration: 50 } }
+                                            Behavior on width {
+                                                enabled: !subSoundMouse.pressed
+                                                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                            }
 
                                             Text {
                                                 x: 10
@@ -3981,20 +4050,62 @@ Scope {
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: (mouse) => {
-                                                if (mouse.x < 28) {
-                                                    Services.SystemService.toggleMute();
-                                                } else {
-                                                    const pct = Math.max(0, Math.min(100, Math.round((mouse.x / subSoundBar.width) * 100)));
-                                                    Services.SystemService.setVolumePercent(pct);
+                                            property real startX: 0
+                                            property real startY: 0
+                                            property bool isDragging: false
+                                            property bool startedInIcon: false
+
+                                            function applyVolume(mouseX) {
+                                                const rawPct = (mouseX / subSoundBar.width) * 100;
+                                                const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
+                                                Services.SystemService.setVolumePercent(pct);
+                                            }
+
+                                            onPressed: (mouse) => {
+                                                startX = mouse.x;
+                                                startY = mouse.y;
+                                                isDragging = false;
+                                                startedInIcon = (mouse.x <= 36);
+                                                if (!startedInIcon) {
+                                                    isDragging = true;
+                                                    Services.SystemService.isVolumeDragging = true;
+                                                    applyVolume(mouse.x);
                                                 }
                                             }
+
                                             onPositionChanged: (mouse) => {
                                                 if (pressed) {
-                                                    const pct = Math.max(0, Math.min(100, Math.round((mouse.x / subSoundBar.width) * 100)));
-                                                    Services.SystemService.setVolumePercent(pct);
+                                                    const dx = Math.abs(mouse.x - startX);
+                                                    if (!isDragging && (dx > 4 || mouse.x > 36)) {
+                                                        isDragging = true;
+                                                        startedInIcon = false;
+                                                        Services.SystemService.isVolumeDragging = true;
+                                                    }
+                                                    if (isDragging) {
+                                                        applyVolume(mouse.x);
+                                                    }
                                                 }
                                             }
+
+                                            onReleased: (mouse) => {
+                                                if (isDragging) {
+                                                    applyVolume(mouse.x);
+                                                    Services.SystemService.flushVolume();
+                                                    Services.SystemService.isVolumeDragging = false;
+                                                    isDragging = false;
+                                                } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
+                                                    Services.SystemService.toggleMute();
+                                                }
+                                                startedInIcon = false;
+                                            }
+
+                                            onCanceled: {
+                                                isDragging = false;
+                                                startedInIcon = false;
+                                                Services.SystemService.flushVolume();
+                                                Services.SystemService.isVolumeDragging = false;
+                                            }
+
                                             onWheel: (wheel) => {
                                                 wheel.accepted = true;
                                                 const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
@@ -4067,6 +4178,320 @@ Scope {
                                                     hoverEnabled: true
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: Services.SystemService.setAudioSink(modelData.id)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ── APPLICATIONS (PER-APP VOLUME MIXER) CARD ──
+                            Rectangle {
+                                id: appMixerCard
+                                Layout.fillWidth: true
+                                implicitHeight: appMixerCol.implicitHeight + 24
+                                radius: 16
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
+                                border.width: 1
+
+                                ColumnLayout {
+                                    id: appMixerCol
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    spacing: 10
+
+                                    // Header
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text {
+                                            text: "Applications"
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 12
+                                            font.family: root.font
+                                            font.weight: Font.DemiBold
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: Services.SystemService.appAudioStreams.length > 0 
+                                                ? (Services.SystemService.appAudioStreams.length + " active")
+                                                : "None"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 10
+                                            font.family: root.font
+                                        }
+                                    }
+
+                                    // Empty State
+                                    Rectangle {
+                                        visible: Services.SystemService.appAudioStreams.length === 0
+                                        Layout.fillWidth: true
+                                        height: 38
+                                        radius: 10
+                                        color: Qt.rgba(1, 1, 1, 0.03)
+
+                                        RowLayout {
+                                            anchors.centerIn: parent
+                                            spacing: 8
+
+                                            Text {
+                                                text: "󰝚"
+                                                color: Qt.rgba(1, 1, 1, 0.3)
+                                                font.pixelSize: 13
+                                                font.family: root.font
+                                            }
+
+                                            Text {
+                                                text: "No applications currently playing audio"
+                                                color: root.theme.textMuted
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                            }
+                                        }
+                                    }
+
+                                    // Active Streams List
+                                    ColumnLayout {
+                                        visible: Services.SystemService.appAudioStreams.length > 0
+                                        Layout.fillWidth: true
+                                        spacing: 10
+
+                                        Repeater {
+                                            model: Services.SystemService.appAudioStreams
+
+                                            ColumnLayout {
+                                                id: streamRow
+                                                required property var modelData
+                                                Layout.fillWidth: true
+                                                spacing: 6
+
+                                                property int currentVol: modelData ? modelData.volume : 100
+                                                property bool currentMuted: modelData ? modelData.muted : false
+                                                property bool isLocalDragging: false
+
+                                                onModelDataChanged: {
+                                                    if (!isLocalDragging && modelData) {
+                                                        currentVol = modelData.volume;
+                                                        currentMuted = modelData.muted;
+                                                    }
+                                                }
+
+                                                // App Info Row
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 8
+
+                                                    // App Icon Badge
+                                                    Rectangle {
+                                                        width: 24
+                                                        height: 24
+                                                        radius: 12
+                                                        color: {
+                                                            const s = (modelData.name + " " + modelData.binary).toLowerCase();
+                                                            if (s.includes("spotify")) return Qt.rgba(0.11, 0.73, 0.33, 0.2);
+                                                            if (s.includes("discord") || s.includes("vesktop")) return Qt.rgba(0.35, 0.40, 0.95, 0.2);
+                                                            if (s.includes("firefox")) return Qt.rgba(1, 0.44, 0.22, 0.2);
+                                                            if (s.includes("chrome") || s.includes("chromium") || s.includes("brave")) return Qt.rgba(0.26, 0.52, 0.96, 0.2);
+                                                            if (s.includes("elisa")) return Qt.rgba(0.16, 0.50, 0.73, 0.2);
+                                                            return Qt.rgba(1, 1, 1, 0.08);
+                                                        }
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: {
+                                                                const s = (modelData.name + " " + modelData.binary).toLowerCase();
+                                                                if (s.includes("spotify")) return "";
+                                                                if (s.includes("firefox")) return "";
+                                                                if (s.includes("chrome") || s.includes("chromium") || s.includes("brave")) return "";
+                                                                if (s.includes("discord") || s.includes("vesktop")) return "󰙯";
+                                                                if (s.includes("steam")) return "";
+                                                                if (s.includes("vlc") || s.includes("mpv")) return "󰕼";
+                                                                if (s.includes("elisa") || s.includes("music")) return "󰎆";
+                                                                if (s.includes("telegram")) return "󰎦";
+                                                                if (s.includes("kitty") || s.includes("terminal")) return "󰆍";
+                                                                return "󰝚";
+                                                            }
+                                                            color: {
+                                                                const s = (modelData.name + " " + modelData.binary).toLowerCase();
+                                                                if (s.includes("spotify")) return "#1db954";
+                                                                if (s.includes("discord") || s.includes("vesktop")) return "#5865f2";
+                                                                if (s.includes("firefox")) return "#ff7139";
+                                                                if (s.includes("chrome") || s.includes("chromium") || s.includes("brave")) return "#4285f4";
+                                                                if (s.includes("elisa")) return "#2980b9";
+                                                                return root.theme.textPrimary;
+                                                            }
+                                                            font.pixelSize: 12
+                                                            font.family: root.font
+                                                        }
+                                                    }
+
+                                                    // App Name & Subtitle
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 1
+
+                                                        Text {
+                                                            text: {
+                                                                const n = modelData.name || "App";
+                                                                if (n === "pw-play") return "Audio Player";
+                                                                return n;
+                                                            }
+                                                            color: root.theme.textPrimary
+                                                            font.pixelSize: 12
+                                                            font.family: root.font
+                                                            font.weight: Font.DemiBold
+                                                            elide: Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Text {
+                                                            text: modelData.media_name || (streamRow.currentMuted ? "Muted" : "Active playback")
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                            elide: Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                            visible: text.length > 0
+                                                        }
+                                                    }
+
+                                                    // Volume percentage label
+                                                    Text {
+                                                        text: streamRow.currentMuted ? "Muted" : (streamRow.currentVol + "%")
+                                                        color: streamRow.currentMuted ? root.theme.accentRed : root.theme.textMuted
+                                                        font.pixelSize: 11
+                                                        font.family: root.font
+                                                        font.weight: streamRow.currentMuted ? Font.DemiBold : Font.Normal
+                                                    }
+                                                }
+
+                                                // App Volume Slider Capsule
+                                                Rectangle {
+                                                    id: appVolBar
+                                                    Layout.fillWidth: true
+                                                    height: 30
+                                                    radius: 15
+                                                    color: streamRow.currentMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
+                                                    border.color: streamRow.currentMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (appVolMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
+                                                    border.width: 1
+                                                    clip: true
+                                                    Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                                    Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                                                    // Unfilled Track Icon
+                                                    Text {
+                                                        x: 10
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        text: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
+                                                        color: streamRow.currentMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
+                                                        font.pixelSize: 13
+                                                        font.family: root.font
+                                                    }
+
+                                                    // Filled Slider Track
+                                                    Rectangle {
+                                                        id: appVolFill
+                                                        width: (streamRow.currentMuted || streamRow.currentVol <= 0) ? 0 : Math.max(0, Math.min(appVolBar.width, appVolBar.width * (Math.min(100, streamRow.currentVol) / 100)))
+                                                        height: parent.height
+                                                        radius: 15
+                                                        color: Services.Aesthetic.sliderFill
+                                                        clip: true
+                                                        Behavior on width {
+                                                            enabled: !appVolMouse.pressed
+                                                            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                                        }
+
+                                                        // Filled Track Icon
+                                                        Text {
+                                                            x: 10
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            text: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
+                                                            color: "#16161a"
+                                                            font.pixelSize: 13
+                                                            font.family: root.font
+                                                        }
+                                                    }
+
+                                                    MouseArea {
+                                                        id: appVolMouse
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        property real startX: 0
+                                                        property real startY: 0
+                                                        property bool isDragging: false
+                                                        property bool startedInIcon: false
+
+                                                        function applyVolume(mouseX) {
+                                                            const rawPct = (mouseX / appVolBar.width) * 100;
+                                                            const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
+                                                            streamRow.currentVol = pct;
+                                                            streamRow.currentMuted = (pct === 0);
+                                                            Services.SystemService.setAppStreamVolume(modelData.id, pct);
+                                                        }
+
+                                                        onPressed: (mouse) => {
+                                                            startX = mouse.x;
+                                                            startY = mouse.y;
+                                                            isDragging = false;
+                                                            startedInIcon = (mouse.x <= 34);
+                                                            if (!startedInIcon) {
+                                                                isDragging = true;
+                                                                streamRow.isLocalDragging = true;
+                                                                Services.SystemService.isAppVolumeDragging = true;
+                                                                applyVolume(mouse.x);
+                                                            }
+                                                        }
+
+                                                        onPositionChanged: (mouse) => {
+                                                            if (pressed) {
+                                                                const dx = Math.abs(mouse.x - startX);
+                                                                if (!isDragging && (dx > 4 || mouse.x > 34)) {
+                                                                    isDragging = true;
+                                                                    startedInIcon = false;
+                                                                    streamRow.isLocalDragging = true;
+                                                                    Services.SystemService.isAppVolumeDragging = true;
+                                                                }
+                                                                if (isDragging) {
+                                                                    applyVolume(mouse.x);
+                                                                }
+                                                            }
+                                                        }
+
+                                                        onReleased: (mouse) => {
+                                                            if (isDragging) {
+                                                                applyVolume(mouse.x);
+                                                                Services.SystemService.flushAppStreamVolume();
+                                                                Services.SystemService.isAppVolumeDragging = false;
+                                                                streamRow.isLocalDragging = false;
+                                                                isDragging = false;
+                                                            } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
+                                                                streamRow.currentMuted = !streamRow.currentMuted;
+                                                                Services.SystemService.toggleAppStreamMute(modelData.id);
+                                                            }
+                                                            startedInIcon = false;
+                                                            streamRow.isLocalDragging = false;
+                                                            Services.SystemService.isAppVolumeDragging = false;
+                                                        }
+
+                                                        onCanceled: {
+                                                            isDragging = false;
+                                                            startedInIcon = false;
+                                                            streamRow.isLocalDragging = false;
+                                                            Services.SystemService.isAppVolumeDragging = false;
+                                                            Services.SystemService.flushAppStreamVolume();
+                                                        }
+
+                                                        onWheel: (wheel) => {
+                                                            wheel.accepted = true;
+                                                            const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
+                                                            const newVol = Math.max(0, Math.min(100, streamRow.currentVol + delta));
+                                                            streamRow.currentVol = newVol;
+                                                            streamRow.currentMuted = (newVol === 0);
+                                                            Services.SystemService.setAppStreamVolume(modelData.id, newVol);
+                                                            Services.SystemService.flushAppStreamVolume();
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -4179,14 +4604,14 @@ Scope {
                                         Rectangle {
                                             id: subMicBar
                                             Layout.fillWidth: true
-                                            height: 30
-                                            radius: 15
+                                            height: 32
+                                            radius: 16
                                             color: Services.SystemService.micMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
                                             border.color: Services.SystemService.micMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (subMicMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
                                             border.width: 1
                                             clip: true
-                                            Behavior on color { ColorAnimation { duration: 140 } }
-                                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                                            Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                            Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                                             Text {
                                                 x: 10
@@ -4199,12 +4624,15 @@ Scope {
 
                                             Rectangle {
                                                 id: subMicFill
-                                                width: Services.SystemService.micMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.micVolume) / 100)))
+                                                width: (Services.SystemService.micMuted || Services.SystemService.micVolume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.micVolume) / 100)))
                                                 height: parent.height
-                                                radius: 15
+                                                radius: 16
                                                 color: Services.SystemService.micInUse ? "#ff9f0a" : Services.Aesthetic.sliderFill
                                                 clip: true
-                                                Behavior on width { NumberAnimation { duration: 50 } }
+                                                Behavior on width {
+                                                    enabled: !subMicMouse.pressed
+                                                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                                }
                                                 Behavior on color { ColorAnimation { duration: 140 } }
 
                                                 Text {
@@ -4222,20 +4650,62 @@ Scope {
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
-                                                onClicked: (mouse) => {
-                                                    if (mouse.x < 28) {
-                                                        Services.SystemService.toggleMicMute();
-                                                    } else {
-                                                        const pct = Math.max(0, Math.min(100, Math.round((mouse.x / subMicBar.width) * 100)));
-                                                        Services.SystemService.setMicVolumePercent(pct);
+                                                property real startX: 0
+                                                property real startY: 0
+                                                property bool isDragging: false
+                                                property bool startedInIcon: false
+
+                                                function applyMicVolume(mouseX) {
+                                                    const rawPct = (mouseX / subMicBar.width) * 100;
+                                                    const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
+                                                    Services.SystemService.setMicVolumePercent(pct);
+                                                }
+
+                                                onPressed: (mouse) => {
+                                                    startX = mouse.x;
+                                                    startY = mouse.y;
+                                                    isDragging = false;
+                                                    startedInIcon = (mouse.x <= 36);
+                                                    if (!startedInIcon) {
+                                                        isDragging = true;
+                                                        Services.SystemService.isMicDragging = true;
+                                                        applyMicVolume(mouse.x);
                                                     }
                                                 }
+
                                                 onPositionChanged: (mouse) => {
                                                     if (pressed) {
-                                                        const pct = Math.max(0, Math.min(100, Math.round((mouse.x / subMicBar.width) * 100)));
-                                                        Services.SystemService.setMicVolumePercent(pct);
+                                                        const dx = Math.abs(mouse.x - startX);
+                                                        if (!isDragging && (dx > 4 || mouse.x > 36)) {
+                                                            isDragging = true;
+                                                            startedInIcon = false;
+                                                            Services.SystemService.isMicDragging = true;
+                                                        }
+                                                        if (isDragging) {
+                                                            applyMicVolume(mouse.x);
+                                                        }
                                                     }
                                                 }
+
+                                                onReleased: (mouse) => {
+                                                    if (isDragging) {
+                                                        applyMicVolume(mouse.x);
+                                                        Services.SystemService.flushMicVolume();
+                                                        Services.SystemService.isMicDragging = false;
+                                                        isDragging = false;
+                                                    } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
+                                                        Services.SystemService.toggleMicMute();
+                                                    }
+                                                    startedInIcon = false;
+                                                }
+
+                                                onCanceled: {
+                                                    isDragging = false;
+                                                    startedInIcon = false;
+                                                    Services.SystemService.flushMicVolume();
+                                                    Services.SystemService.isMicDragging = false;
+                                                }
+
                                                 onWheel: (wheel) => {
                                                     wheel.accepted = true;
                                                     const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
@@ -5031,6 +5501,607 @@ Scope {
                 }
 
                 // ═══════════════════════════════════════════
+                // VIEW 7: macOS STYLE NATIVE DISPLAYS & MONITORS
+                // ═══════════════════════════════════════════
+                ColumnLayout {
+                    id: displaysDetailsView
+                    visible: root.activeView === "displays"
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 12
+
+                    // Back & Title Header
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        // Back button with hover/press animations
+                        Rectangle {
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: backDispM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (backDispM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
+                            border.color: backDispM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1)
+                            border.width: 1
+                            scale: backDispM.pressed ? 0.92 : (backDispM.containsMouse ? 1.06 : 1.0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "‹"
+                                color: backDispM.containsMouse ? "#ffffff" : root.theme.textPrimary
+                                font.pixelSize: 18
+                                font.family: root.font
+                            }
+                            MouseArea {
+                                id: backDispM
+                                anchors.fill: parent
+                                anchors.margins: -4
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Services.SystemService.controlCenterSubView = "main"
+                            }
+                        }
+
+                        Text {
+                            text: "Displays"
+                            color: root.theme.textPrimary
+                            font.pixelSize: 16
+                            font.family: root.font
+                            font.weight: Font.DemiBold
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        // Refresh Button
+                        Rectangle {
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: refDispM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (refDispM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
+                            border.color: refDispM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1)
+                            border.width: 1
+                            scale: refDispM.pressed ? 0.92 : (refDispM.containsMouse ? 1.06 : 1.0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "󰑐"
+                                color: refDispM.containsMouse ? "#ffffff" : root.theme.textMuted
+                                font.pixelSize: 14
+                                font.family: root.font
+                            }
+                            MouseArea {
+                                id: refDispM
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Services.SystemService.rescanMonitors()
+                            }
+                        }
+                    }
+
+                    // Displays Flickable Content
+                    Flickable {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        contentHeight: dispCol.implicitHeight + 20
+                        boundsBehavior: Flickable.StopAtBounds
+                        clip: true
+
+                        ColumnLayout {
+                            id: dispCol
+                            width: parent.width
+                            spacing: 12
+
+                            // Multi-Monitor Tabs (visible if > 1 monitor)
+                            RowLayout {
+                                Layout.fillWidth: true
+                                visible: Services.SystemService.monitorsList.length > 1
+                                spacing: 8
+
+                                Repeater {
+                                    model: Services.SystemService.monitorsList
+
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        implicitHeight: 32
+                                        radius: 8
+                                        readonly property bool isCur: Services.SystemService.selectedMonitorIndex === index
+                                        color: isCur ? root.theme.accent : (monTabM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                        border.color: isCur ? root.theme.accent : "transparent"
+                                        border.width: 1
+
+                                        RowLayout {
+                                            anchors.centerIn: parent
+                                            spacing: 6
+                                            Text {
+                                                text: "󰍹"
+                                                color: parent.parent.isCur ? "#ffffff" : root.theme.textMuted
+                                                font.pixelSize: 12
+                                                font.family: root.font
+                                            }
+                                            Text {
+                                                text: modelData.name || ("Monitor " + (index + 1))
+                                                color: parent.parent.isCur ? "#ffffff" : root.theme.textPrimary
+                                                font.pixelSize: 11
+                                                font.family: root.font
+                                                font.weight: parent.parent.isCur ? Font.DemiBold : Font.Normal
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: monTabM
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                Services.SystemService.selectedMonitorIndex = index;
+                                                dispModeCard.dropdownOpen = false;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 1. Display Information Card
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 84
+                                radius: 16
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
+                                border.width: 1
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 14
+
+                                    Rectangle {
+                                        width: 48
+                                        height: 48
+                                        radius: 12
+                                        color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16)
+                                        border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3)
+                                        border.width: 1
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "󰍹"
+                                            color: root.theme.accent
+                                            font.pixelSize: 24
+                                            font.family: root.font
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+
+                                        Text {
+                                            text: Services.SystemService.currentMonitor ? (Services.SystemService.currentMonitor.description || Services.SystemService.currentMonitor.name) : "Display"
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 13
+                                            font.family: root.font
+                                            font.weight: Font.DemiBold
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            text: Services.SystemService.currentMonitor ? (Services.SystemService.currentMonitor.width + " × " + Services.SystemService.currentMonitor.height + " · " + Math.round(Services.SystemService.currentMonitor.refreshRate) + " Hz") : "1920 × 1080 · 60 Hz"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                        }
+
+                                        RowLayout {
+                                            spacing: 6
+                                            Rectangle {
+                                                width: 6; height: 6; radius: 3
+                                                color: "#30d158"
+                                            }
+                                            Text {
+                                                text: Services.SystemService.currentMonitor ? (Services.SystemService.currentMonitor.name + (Services.SystemService.currentMonitor.focused ? " · Primary" : "")) : "Connected"
+                                                color: "#30d158"
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Display Mode (Combined resolution + refresh-rate dropdown selector)
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+
+                                Text {
+                                    text: "DISPLAY MODE"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 0.6
+                                    Layout.leftMargin: 4
+                                }
+
+                                Rectangle {
+                                    id: dispModeCard
+                                    property bool dropdownOpen: false
+                                    readonly property var uniqueModes: {
+                                        const m = Services.SystemService.currentMonitor;
+                                        const modes = (m && m.availableModes) ? m.availableModes : [];
+                                        const seen = {};
+                                        const list = [];
+                                        for (let i = 0; i < modes.length; i++) {
+                                            const raw = modes[i];
+                                            const match = raw.match(/^(\d+)x(\d+)@([\d\.]+)Hz$/);
+                                            let key = raw;
+                                            let resText = raw;
+                                            let hzText = "";
+                                            let w = 0, h = 0, hz = 0;
+                                            if (match) {
+                                                w = parseInt(match[1]);
+                                                h = parseInt(match[2]);
+                                                hz = Math.round(parseFloat(match[3]));
+                                                key = w + "x" + h + "@" + hz;
+                                                resText = w + " × " + h;
+                                                hzText = hz + " Hz";
+                                            }
+                                            if (!seen[key]) {
+                                                seen[key] = true;
+                                                list.push({
+                                                    raw: raw,
+                                                    key: key,
+                                                    width: w,
+                                                    height: h,
+                                                    refreshRate: hz,
+                                                    resText: resText,
+                                                    hzText: hzText,
+                                                    label: hzText ? (resText + " · " + hzText) : resText
+                                                });
+                                            }
+                                        }
+                                        return list;
+                                    }
+
+                                    Layout.fillWidth: true
+                                    implicitHeight: dropdownOpen ? (modeColLayout.implicitHeight + 16) : 48
+                                    radius: 16
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+                                    clip: true
+                                    Behavior on implicitHeight {
+                                        NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                                    }
+
+                                    ColumnLayout {
+                                        id: modeColLayout
+                                        anchors.fill: parent
+                                        anchors.margins: 8
+                                        spacing: 0
+
+                                        // Collapsed / Trigger Row: [ 1920 × 1080             60 Hz      ˅ ]
+                                        Rectangle {
+                                            id: modeHeaderRow
+                                            Layout.fillWidth: true
+                                            implicitHeight: 32
+                                            radius: 10
+                                            color: modeHeaderM.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 10
+                                                anchors.rightMargin: 10
+                                                spacing: 8
+
+                                                Text {
+                                                    text: Services.SystemService.currentMonitor ? (Services.SystemService.currentMonitor.width + " × " + Services.SystemService.currentMonitor.height) : "1920 × 1080"
+                                                    color: root.theme.textPrimary
+                                                    font.pixelSize: 12
+                                                    font.family: root.font
+                                                    font.weight: Font.DemiBold
+                                                }
+
+                                                Item { Layout.fillWidth: true }
+
+                                                Text {
+                                                    text: Services.SystemService.currentMonitor ? (Math.round(Services.SystemService.currentMonitor.refreshRate) + " Hz") : "60 Hz"
+                                                    color: root.theme.textSecondary
+                                                    font.pixelSize: 12
+                                                    font.family: root.font
+                                                }
+
+                                                Text {
+                                                    text: dispModeCard.dropdownOpen ? "▴" : "▾"
+                                                    color: modeHeaderM.containsMouse ? "#ffffff" : root.theme.textSecondary
+                                                    font.pixelSize: 11
+                                                    font.weight: Font.Bold
+                                                    font.family: root.font
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: modeHeaderM
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: dispModeCard.dropdownOpen = !dispModeCard.dropdownOpen
+                                            }
+                                        }
+
+                                        // Divider line
+                                        Rectangle {
+                                            id: modeDivider
+                                            Layout.fillWidth: true
+                                            height: 1
+                                            color: Qt.rgba(1, 1, 1, 0.06)
+                                            visible: dispModeCard.dropdownOpen && dispModeCard.uniqueModes.length > 0
+                                            Layout.topMargin: 4
+                                            Layout.bottomMargin: 4
+                                        }
+
+                                        // Expanded Dropdown List
+                                        ColumnLayout {
+                                            id: modeListCol
+                                            Layout.fillWidth: true
+                                            visible: dispModeCard.dropdownOpen
+                                            spacing: 2
+
+                                            Repeater {
+                                                model: dispModeCard.uniqueModes
+
+                                                Rectangle {
+                                                    id: modeItemRow
+                                                    Layout.fillWidth: true
+                                                    implicitHeight: 32
+                                                    radius: 8
+                                                    readonly property bool isCur: {
+                                                        const cur = Services.SystemService.currentMonitor;
+                                                        if (!cur) return false;
+                                                        if (modelData.width > 0 && modelData.height > 0) {
+                                                            return cur.width === modelData.width && cur.height === modelData.height && Math.abs(cur.refreshRate - modelData.refreshRate) <= 1.5;
+                                                        }
+                                                        const curModeStr = cur.width + "x" + cur.height + "@" + cur.refreshRate.toFixed(2) + "Hz";
+                                                        return modelData.raw === curModeStr;
+                                                    }
+                                                    color: isCur ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12) : (modeItemM.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+
+                                                    RowLayout {
+                                                        anchors.fill: parent
+                                                        anchors.leftMargin: 10
+                                                        anchors.rightMargin: 10
+                                                        spacing: 8
+
+                                                        Text {
+                                                            text: modelData.label
+                                                            color: modeItemRow.isCur ? root.theme.accent : (modeItemM.containsMouse ? root.theme.textPrimary : root.theme.textSecondary)
+                                                            font.pixelSize: 11
+                                                            font.family: root.font
+                                                            font.weight: modeItemRow.isCur ? Font.DemiBold : Font.Normal
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Text {
+                                                            text: "✓"
+                                                            color: root.theme.accent
+                                                            font.pixelSize: 12
+                                                            font.weight: Font.Bold
+                                                            font.family: root.font
+                                                            visible: modeItemRow.isCur
+                                                        }
+                                                    }
+
+                                                    MouseArea {
+                                                        id: modeItemM
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            if (Services.SystemService.currentMonitor) {
+                                                                Services.SystemService.applyMonitorMode(Services.SystemService.currentMonitor.name, modelData.raw);
+                                                            }
+                                                            dispModeCard.dropdownOpen = false;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 3. Scaling (Direct selection with presets: 100%, 125%, 150%, 175%, 200% with ✓)
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+
+                                Text {
+                                    text: "SCALING"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 0.6
+                                    Layout.leftMargin: 4
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: 64
+                                    radius: 16
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 8
+                                        spacing: 6
+
+                                        Repeater {
+                                            model: [
+                                                { label: "1x", val: 1.0 },
+                                                { label: "1.25x", val: 1.25 },
+                                                { label: "1.5x", val: 1.50 },
+                                                { label: "1.75x", val: 1.75 },
+                                                { label: "2x", val: 2.0 }
+                                            ]
+
+                                            Rectangle {
+                                                id: scalePresetPill
+                                                Layout.fillWidth: true
+                                                implicitHeight: 48
+                                                radius: 8
+                                                readonly property bool isSelected: Math.abs(Services.SystemService.monitorScale - modelData.val) < 0.03
+                                                color: isSelected ? root.theme.accent : (scalePresetM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                                border.color: isSelected ? root.theme.accent : (scalePresetM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : "transparent")
+                                                border.width: 1
+
+                                                ColumnLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: 2
+
+                                                    Text {
+                                                        text: modelData.label
+                                                        color: scalePresetPill.isSelected ? "#ffffff" : (scalePresetM.containsMouse ? root.theme.textPrimary : root.theme.textMuted)
+                                                        font.pixelSize: 11
+                                                        font.family: root.font
+                                                        font.weight: scalePresetPill.isSelected ? Font.DemiBold : Font.Normal
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                    }
+
+                                                    Text {
+                                                        text: scalePresetPill.isSelected ? "✓" : " "
+                                                        color: "#ffffff"
+                                                        font.pixelSize: 10
+                                                        font.family: root.font
+                                                        font.weight: Font.Bold
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                        opacity: scalePresetPill.isSelected ? 1.0 : 0.0
+                                                    }
+                                                }
+
+                                                MouseArea {
+                                                    id: scalePresetM
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: Services.SystemService.setTargetScale(modelData.val)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 4. Orientation (Landscape, Portrait, 180°, 270° with ✓)
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+
+                                Text {
+                                    text: "ORIENTATION"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 0.6
+                                    Layout.leftMargin: 4
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: 64
+                                    radius: 16
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 8
+                                        spacing: 6
+
+                                        Repeater {
+                                            model: [
+                                                { label: "Landscape", icon: "󰍹", val: 0 },
+                                                { label: "Portrait", icon: "󰍺", val: 1 },
+                                                { label: "180°", icon: "󰍹", val: 2 },
+                                                { label: "270°", icon: "󰍺", val: 3 }
+                                            ]
+
+                                            Rectangle {
+                                                id: rotPill
+                                                Layout.fillWidth: true
+                                                implicitHeight: 48
+                                                radius: 8
+                                                readonly property bool isCur: Services.SystemService.currentMonitor && Services.SystemService.currentMonitor.transform === modelData.val
+                                                color: isCur ? root.theme.accent : (rotPillM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                                border.color: isCur ? root.theme.accent : (rotPillM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : "transparent")
+                                                border.width: 1
+
+                                                ColumnLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: 2
+
+                                                    Text {
+                                                        text: modelData.icon
+                                                        color: rotPill.isCur ? "#ffffff" : (rotPillM.containsMouse ? root.theme.textPrimary : root.theme.textMuted)
+                                                        font.pixelSize: 12
+                                                        font.family: root.font
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                    }
+
+                                                    Text {
+                                                        text: modelData.label
+                                                        color: rotPill.isCur ? "#ffffff" : (rotPillM.containsMouse ? root.theme.textPrimary : root.theme.textMuted)
+                                                        font.pixelSize: 9
+                                                        font.family: root.font
+                                                        font.weight: rotPill.isCur ? Font.DemiBold : Font.Normal
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                    }
+
+                                                    Text {
+                                                        text: rotPill.isCur ? "✓" : " "
+                                                        color: "#ffffff"
+                                                        font.pixelSize: 9
+                                                        font.family: root.font
+                                                        font.weight: Font.Bold
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                        opacity: rotPill.isCur ? 1.0 : 0.0
+                                                    }
+                                                }
+
+                                                MouseArea {
+                                                    id: rotPillM
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        if (Services.SystemService.currentMonitor) {
+                                                            Services.SystemService.setMonitorTransform(Services.SystemService.currentMonitor.name, modelData.val);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ═══════════════════════════════════════════
                 // VIEW 4: WALLPAPER GALLERY & CONTROLS
                 // ═══════════════════════════════════════════
                 ColumnLayout {
@@ -5532,7 +6603,11 @@ Scope {
                             width: 30
                             height: 30
                             radius: 15
-                            color: backMM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                            color: backMM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
+                            border.width: Services.Aesthetic.borderWidth
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
                             Text {
                                 anchors.centerIn: parent
                                 text: "‹"
@@ -5564,11 +6639,14 @@ Scope {
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: 190
-                        radius: 24
+                        radius: Services.Aesthetic.cardRadius
                         clip: true
-                        color: Qt.rgba(0.06, 0.06, 0.09, 0.98)
-                        border.color: root.playerAccent ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.16)
-                        border.width: 1
+                        color: Services.Aesthetic.innerCardBg
+                        border.color: Services.Aesthetic.innerCardBorder
+                        border.width: Services.Aesthetic.borderWidth
+
+                        Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                        Behavior on border.color { ColorAnimation { duration: 200 } }
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -5588,7 +6666,7 @@ Scope {
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 1
-                                    color: Qt.rgba(1, 1, 1, 0.12)
+                                    color: Services.Aesthetic.innerCardBorder
                                 }
 
                                 // Centered Header Capsule Pill
@@ -5597,8 +6675,8 @@ Scope {
                                     implicitWidth: ccHeaderPillRow.implicitWidth + 24
                                     implicitHeight: 26
                                     radius: 13
-                                    color: ccPillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.07)
-                                    border.color: ccPillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.16)
+                                    color: ccPillMouse.containsMouse ? Services.Aesthetic.innerCardHover : Qt.rgba(1, 1, 1, Services.Aesthetic.preset === "oled" ? 0.05 : 0.08)
+                                    border.color: ccPillMouse.containsMouse ? root.theme.textPrimary : Services.Aesthetic.innerCardBorder
                                     border.width: 1
 
                                     Behavior on color { ColorAnimation { duration: 150 } }
@@ -5672,7 +6750,7 @@ Scope {
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 1
-                                    color: Qt.rgba(1, 1, 1, 0.12)
+                                    color: Services.Aesthetic.innerCardBorder
                                 }
                             }
 
@@ -5687,8 +6765,8 @@ Scope {
                                     height: 52
                                     radius: 12
                                     clip: true
-                                    color: Qt.rgba(0, 0, 0, 0.35)
-                                    border.color: Qt.rgba(1, 1, 1, 0.14)
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
                                     border.width: 1
 
                                     Image {
@@ -5773,7 +6851,7 @@ Scope {
                                         anchors.verticalCenter: parent.verticalCenter
                                         height: ccScrubArea.containsMouse || ccScrubArea.pressed ? 6 : 4
                                         radius: height / 2
-                                        color: Qt.rgba(1, 1, 1, 0.16)
+                                        color: Services.Aesthetic.sliderTrackBg
                                         Behavior on height { NumberAnimation { duration: 100 } }
 
                                         // Filled progress bar
@@ -5868,13 +6946,14 @@ Scope {
                                     width: 32
                                     height: 32
                                     radius: 16
-                                    color: ccPrevMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                                    color: ccPrevMouse.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
                                     anchors.verticalCenter: parent.verticalCenter
+                                    Behavior on color { ColorAnimation { duration: 120 } }
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: "󰒮"
-                                        color: ccPrevMouse.containsMouse ? "#ffffff" : root.theme.textSecondary
+                                        color: ccPrevMouse.containsMouse ? root.theme.textPrimary : root.theme.textSecondary
                                         font.pixelSize: 16
                                         font.family: root.font
                                     }
@@ -5920,13 +6999,14 @@ Scope {
                                     width: 32
                                     height: 32
                                     radius: 16
-                                    color: ccNextMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                                    color: ccNextMouse.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
                                     anchors.verticalCenter: parent.verticalCenter
+                                    Behavior on color { ColorAnimation { duration: 120 } }
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: "󰒭"
-                                        color: ccNextMouse.containsMouse ? "#ffffff" : root.theme.textSecondary
+                                        color: ccNextMouse.containsMouse ? root.theme.textPrimary : root.theme.textSecondary
                                         font.pixelSize: 16
                                         font.family: root.font
                                     }
@@ -5950,8 +7030,11 @@ Scope {
                         radius: 16
                         color: Services.Aesthetic.innerCardBg
                         border.color: Services.Aesthetic.innerCardBorder
-                        border.width: 1
+                        border.width: Services.Aesthetic.borderWidth
                         clip: true
+
+                        Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                        Behavior on border.color { ColorAnimation { duration: 200 } }
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -5981,14 +7064,14 @@ Scope {
                             Rectangle {
                                 id: ccMediaVolBar
                                 Layout.fillWidth: true
-                                height: 30
-                                radius: 15
+                                height: 32
+                                radius: 16
                                 color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
-                                border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (ccVolMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
+                                border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (ccVolMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBorder)
                                 border.width: 1
                                 clip: true
-                                Behavior on color { ColorAnimation { duration: 140 } }
-                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                                 // Background glyph
                                 Text {
@@ -6007,12 +7090,12 @@ Scope {
                                     anchors.bottom: parent.bottom
                                     radius: parent.radius
                                     color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.playerAccent
-                                    width: Services.SystemService.volumeMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
+                                    width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
                                     clip: true
 
                                     Behavior on width {
                                         enabled: !ccVolMouse.pressed
-                                        NumberAnimation { duration: 50 }
+                                        NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
                                     }
 
                                     // Foreground dark glyph
@@ -6031,20 +7114,66 @@ Scope {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
+                                    property real startX: 0
+                                    property real startY: 0
+                                    property bool isDragging: false
+                                    property bool startedInIcon: false
 
-                                    function updateVol(mouseX) {
-                                        const pct = Math.max(0, Math.min(100, Math.round((mouseX / width) * 100)));
+                                    function applyVolume(mouseX) {
+                                        const rawPct = (mouseX / width) * 100;
+                                        const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
                                         Services.SystemService.setVolumePercent(pct);
                                     }
 
-                                    onPressed: (mouse) => updateVol(mouse.x)
-                                    onPositionChanged: (mouse) => {
-                                        if (pressed) updateVol(mouse.x);
+                                    onPressed: (mouse) => {
+                                        startX = mouse.x;
+                                        startY = mouse.y;
+                                        isDragging = false;
+                                        startedInIcon = (mouse.x <= 36);
+                                        if (!startedInIcon) {
+                                            isDragging = true;
+                                            Services.SystemService.isVolumeDragging = true;
+                                            applyVolume(mouse.x);
+                                        }
                                     }
+
+                                    onPositionChanged: (mouse) => {
+                                        if (pressed) {
+                                            const dx = Math.abs(mouse.x - startX);
+                                            if (!isDragging && (dx > 4 || mouse.x > 36)) {
+                                                isDragging = true;
+                                                startedInIcon = false;
+                                                Services.SystemService.isVolumeDragging = true;
+                                            }
+                                            if (isDragging) {
+                                                applyVolume(mouse.x);
+                                            }
+                                        }
+                                    }
+
+                                    onReleased: (mouse) => {
+                                        if (isDragging) {
+                                            applyVolume(mouse.x);
+                                            Services.SystemService.flushVolume();
+                                            Services.SystemService.isVolumeDragging = false;
+                                            isDragging = false;
+                                        } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
+                                            Services.SystemService.toggleMute();
+                                        }
+                                        startedInIcon = false;
+                                    }
+
+                                    onCanceled: {
+                                        isDragging = false;
+                                        startedInIcon = false;
+                                        Services.SystemService.flushVolume();
+                                        Services.SystemService.isVolumeDragging = false;
+                                    }
+
                                     onWheel: (wheel) => {
                                         wheel.accepted = true;
                                         const delta = wheel.angleDelta.y > 0 ? 5 : -5;
-                                        Services.SystemService.setVolumePercent(Math.max(0, Math.min(100, Services.SystemService.volume + delta)));
+                                        Services.SystemService.adjustVolume(delta);
                                     }
                                 }
                             }
@@ -6086,10 +7215,13 @@ Scope {
                             color: {
                                 const isCurrent = root.activePlayer?.identity === modelData.identity;
                                 if (srcMouse.containsMouse) return Services.Aesthetic.innerCardHover;
-                                return isCurrent ? Qt.rgba(1, 1, 1, 0.08) : Services.Aesthetic.innerCardBg;
+                                return isCurrent ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg;
                             }
-                            border.color: root.activePlayer?.identity === modelData.identity ? root.playerAccent : Qt.rgba(1, 1, 1, 0.06)
+                            border.color: root.activePlayer?.identity === modelData.identity ? root.playerAccent : Services.Aesthetic.innerCardBorder
                             border.width: 1
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                            Behavior on border.color { ColorAnimation { duration: 150 } }
 
                             RowLayout {
                                 anchors.fill: parent

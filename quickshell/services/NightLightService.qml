@@ -58,7 +58,7 @@ Singleton {
 
     function runCmd(cmd) {
         execProc.running = false;
-        execProc.command = ["sh", "-c", "export WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-1}; " + cmd];
+        execProc.command = ["sh", "-c", "[ -z \"$WAYLAND_DISPLAY\" ] && export WAYLAND_DISPLAY=$(ls -1 \"$XDG_RUNTIME_DIR\"/wayland-[0-9]* 2>/dev/null | head -n 1 | xargs -r basename || echo wayland-0); " + cmd];
         execProc.running = true;
     }
 
@@ -72,7 +72,7 @@ Singleton {
 
     function enable() {
         root.active = true;
-        runCmd("pkill -x hyprsunset 2>/dev/null; /home/aran/.local/bin/hyprsunset -t 3000 >/dev/null 2>&1 &");
+        runCmd("pkill -x hyprsunset 2>/dev/null; sleep 0.1; hyprsunset --temperature " + root.temperature + " >/dev/null 2>&1 &");
     }
 
     function disable() {
