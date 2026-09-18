@@ -2,6 +2,14 @@
 
 A modern, fluid desktop environment built on **Hyprland (Wayland)** and powered by **Quickshell (Qt6/QML)**. Combines the refined aesthetics of **macOS Tahoe** with dynamic **Google Material You** wallpaper color palettes.
 
+
+![alt text](image.png)
+
+
+
+
+
+
 ---
 
 ## Features
