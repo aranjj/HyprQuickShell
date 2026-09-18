@@ -18,22 +18,64 @@ Scope {
 
     property bool appleMenuOpen: false
 
-    // Active MPRIS player helper (prioritizes playing, then paused with metadata)
+    // Active MPRIS player helper (intelligently scored & prioritized)
     property var activePlayer: {
         const players = Mpris.players.values;
         if (!players || players.length === 0) return null;
+
+        let bestPlayer = null;
+        let bestScore = -99999;
+
         for (let i = 0; i < players.length; i++) {
-            if (players[i].playbackState === MprisPlaybackState.Playing) return players[i];
-        }
-        for (let i = 0; i < players.length; i++) {
-            if (players[i].playbackState === MprisPlaybackState.Paused && (players[i].trackTitle || players[i].trackArtist)) {
-                return players[i];
+            const p = players[i];
+            if (!p) continue;
+
+            let score = 0;
+
+            // 1. Playback state
+            if (p.playbackState === MprisPlaybackState.Playing) {
+                score += 10000;
+            } else if (p.playbackState === MprisPlaybackState.Paused) {
+                score += 5000;
+            } else {
+                score += 1000;
+            }
+
+            // 2. Track artwork presence
+            const art = p.trackArtUrl ? ("" + p.trackArtUrl).trim() : "";
+            if (art.length > 0) {
+                score += 3000;
+            }
+
+            // 3. Artist presence
+            const artist = p.trackArtist ? ("" + p.trackArtist).trim() : "";
+            if (artist.length > 0) {
+                score += 500;
+            }
+
+            // 4. Title presence
+            const title = p.trackTitle ? ("" + p.trackTitle).trim() : "";
+            if (title.length > 0) {
+                score += 300;
+            }
+
+            // 5. Prefer rich players / browser integration over bare browser instances
+            const id = ((p.identity || "") + " " + (p.busName || "")).toLowerCase();
+            if (id.includes("plasma-browser-integration")) {
+                score += 1500;
+            } else if (id.includes("spotify") || id.includes("cider") || id.includes("rhythmbox") || id.includes("amberol")) {
+                score += 1000;
+            } else if (id.includes("firefox.instance") || id.includes("chromium.instance")) {
+                if (!art) score -= 2000;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestPlayer = p;
             }
         }
-        for (let i = 0; i < players.length; i++) {
-            if (players[i].trackTitle) return players[i];
-        }
-        return null;
+
+        return bestPlayer;
     }
 
     readonly property bool isMediaPlaying: root.activePlayer?.playbackState === MprisPlaybackState.Playing

@@ -17,22 +17,120 @@ Scope {
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
-    // ── Active MPRIS player ──────────────────────────────
+    // ── Active MPRIS player (intelligently scored & prioritized) ─
     property var activePlayer: {
         const players = Mpris.players.values;
         if (!players || players.length === 0) return null;
+
+        let bestPlayer = null;
+        let bestScore = -99999;
+
         for (let i = 0; i < players.length; i++) {
-            if (players[i].playbackState === MprisPlaybackState.Playing) return players[i];
-        }
-        for (let i = 0; i < players.length; i++) {
-            if (players[i].playbackState === MprisPlaybackState.Paused && (players[i].trackTitle || players[i].trackArtist)) {
-                return players[i];
+            const p = players[i];
+            if (!p) continue;
+
+            let score = 0;
+
+            // 1. Playback state (primary factor)
+            if (p.playbackState === MprisPlaybackState.Playing) {
+                score += 10000;
+            } else if (p.playbackState === MprisPlaybackState.Paused) {
+                score += 5000;
+            } else {
+                score += 1000;
+            }
+
+            // 2. Track artwork presence (critical for rich media UI)
+            const art = p.trackArtUrl ? ("" + p.trackArtUrl).trim() : "";
+            if (art.length > 0) {
+                score += 3000;
+            }
+
+            // 3. Artist presence
+            const artist = p.trackArtist ? ("" + p.trackArtist).trim() : "";
+            if (artist.length > 0) {
+                score += 500;
+            }
+
+            // 4. Title presence
+            const title = p.trackTitle ? ("" + p.trackTitle).trim() : "";
+            if (title.length > 0) {
+                score += 300;
+            }
+
+            // 5. Prefer rich players / browser integration over bare browser instances
+            const id = ((p.identity || "") + " " + (p.busName || "")).toLowerCase();
+            if (id.includes("plasma-browser-integration")) {
+                score += 1500;
+            } else if (id.includes("spotify") || id.includes("cider") || id.includes("rhythmbox") || id.includes("amberol")) {
+                score += 1000;
+            } else if (id.includes("firefox.instance") || id.includes("chromium.instance")) {
+                if (!art) score -= 2000;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestPlayer = p;
             }
         }
-        for (let i = 0; i < players.length; i++) {
-            if (players[i].trackTitle) return players[i];
+
+        return bestPlayer;
+    }
+
+    // ── Persistent Album Art Tracking ────────────────────
+    property string lastLoadedArtUrl: ""
+    property string lastTrackTitle: ""
+
+    readonly property string rawTrackArt: {
+        const p = root.activePlayer;
+        if (!p) return "";
+        let url = p.trackArtUrl ? ("" + p.trackArtUrl).trim() : "";
+        if (url.startsWith("/")) url = "file://" + url;
+        return url;
+    }
+
+    readonly property string currentTrackTitle: root.activePlayer?.trackTitle ? ("" + root.activePlayer.trackTitle).trim() : ""
+
+    onRawTrackArtChanged: {
+        if (rawTrackArt !== "") {
+            root.lastLoadedArtUrl = rawTrackArt;
+            artClearTimer.stop();
+        } else if (currentTrackTitle !== root.lastTrackTitle) {
+            artClearTimer.restart();
         }
-        return null;
+    }
+
+    onCurrentTrackTitleChanged: {
+        if (currentTrackTitle !== "" && currentTrackTitle !== root.lastTrackTitle) {
+            root.lastTrackTitle = currentTrackTitle;
+            if (rawTrackArt !== "") {
+                root.lastLoadedArtUrl = rawTrackArt;
+                artClearTimer.stop();
+            } else {
+                artClearTimer.restart();
+            }
+        } else if (!root.activePlayer || currentTrackTitle === "") {
+            root.lastLoadedArtUrl = "";
+            root.lastTrackTitle = "";
+            artClearTimer.stop();
+        }
+    }
+
+    Timer {
+        id: artClearTimer
+        interval: 800
+        repeat: false
+        onTriggered: {
+            if (root.rawTrackArt === "") {
+                root.lastLoadedArtUrl = "";
+            }
+        }
+    }
+
+    readonly property string displayTrackArt: {
+        if (rawTrackArt !== "") return rawTrackArt;
+        if (root.lastLoadedArtUrl !== "") return root.lastLoadedArtUrl;
+        return "";
     }
 
     readonly property bool isMediaPlaying: root.activePlayer?.playbackState === MprisPlaybackState.Playing
@@ -432,7 +530,7 @@ Scope {
                             Image {
                                 id: compactArt
                                 anchors.fill: parent
-                                source: root.activePlayer?.trackArtUrl ?? ""
+                                source: root.displayTrackArt
                                 fillMode: Image.PreserveAspectCrop
                                 visible: status === Image.Ready && source != ""
                                 asynchronous: true
@@ -737,7 +835,7 @@ Scope {
                                 Image {
                                     id: expandedArt
                                     anchors.fill: parent
-                                    source: root.activePlayer?.trackArtUrl ?? ""
+                                    source: root.displayTrackArt
                                     fillMode: Image.PreserveAspectCrop
                                     visible: status === Image.Ready && source != ""
                                     asynchronous: true
@@ -1360,7 +1458,7 @@ Scope {
                         Image {
                             id: satArt
                             anchors.fill: parent
-                            source: root.activePlayer?.trackArtUrl ?? ""
+                            source: root.displayTrackArt
                             fillMode: Image.PreserveAspectCrop
                             visible: false
                             asynchronous: true
