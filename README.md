@@ -4,9 +4,9 @@ A modern, fluid desktop environment built on **Hyprland (Wayland)** and powered 
 
 ---
 
-## ✨ Features
+## Features
 
-###  Apple-Grade Dynamic Island
+###  iOS Inspired Dynamic Island
 * **Multi-State Fluid Morphing**: Built with organic spring physics (`Easing.OutBack`) to adapt across desktop events:
   * **Compact Media Pill**: True OLED pitch-black (`#000000`) pill with specular glass rim, album art thumbnail, scrolling typography, live Cava waveform visualizer, and minimal play/pause toggle.
   * **Expanded Media Player**: Springs open into an interactive media card with high-res album art, interactive timeline scrubber (drag & wheel seek), time codes, and audio controls. Click-outside and 3s inactivity dismissal.
@@ -14,7 +14,7 @@ A modern, fluid desktop environment built on **Hyprland (Wayland)** and powered 
   * **Toast Notifications**: Interactive toasts morph directly into the island.
 * **Live Cava Audio Visualizer**: 4-bar dynamic audio equalizer driven directly by audio output.
 
-### 🏔️ macOS Tahoe Adaptive Top Bar
+### 🏔️ macOS Adaptive Menu Bar
 * **Luminance-Adaptive Contrast**: Automatically samples the top 36px of your active wallpaper ($Y = 0.2126R + 0.7152G + 0.0722B$). Dynamically inverts bar text, icons, and capsule backgrounds between pure white and dark charcoal (`#1a1b20`) when floating over light wallpapers.
 * **Window-Contact Smart Frosted Glass**: Uses Hyprland IPC client tracking (`hyprctl -j clients`) to seamlessly transition from transparent floating glass to solid frosted glass whenever any window touches the top bar or enters fullscreen.
 * **Harmonized 26px Geometry**: Distro button, workspace capsule, active window pill, island, tray icons, and clock are unified to a 26px height and 13px radius with 4px optical clearance.
@@ -26,7 +26,7 @@ A modern, fluid desktop environment built on **Hyprland (Wayland)** and powered 
 * **Wallpaper Palette Engine**: Deep integration with `matugen` generates harmonious M3 tonal palettes directly from the active wallpaper.
 * **Consistent Theming**: Applied across the Wallpaper Picker, Application Launcher, Control Center, Screenshot tool, and Bar.
 
-### 📸 Precision Screenshot HUD
+### Precision Screenshot HUD
 * **Multi-Mode Capture**: Fullscreen, active window, and interactive rectangle selection.
 * **Accent-Framed Slurp**: 100% transparent selection viewport (`-s "#00000000"`) accented with your dynamic theme color border.
 * **Instant Action**: Audio shutter feedback, clipboard copy, disk save to `~/Pictures/Screenshots`, and floating thumbnail preview.
@@ -74,7 +74,7 @@ A modern, fluid desktop environment built on **Hyprland (Wayland)** and powered 
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 | Purpose | Packages / Tools |
 | :--- | :--- |
@@ -87,7 +87,7 @@ A modern, fluid desktop environment built on **Hyprland (Wayland)** and powered 
 
 ---
 
-## 🚀 Installation & Running
+## Installation & Running
 
 1. **Deploy to Configuration Directory**:
    ```bash
