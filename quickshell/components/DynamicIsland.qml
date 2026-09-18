@@ -518,12 +518,12 @@ Scope {
                         anchors.centerIn: parent
                         spacing: 8
 
-                        // Thumbnail
+                        // Thumbnail (slightly rounded 18x18)
                         Rectangle {
+                            id: compactArtBox
                             width: 18
                             height: 18
                             radius: 4.5
-                            clip: true
                             color: Qt.rgba(0.12, 0.12, 0.15, 0.8)
                             anchors.verticalCenter: parent.verticalCenter
 
@@ -532,9 +532,28 @@ Scope {
                                 anchors.fill: parent
                                 source: root.displayTrackArt
                                 fillMode: Image.PreserveAspectCrop
-                                visible: status === Image.Ready && source != ""
+                                visible: false
                                 asynchronous: true
                                 cache: true
+                            }
+
+                            Rectangle {
+                                id: compactArtMask
+                                anchors.fill: parent
+                                radius: 4.5
+                                color: "#ffffff"
+                                antialiasing: true
+                                visible: false
+                                layer.enabled: true
+                            }
+
+                            MultiEffect {
+                                id: compactArtEffect
+                                anchors.fill: parent
+                                source: compactArt
+                                maskEnabled: true
+                                maskSource: compactArtMask
+                                visible: compactArt.status === Image.Ready && root.displayTrackArt !== ""
                             }
 
                             Text {
@@ -543,7 +562,7 @@ Scope {
                                 color: root.playerAccent
                                 font.pixelSize: 11
                                 font.family: root.font
-                                visible: !compactArt.visible
+                                visible: !compactArtEffect.visible
                             }
                         }
 
@@ -824,10 +843,10 @@ Scope {
 
                             // Album Art
                             Rectangle {
+                                id: expandedArtBox
                                 width: 52
                                 height: 52
-                                radius: 12
-                                clip: true
+                                radius: 10
                                 color: Qt.rgba(0, 0, 0, 0.35)
                                 border.color: Qt.rgba(1, 1, 1, 0.14)
                                 border.width: 1
@@ -837,9 +856,38 @@ Scope {
                                     anchors.fill: parent
                                     source: root.displayTrackArt
                                     fillMode: Image.PreserveAspectCrop
-                                    visible: status === Image.Ready && source != ""
+                                    visible: false
                                     asynchronous: true
                                     cache: true
+                                }
+
+                                Rectangle {
+                                    id: expandedArtMask
+                                    anchors.fill: parent
+                                    radius: 10
+                                    color: "#ffffff"
+                                    antialiasing: true
+                                    visible: false
+                                    layer.enabled: true
+                                }
+
+                                MultiEffect {
+                                    id: expandedArtEffect
+                                    anchors.fill: parent
+                                    source: expandedArt
+                                    maskEnabled: true
+                                    maskSource: expandedArtMask
+                                    visible: expandedArt.status === Image.Ready && root.displayTrackArt !== ""
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 10
+                                    color: "transparent"
+                                    border.color: expandedArtBox.border.color
+                                    border.width: expandedArtBox.border.width
+                                    antialiasing: true
+                                    z: 2
                                 }
 
                                 Text {
@@ -848,7 +896,7 @@ Scope {
                                     color: root.playerAccent
                                     font.pixelSize: 24
                                     font.family: root.font
-                                    visible: !expandedArt.visible
+                                    visible: !expandedArtEffect.visible
                                 }
                             }
 
@@ -1446,11 +1494,11 @@ Scope {
                     visible: root.satelliteType === "media"
 
                     Rectangle {
+                        id: satArtBox
                         anchors.centerIn: parent
                         width: 20
                         height: 20
-                        radius: 10
-                        clip: true
+                        radius: 5
                         color: Qt.rgba(0.12, 0.12, 0.15, 0.8)
                         border.color: Services.Aesthetic.innerCardBorder
                         border.width: 1
@@ -1468,8 +1516,9 @@ Scope {
                         Rectangle {
                             id: satArtMask
                             anchors.fill: parent
-                            radius: 10
+                            radius: 5
                             color: "#ffffff"
+                            antialiasing: true
                             visible: false
                             layer.enabled: true
                         }
@@ -1480,7 +1529,17 @@ Scope {
                             source: satArt
                             maskEnabled: true
                             maskSource: satArtMask
-                            visible: satArt.status === Image.Ready && satArt.source != ""
+                            visible: satArt.status === Image.Ready && root.displayTrackArt !== ""
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 5
+                            color: "transparent"
+                            border.color: satArtBox.border.color
+                            border.width: satArtBox.border.width
+                            antialiasing: true
+                            z: 2
                         }
 
                         Text {

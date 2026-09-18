@@ -6,6 +6,7 @@ import Quickshell.Services.Mpris
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import "../services" as Services
 import "../bar" as Bar
 
@@ -795,12 +796,12 @@ Scope {
                                         Layout.fillWidth: true
                                         spacing: 8
 
-                                        // Thumbnail / Art (46x46, radius 10)
+                                        // Thumbnail / Art (46x46, slightly rounded radius 8)
                                         Rectangle {
+                                            id: ccIosThumbBox
                                             width: 46
                                             height: 46
-                                            radius: 10
-                                            clip: true
+                                            radius: 8
                                             color: Services.Aesthetic.innerCardBg
                                             border.color: Services.Aesthetic.innerCardBorder
                                             border.width: 1
@@ -811,11 +812,40 @@ Scope {
                                                 anchors.fill: parent
                                                 source: root.displayTrackArt
                                                 fillMode: Image.PreserveAspectCrop
-                                                visible: status === Image.Ready && source != ""
+                                                visible: false
                                                 asynchronous: true
                                                 cache: true
                                                 sourceSize.width: 100
                                                 sourceSize.height: 100
+                                            }
+
+                                            Rectangle {
+                                                id: ccIosThumbMask
+                                                anchors.fill: parent
+                                                radius: 8
+                                                color: "#ffffff"
+                                                antialiasing: true
+                                                visible: false
+                                                layer.enabled: true
+                                            }
+
+                                            MultiEffect {
+                                                id: ccIosThumbEffect
+                                                anchors.fill: parent
+                                                source: ccIosThumb
+                                                maskEnabled: true
+                                                maskSource: ccIosThumbMask
+                                                visible: ccIosThumb.status === Image.Ready && root.displayTrackArt !== ""
+                                            }
+
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                radius: 8
+                                                color: "transparent"
+                                                border.color: ccIosThumbBox.border.color
+                                                border.width: ccIosThumbBox.border.width
+                                                antialiasing: true
+                                                z: 2
                                             }
 
                                             Text {
@@ -824,7 +854,7 @@ Scope {
                                                 color: "#fa2d48"
                                                 font.pixelSize: 22
                                                 font.family: root.font
-                                                visible: !ccIosThumb.visible
+                                                visible: !ccIosThumbEffect.visible
                                             }
                                         }
 
@@ -6857,12 +6887,12 @@ Scope {
                                 Layout.fillWidth: true
                                 spacing: 14
 
-                                // Album Art
+                                // Album Art (slightly rounded radius 10)
                                 Rectangle {
+                                    id: ccExpandedArtBox
                                     width: 52
                                     height: 52
-                                    radius: 12
-                                    clip: true
+                                    radius: 10
                                     color: Services.Aesthetic.innerCardBg
                                     border.color: Services.Aesthetic.innerCardBorder
                                     border.width: 1
@@ -6872,9 +6902,38 @@ Scope {
                                         anchors.fill: parent
                                         source: root.displayTrackArt
                                         fillMode: Image.PreserveAspectCrop
-                                        visible: status === Image.Ready && source != ""
+                                        visible: false
                                         asynchronous: true
                                         cache: true
+                                    }
+
+                                    Rectangle {
+                                        id: ccExpandedArtMask
+                                        anchors.fill: parent
+                                        radius: 10
+                                        color: "#ffffff"
+                                        antialiasing: true
+                                        visible: false
+                                        layer.enabled: true
+                                    }
+
+                                    MultiEffect {
+                                        id: ccExpandedArtEffect
+                                        anchors.fill: parent
+                                        source: ccExpandedArt
+                                        maskEnabled: true
+                                        maskSource: ccExpandedArtMask
+                                        visible: ccExpandedArt.status === Image.Ready && root.displayTrackArt !== ""
+                                    }
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: 10
+                                        color: "transparent"
+                                        border.color: ccExpandedArtBox.border.color
+                                        border.width: ccExpandedArtBox.border.width
+                                        antialiasing: true
+                                        z: 2
                                     }
 
                                     Text {
@@ -6883,7 +6942,7 @@ Scope {
                                         color: root.playerAccent
                                         font.pixelSize: 24
                                         font.family: root.font
-                                        visible: !ccExpandedArt.visible
+                                        visible: !ccExpandedArtEffect.visible
                                     }
                                 }
 

@@ -858,13 +858,15 @@ Scope {
                             anchors.centerIn: parent
                             spacing: 12
 
-                            // Album Artwork or Music Icon Thumbnail
+                            // Album Artwork or Music Icon Thumbnail (slightly rounded 36x36, radius 8)
                             Rectangle {
+                                id: lockTrackBox
                                 width: 36
                                 height: 36
-                                radius: 18
-                                clip: true
+                                radius: 8
                                 color: Qt.rgba(1, 1, 1, 0.10)
+                                border.color: Qt.rgba(1, 1, 1, 0.15)
+                                border.width: 1
                                 Layout.alignment: Qt.AlignVCenter
 
                                 Image {
@@ -872,9 +874,38 @@ Scope {
                                     anchors.fill: parent
                                     source: root.displayTrackArt
                                     fillMode: Image.PreserveAspectCrop
-                                    visible: status === Image.Ready && source != ""
+                                    visible: false
                                     asynchronous: true
                                     cache: true
+                                }
+
+                                Rectangle {
+                                    id: lockTrackMask
+                                    anchors.fill: parent
+                                    radius: 8
+                                    color: "#ffffff"
+                                    antialiasing: true
+                                    visible: false
+                                    layer.enabled: true
+                                }
+
+                                MultiEffect {
+                                    id: lockTrackEffect
+                                    anchors.fill: parent
+                                    source: lockTrackThumb
+                                    maskEnabled: true
+                                    maskSource: lockTrackMask
+                                    visible: lockTrackThumb.status === Image.Ready && root.displayTrackArt !== ""
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 8
+                                    color: "transparent"
+                                    border.color: lockTrackBox.border.color
+                                    border.width: lockTrackBox.border.width
+                                    antialiasing: true
+                                    z: 2
                                 }
 
                                 Text {
@@ -883,7 +914,7 @@ Scope {
                                     color: root.theme.accent
                                     font.pixelSize: 18
                                     font.family: root.font
-                                    visible: !lockTrackThumb.visible
+                                    visible: !lockTrackEffect.visible
                                 }
                             }
 
