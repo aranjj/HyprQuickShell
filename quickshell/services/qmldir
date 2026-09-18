@@ -1,0 +1,10 @@
+module services
+singleton SystemService 1.0 SystemService.qml
+singleton ClockService 1.0 ClockService.qml
+singleton OsdService 1.0 OsdService.qml
+singleton NotificationService 1.0 NotificationService.qml
+singleton WallpaperService 1.0 WallpaperService.qml
+singleton NightLightService 1.0 NightLightService.qml
+singleton ScreenshotService 1.0 ScreenshotService.qml
+singleton ThemeService 1.0 ThemeService.qml
+singleton Aesthetic 1.0 Aesthetic.qml
