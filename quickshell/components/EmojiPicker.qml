@@ -368,6 +368,18 @@ Scope {
             border.width: Services.Aesthetic.borderWidth
             clip: true
 
+            // Top specular glass highlight
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: Services.Aesthetic.cardRadius
+                anchors.rightMargin: Services.Aesthetic.cardRadius
+                height: 1
+                color: Qt.rgba(1, 1, 1, 0.12)
+                z: 10
+            }
+
             // Stop click bubbling
             MouseArea {
                 anchors.fill: parent
@@ -402,6 +414,7 @@ Scope {
                             font.pixelSize: 16
                             font.family: root.font
                             Layout.alignment: Qt.AlignVCenter
+                            renderType: Text.NativeRendering
                             Behavior on color { ColorAnimation { duration: 150 } }
                         }
 
@@ -423,6 +436,7 @@ Scope {
                                 font: parent.font
                                 visible: !parent.text && !parent.activeFocus
                                 verticalAlignment: Text.AlignVCenter
+                                renderType: Text.NativeRendering
                             }
 
                             onTextChanged: {
@@ -479,18 +493,20 @@ Scope {
                         // Clear Button
                         Rectangle {
                             visible: root.filterText.length > 0
-                            width: 22
-                            height: 22
-                            radius: 11
-                            color: clearMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: clearMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
                             Layout.alignment: Qt.AlignVCenter
+                            Behavior on color { ColorAnimation { duration: 100 } }
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "󰅖"
-                                color: root.theme.textSecondary
+                                color: root.theme.textMuted
                                 font.pixelSize: 11
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
 
                             MouseArea {
@@ -504,10 +520,17 @@ Scope {
                     }
                 }
 
+                // ── Search Divider ──
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.08)
+                }
+
                 // ── Category Selector Bar ────────────
                 Flickable {
                     Layout.fillWidth: true
-                    height: 30
+                    height: 28
                     contentWidth: categoryRow.width
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
@@ -522,22 +545,30 @@ Scope {
                             Rectangle {
                                 id: catPill
                                 width: catText.implicitWidth + 18
-                                height: 28
-                                radius: 8
+                                height: 26
+                                radius: 13
                                 color: {
                                     if (root.activeCategory === modelData.id) {
-                                        return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22);
+                                        return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18);
                                     }
                                     if (catMouse.containsMouse) {
                                         return Qt.rgba(1, 1, 1, 0.08);
                                     }
-                                    return Qt.rgba(1, 1, 1, 0.03);
+                                    return "transparent";
                                 }
-                                border.color: root.activeCategory === modelData.id ? root.theme.accent : "transparent"
+                                border.color: {
+                                    if (root.activeCategory === modelData.id) {
+                                        return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45);
+                                    }
+                                    if (catMouse.containsMouse) {
+                                        return Qt.rgba(1, 1, 1, 0.12);
+                                    }
+                                    return Qt.rgba(1, 1, 1, 0.05);
+                                }
                                 border.width: 1
 
-                                Behavior on color { ColorAnimation { duration: 120 } }
-                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Behavior on border.color { ColorAnimation { duration: 100 } }
 
                                 Row {
                                     id: catText
@@ -546,18 +577,20 @@ Scope {
 
                                     Text {
                                         text: modelData.icon
-                                        font.pixelSize: 12
+                                        font.pixelSize: 11
                                         font.family: root.font
                                         verticalAlignment: Text.AlignVCenter
+                                        renderType: Text.NativeRendering
                                     }
 
                                     Text {
                                         text: modelData.name
-                                        color: root.activeCategory === modelData.id ? root.theme.textPrimary : root.theme.textMuted
+                                        color: root.activeCategory === modelData.id ? root.theme.accent : (catMouse.containsMouse ? root.theme.textPrimary : root.theme.textMuted)
                                         font.pixelSize: 11
                                         font.family: root.font
                                         font.weight: root.activeCategory === modelData.id ? Font.DemiBold : Font.Normal
                                         verticalAlignment: Text.AlignVCenter
+                                        renderType: Text.NativeRendering
                                     }
                                 }
 
@@ -576,6 +609,13 @@ Scope {
                             }
                         }
                     }
+                }
+
+                // ── Category Divider ──
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.08)
                 }
 
                 // ── Emoji Grid View ──────────────────
@@ -603,17 +643,17 @@ Scope {
 
                             width: root.cellWidth
                             height: root.cellHeight
-                            radius: 10
+                            radius: 8
                             color: {
                                 if (isSelected) {
-                                    return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25);
+                                    return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22);
                                 }
                                 if (cellMouse.containsMouse) {
                                     return Qt.rgba(1, 1, 1, 0.08);
                                 }
                                 return "transparent";
                             }
-                            border.color: isSelected ? root.theme.accent : "transparent"
+                            border.color: isSelected ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : "transparent"
                             border.width: 1
 
                             Behavior on color { ColorAnimation { duration: 80 } }
@@ -661,6 +701,7 @@ Scope {
                             color: root.theme.textMuted
                             font.pixelSize: 32
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
 
                         Text {
@@ -670,6 +711,7 @@ Scope {
                             font.pixelSize: 14
                             font.weight: Font.DemiBold
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
 
                         Text {
@@ -678,18 +720,24 @@ Scope {
                             color: root.theme.textMuted
                             font.pixelSize: 12
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
                     }
+                }
+
+                // ── Footer Divider ──
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.08)
                 }
 
                 // ── Bottom Preview & Helper Bar ──────
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 38
-                    radius: 10
+                    height: 34
+                    radius: 8
                     color: Qt.rgba(1, 1, 1, 0.03)
-                    border.color: Qt.rgba(1, 1, 1, 0.05)
-                    border.width: 1
 
                     RowLayout {
                         anchors.fill: parent
@@ -722,6 +770,7 @@ Scope {
                             font.weight: Font.Medium
                             font.family: root.font
                             elide: Text.ElideRight
+                            renderType: Text.NativeRendering
                         }
 
                         // Shortcut hint
@@ -730,30 +779,40 @@ Scope {
                             spacing: 6
 
                             Rectangle {
-                                width: 36
-                                height: 18
-                                radius: 4
-                                color: Qt.rgba(1, 1, 1, 0.08)
+                                height: 20
+                                width: enterHintText.implicitWidth + 10
+                                radius: 5
+                                color: Qt.rgba(1, 1, 1, 0.06)
+                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                border.width: 1
+
                                 Text {
+                                    id: enterHintText
                                     anchors.centerIn: parent
                                     text: "↵ Copy"
                                     color: root.theme.textMuted
                                     font.pixelSize: 10
                                     font.family: root.font
+                                    renderType: Text.NativeRendering
                                 }
                             }
 
                             Rectangle {
-                                width: 36
-                                height: 18
-                                radius: 4
-                                color: Qt.rgba(1, 1, 1, 0.08)
+                                height: 20
+                                width: escHintText.implicitWidth + 10
+                                radius: 5
+                                color: Qt.rgba(1, 1, 1, 0.06)
+                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                border.width: 1
+
                                 Text {
+                                    id: escHintText
                                     anchors.centerIn: parent
                                     text: "Esc"
                                     color: root.theme.textMuted
                                     font.pixelSize: 10
                                     font.family: root.font
+                                    renderType: Text.NativeRendering
                                 }
                             }
                         }

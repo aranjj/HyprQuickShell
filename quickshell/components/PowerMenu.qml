@@ -57,6 +57,19 @@ Scope {
                 color: Services.Aesthetic.cardBg
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
+                clip: true
+
+                // Top specular glass highlight
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: Services.Aesthetic.cardRadius
+                    anchors.rightMargin: Services.Aesthetic.cardRadius
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.12)
+                    z: 10
+                }
 
                 // Stop dismissal click from propagating
                 MouseArea {
@@ -78,19 +91,24 @@ Scope {
                             font.pixelSize: 16
                             font.family: root.font
                             font.weight: Font.DemiBold
+                            renderType: Text.NativeRendering
                         }
                         Item { Layout.fillWidth: true }
                         Rectangle {
-                            width: 26
-                            height: 26
-                            radius: 13
-                            color: closeMouse.containsMouse ? root.theme.pillHover : "transparent"
+                            width: 24
+                            height: 24
+                            radius: 12
+                            color: closeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.06)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            Behavior on color { ColorAnimation { duration: 100 } }
                             Text {
                                 anchors.centerIn: parent
                                 text: "✕"
-                                color: root.theme.textSecondary
-                                font.pixelSize: 12
+                                color: root.theme.textMuted
+                                font.pixelSize: 11
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
                             MouseArea {
                                 id: closeMouse

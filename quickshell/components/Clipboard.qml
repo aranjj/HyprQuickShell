@@ -286,6 +286,18 @@ Scope {
             border.width: Services.Aesthetic.borderWidth
             clip: true
 
+            // Top specular glass highlight
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: Services.Aesthetic.cardRadius
+                anchors.rightMargin: Services.Aesthetic.cardRadius
+                height: 1
+                color: Qt.rgba(1, 1, 1, 0.12)
+                z: 10
+            }
+
             Behavior on height {
                 NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
             }
@@ -299,7 +311,7 @@ Scope {
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 16
-                spacing: 12
+                spacing: 10
 
                 // ── Header: Search & Quick Actions ──────────
                 RowLayout {
@@ -309,7 +321,7 @@ Scope {
                     // Search Pill
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 44
+                        height: 42
                         radius: 12
                         color: Qt.rgba(1, 1, 1, 0.05)
                         border.color: searchInput.activeFocus ? root.theme.accent : Qt.rgba(1, 1, 1, 0.08)
@@ -320,7 +332,7 @@ Scope {
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 12
-                            anchors.rightMargin: 12
+                            anchors.rightMargin: 10
                             spacing: 8
 
                             Text {
@@ -329,6 +341,7 @@ Scope {
                                 font.pixelSize: 16
                                 font.family: root.font
                                 Layout.alignment: Qt.AlignVCenter
+                                renderType: Text.NativeRendering
                                 Behavior on color { ColorAnimation { duration: 120 } }
                             }
 
@@ -337,7 +350,7 @@ Scope {
                                 Layout.fillWidth: true
                                 Layout.alignment: Qt.AlignVCenter
                                 color: root.theme.textPrimary
-                                font.pixelSize: 14
+                                font.pixelSize: 13
                                 font.family: root.font
                                 font.weight: Font.Medium
                                 clip: true
@@ -350,6 +363,7 @@ Scope {
                                     font: parent.font
                                     visible: !parent.text && !parent.activeFocus
                                     verticalAlignment: Text.AlignVCenter
+                                    renderType: Text.NativeRendering
                                 }
 
                                 onTextChanged: {
@@ -391,16 +405,27 @@ Scope {
                                 }
                             }
 
-                            // Clear search button
-                            Text {
-                                text: "✕"
-                                color: root.theme.textMuted
-                                font.pixelSize: 12
-                                font.family: root.font
+                            // Clear search circular button
+                            Rectangle {
                                 visible: searchInput.text.length > 0
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: clearSearchMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
                                 Layout.alignment: Qt.AlignVCenter
+                                Behavior on color { ColorAnimation { duration: 100 } }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰅖"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 11
+                                    font.family: root.font
+                                    renderType: Text.NativeRendering
+                                }
 
                                 MouseArea {
+                                    id: clearSearchMouse
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
@@ -414,7 +439,7 @@ Scope {
 
                     // Count Badge
                     Rectangle {
-                        height: 44
+                        height: 42
                         Layout.preferredWidth: countText.implicitWidth + 18
                         radius: 12
                         color: Qt.rgba(1, 1, 1, 0.04)
@@ -429,13 +454,14 @@ Scope {
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
                     }
 
                     // Clear All Button
                     Rectangle {
                         id: clearBtn
-                        height: 44
+                        height: 42
                         Layout.preferredWidth: clearRow.implicitWidth + 20
                         radius: 12
                         color: clearArea.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.14) : Qt.rgba(1, 1, 1, 0.04)
@@ -455,6 +481,7 @@ Scope {
                                 color: clearArea.containsMouse ? "#ff453a" : root.theme.textMuted
                                 font.pixelSize: 13
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
@@ -463,6 +490,7 @@ Scope {
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
                         }
 
@@ -474,6 +502,13 @@ Scope {
                             onClicked: root.wipeHistory()
                         }
                     }
+                }
+
+                // ── Header Divider ──
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.08)
                 }
 
                 // ── Empty State ─────────────────────────────
@@ -502,6 +537,7 @@ Scope {
                             font.weight: Font.Medium
                             font.family: root.font
                             Layout.alignment: Qt.AlignHCenter
+                            renderType: Text.NativeRendering
                         }
 
                         Text {
@@ -512,6 +548,7 @@ Scope {
                             opacity: 0.7
                             Layout.alignment: Qt.AlignHCenter
                             visible: !searchInput.text.trim()
+                            renderType: Text.NativeRendering
                         }
                     }
                 }
@@ -522,7 +559,7 @@ Scope {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    spacing: 4
+                    spacing: 3
                     visible: root.filteredItems.length > 0
                     boundsBehavior: Flickable.StopAtBounds
                     model: root.filteredItems
@@ -530,17 +567,17 @@ Scope {
                     delegate: Rectangle {
                         id: itemRow
                         width: itemList.width
-                        height: itemData.isImage ? 58 : 50
-                        radius: 10
+                        height: itemData.isImage ? 56 : 44
+                        radius: 8
 
                         readonly property bool isSelected: index === root.selectedIndex
                         readonly property var itemData: modelData
 
                         color: isSelected 
-                            ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16)
-                            : (rowHover.containsMouse ? Qt.rgba(1, 1, 1, 0.04) : "transparent")
+                            ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
+                            : (rowHover.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
                         border.color: isSelected 
-                            ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                            ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.40)
                             : "transparent"
                         border.width: 1
 
@@ -556,7 +593,7 @@ Scope {
                             // Left Accent Indicator Pill
                             Rectangle {
                                 width: 3
-                                height: itemData.isImage ? 28 : 22
+                                height: itemData.isImage ? 26 : 20
                                 radius: 1.5
                                 color: root.theme.accent
                                 visible: itemRow.isSelected
@@ -567,8 +604,10 @@ Scope {
                             Rectangle {
                                 width: 20
                                 height: 20
-                                radius: 6
+                                radius: 5
                                 color: itemRow.isSelected ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3) : Qt.rgba(1, 1, 1, 0.05)
+                                border.color: Qt.rgba(1, 1, 1, 0.06)
+                                border.width: 1
                                 visible: index < 9
                                 Layout.alignment: Qt.AlignVCenter
 
@@ -579,14 +618,15 @@ Scope {
                                     font.pixelSize: 10
                                     font.weight: Font.DemiBold
                                     font.family: root.font
+                                    renderType: Text.NativeRendering
                                 }
                             }
 
                             // Type Icon Badge or Image Thumbnail
                             Rectangle {
-                                width: itemData.isImage ? 46 : 32
-                                height: itemData.isImage ? 46 : 32
-                                radius: 8
+                                width: itemData.isImage ? 42 : 28
+                                height: itemData.isImage ? 42 : 28
+                                radius: 6
                                 Layout.alignment: Qt.AlignVCenter
                                 color: {
                                     if (itemData.isImage) return Qt.rgba(0, 0, 0, 0.35);
@@ -630,8 +670,9 @@ Scope {
                                         if (itemData.isCode) return root.theme.accentMauve;
                                         return root.theme.accent;
                                     }
-                                    font.pixelSize: itemData.isImage ? 18 : 15
+                                    font.pixelSize: itemData.isImage ? 16 : 14
                                     font.family: root.font
+                                    renderType: Text.NativeRendering
                                 }
                             }
 
@@ -649,6 +690,7 @@ Scope {
                                     font.weight: itemRow.isSelected ? Font.DemiBold : Font.Normal
                                     font.family: root.font
                                     elide: Text.ElideRight
+                                    renderType: Text.NativeRendering
                                 }
 
                                 Text {
@@ -658,13 +700,14 @@ Scope {
                                     font.pixelSize: 10
                                     font.family: root.font
                                     elide: Text.ElideRight
+                                    renderType: Text.NativeRendering
                                 }
                             }
 
                             // Delete Action Button
                             Rectangle {
-                                width: 26
-                                height: 26
+                                width: 24
+                                height: 24
                                 radius: 6
                                 color: delArea.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.18) : "transparent"
                                 border.color: delArea.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.4) : "transparent"
@@ -677,8 +720,9 @@ Scope {
                                     anchors.centerIn: parent
                                     text: "󰆴"
                                     color: delArea.containsMouse ? "#ff5c50" : root.theme.textMuted
-                                    font.pixelSize: 13
+                                    font.pixelSize: 12
                                     font.family: root.font
+                                    renderType: Text.NativeRendering
                                 }
 
                                 MouseArea {
@@ -692,10 +736,12 @@ Scope {
 
                             // Return/Copy hint pill on selected row
                             Rectangle {
-                                height: 22
+                                height: 20
                                 Layout.preferredWidth: copyHintText.implicitWidth + 12
-                                radius: 6
-                                color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.20)
+                                radius: 5
+                                color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
+                                border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                border.width: 1
                                 visible: itemRow.isSelected
                                 Layout.alignment: Qt.AlignVCenter
 
@@ -707,6 +753,7 @@ Scope {
                                      font.pixelSize: 10
                                      font.weight: Font.DemiBold
                                      font.family: root.font
+                                     renderType: Text.NativeRendering
                                 }
                             }
                         }
@@ -723,82 +770,98 @@ Scope {
                     }
                 }
 
+                // ── Footer Divider ──
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.08)
+                }
+
                 // ── Footer Bar ──────────────────────────────
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 32
-                    radius: 8
+                    height: 28
+                    radius: 6
                     color: Qt.rgba(1, 1, 1, 0.03)
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
 
                         RowLayout {
-                            spacing: 12
+                            spacing: 10
 
                             Text {
                                 text: "↑↓ Navigate"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "•"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 opacity: 0.5
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "↵ Copy"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "•"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 opacity: 0.5
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "Alt+1..9 Quick Pick"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "•"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 opacity: 0.5
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "Del Remove"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "•"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 opacity: 0.5
+                                renderType: Text.NativeRendering
                             }
 
                             Text {
                                 text: "Esc Close"
                                 color: root.theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
                         }
 
@@ -807,10 +870,11 @@ Scope {
                         Text {
                             text: root.statusMessage ? root.statusMessage : "cliphist + wl-clipboard"
                             color: root.statusMessage ? root.theme.accent : root.theme.textMuted
-                            font.pixelSize: 11
+                            font.pixelSize: 10
                             font.weight: root.statusMessage ? Font.Bold : Font.Normal
                             font.family: root.font
                             opacity: root.statusMessage ? 1.0 : 0.6
+                            renderType: Text.NativeRendering
                         }
                     }
                 }

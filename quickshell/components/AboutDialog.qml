@@ -46,9 +46,14 @@ Scope {
             }
 
             // Dimmed backdrop click to dismiss
-            MouseArea {
+            Rectangle {
                 anchors.fill: parent
-                onClicked: Services.SystemService.aboutDialogOpen = false
+                color: Services.Aesthetic.backdropColor
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: Services.SystemService.aboutDialogOpen = false
+                }
             }
 
             // ── macOS "About This Mac" Card ─────────────
@@ -62,6 +67,18 @@ Scope {
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
+
+                // Top specular glass highlight
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: Services.Aesthetic.cardRadius
+                    anchors.rightMargin: Services.Aesthetic.cardRadius
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.12)
+                    z: 10
+                }
 
                 // Prevent backdrop clicks from closing inside the card
                 MouseArea {
@@ -78,7 +95,9 @@ Scope {
                     width: 24
                     height: 24
                     radius: 12
-                    color: closeM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                    color: closeM.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.06)
+                    border.color: Qt.rgba(1, 1, 1, 0.08)
+                    border.width: 1
                     Behavior on color { ColorAnimation { duration: 100 } }
 
                     Text {
@@ -87,6 +106,7 @@ Scope {
                         color: root.theme.textMuted
                         font.pixelSize: 10
                         font.family: root.font
+                        renderType: Text.NativeRendering
                     }
 
                     MouseArea {

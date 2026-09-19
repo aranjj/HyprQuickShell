@@ -307,12 +307,17 @@ Scope {
                 left: true
             }
 
-            // Click backdrop to dismiss
-            MouseArea {
+            // Dimmed Backdrop (click to dismiss)
+            Rectangle {
                 anchors.fill: parent
-                onClicked: {
-                    Services.SystemService.controlCenterOpen = false;
-                    Services.SystemService.controlCenterSubView = "main";
+                color: Services.Aesthetic.backdropColor
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        Services.SystemService.controlCenterOpen = false;
+                        Services.SystemService.controlCenterSubView = "main";
+                    }
                 }
             }
 
@@ -331,6 +336,18 @@ Scope {
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
 
+                // Top specular glass highlight
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: Services.Aesthetic.cardRadius
+                    anchors.rightMargin: Services.Aesthetic.cardRadius
+                    height: 1
+                    color: Qt.rgba(1, 1, 1, 0.12)
+                    z: 10
+                }
+
                 // Prevent click dismissal
                 MouseArea {
                     anchors.fill: parent
@@ -348,7 +365,7 @@ Scope {
                     anchors.horizontalCenter: parent.horizontalCenter
                     radius: 11
                     color: Qt.rgba(1, 1, 1, 0.05)
-                    border.color: Qt.rgba(1, 1, 1, 0.07)
+                    border.color: Qt.rgba(1, 1, 1, 0.08)
                     border.width: 1
 
                     // Sliding Pill Indicator
@@ -431,6 +448,7 @@ Scope {
                                     font.family: root.font
                                     font.weight: Services.SystemService.controlCenterTab === "controls" ? Font.Bold : Font.Normal
                                     anchors.verticalCenter: parent.verticalCenter
+                                    renderType: Text.NativeRendering
                                 }
                             }
 
@@ -459,6 +477,7 @@ Scope {
                                     font.pixelSize: 14
                                     font.family: root.font
                                     anchors.verticalCenter: parent.verticalCenter
+                                    renderType: Text.NativeRendering
                                 }
 
                                 Text {
@@ -468,6 +487,7 @@ Scope {
                                     font.family: root.font
                                     font.weight: Services.SystemService.controlCenterTab === "notifications" ? Font.Bold : Font.Normal
                                     anchors.verticalCenter: parent.verticalCenter
+                                    renderType: Text.NativeRendering
                                 }
                             }
 
@@ -1868,6 +1888,7 @@ Scope {
                                 color: backWM.containsMouse ? "#ffffff" : root.theme.textPrimary
                                 font.pixelSize: 18
                                 font.family: root.font
+                                renderType: Text.NativeRendering
                             }
                             MouseArea {
                                 id: backWM
@@ -1889,6 +1910,7 @@ Scope {
                             font.pixelSize: 16
                             font.family: root.font
                             font.weight: Font.DemiBold
+                            renderType: Text.NativeRendering
                         }
 
                         Item { Layout.fillWidth: true }
@@ -1921,6 +1943,7 @@ Scope {
                                     font.family: root.font
                                     font.weight: Font.Medium
                                     anchors.verticalCenter: parent.verticalCenter
+                                    renderType: Text.NativeRendering
                                 }
                             }
                         }

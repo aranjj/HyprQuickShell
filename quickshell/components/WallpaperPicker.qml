@@ -82,7 +82,7 @@ Scope {
         // Dimmed backdrop (click to dismiss)
         Rectangle {
             anchors.fill: parent
-            color: Qt.rgba(0, 0, 0, 0.60)
+            color: Services.Aesthetic.backdropColor
 
             MouseArea {
                 anchors.fill: parent
@@ -143,6 +143,18 @@ Scope {
             border.width: Services.Aesthetic.borderWidth
             clip: true
 
+            // Top specular glass highlight
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: Services.Aesthetic.cardRadius
+                anchors.rightMargin: Services.Aesthetic.cardRadius
+                height: 1
+                color: Qt.rgba(1, 1, 1, 0.12)
+                z: 10
+            }
+
             // Prevent click propagation
             MouseArea {
                 anchors.fill: parent
@@ -167,6 +179,7 @@ Scope {
                             color: root.theme.accent
                             font.pixelSize: 18
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
 
                         Text {
@@ -175,6 +188,7 @@ Scope {
                             font.pixelSize: 17
                             font.weight: Font.DemiBold
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
                     }
 
@@ -182,7 +196,7 @@ Scope {
                     Rectangle {
                         height: 24
                         radius: 12
-                        color: Qt.rgba(1, 1, 1, 0.06)
+                        color: Qt.rgba(1, 1, 1, 0.05)
                         border.color: Qt.rgba(1, 1, 1, 0.08)
                         border.width: 1
                         Layout.preferredWidth: counterText.implicitWidth + 16
@@ -197,6 +211,7 @@ Scope {
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
                     }
 
@@ -207,60 +222,62 @@ Scope {
                         spacing: 8
 
                         Rectangle {
-                            height: 24
-                            radius: 6
-                            color: Qt.rgba(1, 1, 1, 0.05)
-                            border.color: Qt.rgba(1, 1, 1, 0.06)
+                            height: 22
+                            radius: 5
+                            color: Qt.rgba(1, 1, 1, 0.06)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
                             border.width: 1
-                            Layout.preferredWidth: hintArrows.implicitWidth + 10
+                            Layout.preferredWidth: hintArrows.implicitWidth + 12
                             RowLayout {
                                 id: hintArrows
                                 anchors.centerIn: parent
                                 spacing: 4
-                                Text { text: "← →"; color: root.theme.textSecondary; font.pixelSize: 10; font.weight: Font.Bold; font.family: root.font }
-                                Text { text: "Navigate"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                Text { text: "← →"; color: root.theme.textSecondary; font.pixelSize: 10; font.weight: Font.Bold; font.family: root.font; renderType: Text.NativeRendering }
+                                Text { text: "Navigate"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font; renderType: Text.NativeRendering }
                             }
                         }
 
                         Rectangle {
-                            height: 24
-                            radius: 6
-                            color: Qt.rgba(1, 1, 1, 0.05)
-                            border.color: Qt.rgba(1, 1, 1, 0.06)
+                            height: 22
+                            radius: 5
+                            color: Qt.rgba(1, 1, 1, 0.06)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
                             border.width: 1
-                            Layout.preferredWidth: hintEnter.implicitWidth + 10
+                            Layout.preferredWidth: hintEnter.implicitWidth + 12
                             RowLayout {
                                 id: hintEnter
                                 anchors.centerIn: parent
                                 spacing: 4
-                                Text { text: "↵ Enter"; color: "#30d158"; font.pixelSize: 10; font.weight: Font.Bold; font.family: root.font }
-                                Text { text: "Set"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                Text { text: "↵ Enter"; color: "#30d158"; font.pixelSize: 10; font.weight: Font.Bold; font.family: root.font; renderType: Text.NativeRendering }
+                                Text { text: "Set"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font; renderType: Text.NativeRendering }
                             }
                         }
 
                         Rectangle {
-                            height: 24
-                            radius: 6
-                            color: Qt.rgba(1, 1, 1, 0.05)
-                            border.color: Qt.rgba(1, 1, 1, 0.06)
+                            height: 22
+                            radius: 5
+                            color: Qt.rgba(1, 1, 1, 0.06)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
                             border.width: 1
-                            Layout.preferredWidth: hintEsc.implicitWidth + 10
+                            Layout.preferredWidth: hintEsc.implicitWidth + 12
                             RowLayout {
                                 id: hintEsc
                                 anchors.centerIn: parent
                                 spacing: 4
-                                Text { text: "Esc"; color: root.theme.textMuted; font.pixelSize: 10; font.weight: Font.Bold; font.family: root.font }
-                                Text { text: "Close"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                Text { text: "Esc"; color: root.theme.textMuted; font.pixelSize: 10; font.weight: Font.Bold; font.family: root.font; renderType: Text.NativeRendering }
+                                Text { text: "Close"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font; renderType: Text.NativeRendering }
                             }
                         }
                     }
 
                     // Close Button
                     Rectangle {
-                        width: 26
-                        height: 26
-                        radius: 13
-                        color: closeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                        width: 24
+                        height: 24
+                        radius: 12
+                        color: closeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.06)
+                        border.color: Qt.rgba(1, 1, 1, 0.08)
+                        border.width: 1
                         Behavior on color { ColorAnimation { duration: 100 } }
 
                         Text {
@@ -269,6 +286,7 @@ Scope {
                             color: root.theme.textMuted
                             font.pixelSize: 11
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
 
                         MouseArea {
@@ -357,6 +375,7 @@ Scope {
                                             color: "#ffffff"
                                             font.pixelSize: 10
                                             font.weight: Font.Bold
+                                            renderType: Text.NativeRendering
                                         }
                                         Text {
                                             text: "ACTIVE"
@@ -364,6 +383,7 @@ Scope {
                                             font.pixelSize: 9
                                             font.weight: Font.Bold
                                             font.family: root.font
+                                            renderType: Text.NativeRendering
                                         }
                                     }
                                 }
@@ -404,6 +424,7 @@ Scope {
                             color: "#ffffff"
                             font.pixelSize: 20
                             font.weight: Font.DemiBold
+                            renderType: Text.NativeRendering
                         }
 
                         MouseArea {
@@ -434,6 +455,7 @@ Scope {
                             color: "#ffffff"
                             font.pixelSize: 20
                             font.weight: Font.DemiBold
+                            renderType: Text.NativeRendering
                         }
 
                         MouseArea {
@@ -464,6 +486,7 @@ Scope {
                         font.pixelSize: 12
                         font.weight: Font.Medium
                         font.family: root.font
+                        renderType: Text.NativeRendering
                     }
 
                     RowLayout {
@@ -474,38 +497,40 @@ Scope {
 
                             Rectangle {
                                 required property var modelData
-                                height: 28
-                                radius: 8
+                                height: 26
+                                radius: 13
                                 color: Services.Aesthetic.preset === modelData.id
-                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
-                                    : (optMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.04))
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
+                                    : (optMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
                                 border.color: Services.Aesthetic.preset === modelData.id
-                                    ? root.theme.accent
-                                    : Qt.rgba(1, 1, 1, 0.09)
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45)
+                                    : (optMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
                                 border.width: 1
-                                Layout.preferredWidth: optRow.implicitWidth + 16
+                                Layout.preferredWidth: optRow.implicitWidth + 18
 
-                                Behavior on color { ColorAnimation { duration: 120 } }
-                                Behavior on border.color { ColorAnimation { duration: 120 } }
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Behavior on border.color { ColorAnimation { duration: 100 } }
 
                                 RowLayout {
                                     id: optRow
                                     anchors.centerIn: parent
-                                    spacing: 6
+                                    spacing: 5
 
                                     Text {
                                         text: modelData.icon
                                         color: Services.Aesthetic.preset === modelData.id ? root.theme.accent : root.theme.textMuted
-                                        font.pixelSize: 12
+                                        font.pixelSize: 11
                                         font.family: root.font
+                                        renderType: Text.NativeRendering
                                     }
 
                                     Text {
                                         text: modelData.name
-                                        color: Services.Aesthetic.preset === modelData.id ? "#ffffff" : root.theme.textSecondary
+                                        color: Services.Aesthetic.preset === modelData.id ? root.theme.accent : (optMouse.containsMouse ? root.theme.textPrimary : root.theme.textSecondary)
                                         font.pixelSize: 11
                                         font.weight: Services.Aesthetic.preset === modelData.id ? Font.DemiBold : Font.Normal
                                         font.family: root.font
+                                        renderType: Text.NativeRendering
                                     }
                                 }
 
@@ -535,6 +560,7 @@ Scope {
                         color: root.theme.textMuted
                         font.pixelSize: 11
                         font.family: root.font
+                        renderType: Text.NativeRendering
                     }
                 }
 
@@ -558,6 +584,7 @@ Scope {
                             font.family: root.font
                             elide: Text.ElideRight
                             Layout.fillWidth: true
+                            renderType: Text.NativeRendering
                         }
 
                         Text {
@@ -569,15 +596,16 @@ Scope {
                             font.family: root.font
                             elide: Text.ElideMiddle
                             Layout.fillWidth: true
+                            renderType: Text.NativeRendering
                         }
                     }
 
                     // Random Button
                     Rectangle {
-                        height: 34
+                        height: 32
                         radius: 8
                         color: randBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06)
-                        border.color: Qt.rgba(1, 1, 1, 0.09)
+                        border.color: Qt.rgba(1, 1, 1, 0.08)
                         border.width: 1
                         Layout.preferredWidth: randRow.implicitWidth + 20
                         Behavior on color { ColorAnimation { duration: 100 } }
@@ -586,8 +614,8 @@ Scope {
                             id: randRow
                             anchors.centerIn: parent
                             spacing: 6
-                            Text { text: "󰘚"; color: "#ff9f0a"; font.pixelSize: 13; font.family: root.font }
-                            Text { text: "Random (R)"; color: root.theme.textPrimary; font.pixelSize: 12; font.weight: Font.Medium; font.family: root.font }
+                            Text { text: "󰘚"; color: "#ff9f0a"; font.pixelSize: 13; font.family: root.font; renderType: Text.NativeRendering }
+                            Text { text: "Random (R)"; color: root.theme.textPrimary; font.pixelSize: 12; font.weight: Font.Medium; font.family: root.font; renderType: Text.NativeRendering }
                         }
 
                         MouseArea {
@@ -601,10 +629,10 @@ Scope {
 
                     // Cancel Button
                     Rectangle {
-                        height: 34
+                        height: 32
                         radius: 8
                         color: cancelBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06)
-                        border.color: Qt.rgba(1, 1, 1, 0.09)
+                        border.color: Qt.rgba(1, 1, 1, 0.08)
                         border.width: 1
                         Layout.preferredWidth: 72
                         Behavior on color { ColorAnimation { duration: 100 } }
@@ -616,6 +644,7 @@ Scope {
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             font.family: root.font
+                            renderType: Text.NativeRendering
                         }
 
                         MouseArea {
@@ -629,9 +658,9 @@ Scope {
 
                     // Apply Button (Primary)
                     Rectangle {
-                        height: 34
+                        height: 32
                         radius: 8
-                        color: applyBtnM.containsMouse ? Qt.darker(root.theme.accent, 1.15) : root.theme.accent
+                        color: applyBtnM.pressed ? Qt.darker(root.theme.accent, 1.25) : (applyBtnM.containsMouse ? Qt.darker(root.theme.accent, 1.15) : root.theme.accent)
                         Layout.preferredWidth: applyRow.implicitWidth + 24
                         Behavior on color { ColorAnimation { duration: 100 } }
 
@@ -639,8 +668,8 @@ Scope {
                             id: applyRow
                             anchors.centerIn: parent
                             spacing: 6
-                            Text { text: "󰄬"; color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: root.font }
-                            Text { text: "Set Wallpaper"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.DemiBold; font.family: root.font }
+                            Text { text: "󰄬"; color: "#ffffff"; font.pixelSize: 13; font.weight: Font.Bold; font.family: root.font; renderType: Text.NativeRendering }
+                            Text { text: "Set Wallpaper"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.DemiBold; font.family: root.font; renderType: Text.NativeRendering }
                         }
 
                         MouseArea {
