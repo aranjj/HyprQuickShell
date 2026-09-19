@@ -1475,163 +1475,244 @@ Scope {
                         anchors.bottomMargin: 8
                         spacing: 8
 
-                        // Search Pill (Unified design matching Clipboard and EmojiPicker)
-                        Rectangle {
+                        // ── Top Header Row: Search & Status Badges ──
+                        RowLayout {
                             Layout.fillWidth: true
-                            height: 42
-                            radius: 12
-                            color: Qt.rgba(1, 1, 1, 0.05)
-                            border.color: searchInput.activeFocus ? root.theme.accent : (searchInput.text ? root.theme.accent : Qt.rgba(1, 1, 1, 0.08))
-                            border.width: 1
+                            spacing: 8
 
-                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            // Search Pill (Unified design matching Clipboard and EmojiPicker, constrained to list pane width)
+                            Rectangle {
+                                Layout.preferredWidth: 416
+                                height: 42
+                                radius: 12
+                                color: Qt.rgba(1, 1, 1, 0.05)
+                                border.color: searchInput.activeFocus ? root.theme.accent : (searchInput.text ? root.theme.accent : Qt.rgba(1, 1, 1, 0.08))
+                                border.width: 1
 
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 10
-                                spacing: 8
+                                Behavior on border.color { ColorAnimation { duration: 120 } }
 
-                                // Magnifying glass icon
-                                Text {
-                                    text: "󰍉"
-                                    color: searchInput.activeFocus ? root.theme.accent : root.txtMuted
-                                    font.pixelSize: 16
-                                    font.family: root.font
-                                    Layout.alignment: Qt.AlignVCenter
-                                    renderType: Text.NativeRendering
-                                    Behavior on color { ColorAnimation { duration: 120 } }
-                                }
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 10
+                                    spacing: 8
 
-                                // Search input field
-                                TextInput {
-                                    id: searchInput
-                                    Layout.fillWidth: true
-                                    Layout.alignment: Qt.AlignVCenter
-                                    color: root.txtPrimary
-                                    font.pixelSize: 13
-                                    font.family: root.font
-                                    font.weight: Font.Medium
-                                    clip: true
-                                    focus: true
-
+                                    // Magnifying glass icon
                                     Text {
-                                        anchors.fill: parent
-                                        text: root.searchPlaceholder
-                                        color: root.txtMuted
-                                        font: parent.font
-                                        visible: !parent.text
-                                        verticalAlignment: Text.AlignVCenter
+                                        text: "󰍉"
+                                        color: searchInput.activeFocus ? root.theme.accent : root.txtMuted
+                                        font.pixelSize: 16
+                                        font.family: root.font
+                                        Layout.alignment: Qt.AlignVCenter
                                         renderType: Text.NativeRendering
+                                        Behavior on color { ColorAnimation { duration: 120 } }
                                     }
 
-                                    onTextChanged: {
-                                        if (!launcherPanel.visible) return;
-                                        root.selectedIndex = 0;
-                                        root.updateSearchResults();
-                                    }
+                                    // Search input field
+                                    TextInput {
+                                        id: searchInput
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        color: root.txtPrimary
+                                        font.pixelSize: 13
+                                        font.family: root.font
+                                        font.weight: Font.Medium
+                                        clip: true
+                                        focus: true
 
-                                    Keys.onEscapePressed: {
-                                        if (text !== "") {
-                                            text = "";
-                                        } else {
-                                            root.closeLauncher();
+                                        Text {
+                                            anchors.fill: parent
+                                            text: root.searchPlaceholder
+                                            color: root.txtMuted
+                                            font: parent.font
+                                            visible: !parent.text
+                                            verticalAlignment: Text.AlignVCenter
+                                            renderType: Text.NativeRendering
+                                        }
+
+                                        onTextChanged: {
+                                            if (!launcherPanel.visible) return;
+                                            root.selectedIndex = 0;
+                                            root.updateSearchResults();
+                                        }
+
+                                        Keys.onEscapePressed: {
+                                            if (text !== "") {
+                                                text = "";
+                                            } else {
+                                                root.closeLauncher();
+                                            }
+                                        }
+
+                                        Keys.onPressed: (event) => {
+                                            // 1. Tab / Shift+Tab cycles Category Filter Chips
+                                            if ((event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier)) || event.key === Qt.Key_Backtab) {
+                                                event.accepted = true;
+                                                root.cycleCategory(-1);
+                                                return;
+                                            } else if (event.key === Qt.Key_Tab) {
+                                                event.accepted = true;
+                                                root.cycleCategory(1);
+                                                return;
+                                            }
+
+                                            // 2. Up/Down navigation (also Ctrl+J / Ctrl+K)
+                                            if (event.key === Qt.Key_Down || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_J)) {
+                                                event.accepted = true;
+                                                if (root.results.length > 0) {
+                                                    root.selectedIndex = (root.selectedIndex + 1) % root.results.length;
+                                                    resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                                }
+                                                return;
+                                            } else if (event.key === Qt.Key_Up || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_K)) {
+                                                event.accepted = true;
+                                                if (root.results.length > 0) {
+                                                    root.selectedIndex = (root.selectedIndex - 1 + root.results.length) % root.results.length;
+                                                    resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                                }
+                                                return;
+                                            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                                event.accepted = true;
+                                                root.executeSelectedItem();
+                                                return;
+                                            }
+
+                                            // 3. Secondary Actions Shortcuts (Raycast-style)
+                                            if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_W) {
+                                                if (root.selectedItem && root.selectedItem.type === "window") {
+                                                    event.accepted = true;
+                                                    root.closeWindow(root.selectedItem.address);
+                                                    return;
+                                                }
+                                            } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_F) {
+                                                if (root.selectedItem && root.selectedItem.type === "window") {
+                                                    event.accepted = true;
+                                                    root.toggleWindowFloat(root.selectedItem.address);
+                                                    return;
+                                                }
+                                            } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_B) {
+                                                if (root.selectedItem && (root.selectedItem.type === "cmd" || root.selectedItem.cmd)) {
+                                                    event.accepted = true;
+                                                    root.runBgCmd(root.selectedItem.cmd);
+                                                    return;
+                                                }
+                                            } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C) {
+                                                // If no text selected inside input field, copy selected item's text!
+                                                if (searchInput.selectedText === "" && root.selectedItem) {
+                                                    event.accepted = true;
+                                                    const cpText = root.selectedItem.result || root.selectedItem.cmd || root.selectedItem.title || "";
+                                                    if (cpText) root.copyToClipboard(cpText);
+                                                    return;
+                                                }
+                                            }
                                         }
                                     }
 
-                                    Keys.onPressed: (event) => {
-                                        // 1. Tab / Shift+Tab cycles Category Filter Chips
-                                        if ((event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier)) || event.key === Qt.Key_Backtab) {
-                                            event.accepted = true;
-                                            root.cycleCategory(-1);
-                                            return;
-                                        } else if (event.key === Qt.Key_Tab) {
-                                            event.accepted = true;
-                                            root.cycleCategory(1);
-                                            return;
+                                    // Clear circular "󰅖" button if query present
+                                    Rectangle {
+                                        visible: searchInput.text !== ""
+                                        width: 20
+                                        height: 20
+                                        radius: 10
+                                        color: clrMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                        Layout.alignment: Qt.AlignVCenter
+                                        Behavior on color { ColorAnimation { duration: 100 } }
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "󰅖"
+                                            color: root.txtMuted
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            renderType: Text.NativeRendering
                                         }
 
-                                        // 2. Up/Down navigation (also Ctrl+J / Ctrl+K)
-                                        if (event.key === Qt.Key_Down || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_J)) {
-                                            event.accepted = true;
-                                            if (root.results.length > 0) {
-                                                root.selectedIndex = (root.selectedIndex + 1) % root.results.length;
-                                                resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
-                                            }
-                                            return;
-                                        } else if (event.key === Qt.Key_Up || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_K)) {
-                                            event.accepted = true;
-                                            if (root.results.length > 0) {
-                                                root.selectedIndex = (root.selectedIndex - 1 + root.results.length) % root.results.length;
-                                                resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
-                                            }
-                                            return;
-                                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                            event.accepted = true;
-                                            root.executeSelectedItem();
-                                            return;
-                                        }
-
-                                        // 3. Secondary Actions Shortcuts (Raycast-style)
-                                        if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_W) {
-                                            if (root.selectedItem && root.selectedItem.type === "window") {
-                                                event.accepted = true;
-                                                root.closeWindow(root.selectedItem.address);
-                                                return;
-                                            }
-                                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_F) {
-                                            if (root.selectedItem && root.selectedItem.type === "window") {
-                                                event.accepted = true;
-                                                root.toggleWindowFloat(root.selectedItem.address);
-                                                return;
-                                            }
-                                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_B) {
-                                            if (root.selectedItem && (root.selectedItem.type === "cmd" || root.selectedItem.cmd)) {
-                                                event.accepted = true;
-                                                root.runBgCmd(root.selectedItem.cmd);
-                                                return;
-                                            }
-                                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C) {
-                                            // If no text selected inside input field, copy selected item's text!
-                                            if (searchInput.selectedText === "" && root.selectedItem) {
-                                                event.accepted = true;
-                                                const cpText = root.selectedItem.result || root.selectedItem.cmd || root.selectedItem.title || "";
-                                                if (cpText) root.copyToClipboard(cpText);
-                                                return;
+                                        MouseArea {
+                                            id: clrMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                searchInput.text = "";
+                                                searchInput.forceActiveFocus();
                                             }
                                         }
                                     }
                                 }
+                            }
 
-                                // Clear circular "󰅖" button if query present
-                                Rectangle {
-                                    visible: searchInput.text !== ""
-                                    width: 20
-                                    height: 20
-                                    radius: 10
-                                    color: clrMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                                    Layout.alignment: Qt.AlignVCenter
-                                    Behavior on color { ColorAnimation { duration: 100 } }
+                            Item { Layout.fillWidth: true }
+
+                            // Count Badge (Unified matching Clipboard)
+                            Rectangle {
+                                height: 42
+                                Layout.preferredWidth: countText.implicitWidth + 24
+                                radius: 12
+                                color: Qt.rgba(1, 1, 1, 0.04)
+                                border.color: Qt.rgba(1, 1, 1, 0.07)
+                                border.width: 1
+
+                                Text {
+                                    id: countText
+                                    anchors.centerIn: parent
+                                    text: root.results.length + (root.results.length === 1 ? " result" : " results")
+                                    color: root.txtMuted
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    font.family: root.font
+                                    renderType: Text.NativeRendering
+                                }
+                            }
+
+                            // Dismiss / Esc Button
+                            Rectangle {
+                                id: dismissBtn
+                                height: 42
+                                Layout.preferredWidth: dismissRow.implicitWidth + 22
+                                radius: 12
+                                color: dismissMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.04)
+                                border.color: dismissMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07)
+                                border.width: 1
+
+                                Behavior on color { ColorAnimation { duration: 100 } }
+                                Behavior on border.color { ColorAnimation { duration: 100 } }
+
+                                RowLayout {
+                                    id: dismissRow
+                                    anchors.centerIn: parent
+                                    spacing: 6
+
+                                    Rectangle {
+                                        height: 18
+                                        width: escKeyText.implicitWidth + 8
+                                        radius: 4
+                                        color: Qt.rgba(1, 1, 1, 0.08)
+                                        Text {
+                                            id: escKeyText
+                                            anchors.centerIn: parent
+                                            text: "esc"
+                                            color: dismissMouse.containsMouse ? root.txtPrimary : root.txtMuted
+                                            font.pixelSize: 9
+                                            font.family: root.font
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
 
                                     Text {
-                                        anchors.centerIn: parent
-                                        text: "󰅖"
-                                        color: root.txtMuted
+                                        text: "Close"
+                                        color: dismissMouse.containsMouse ? root.txtPrimary : root.txtMuted
                                         font.pixelSize: 11
                                         font.family: root.font
                                         renderType: Text.NativeRendering
                                     }
+                                }
 
-                                    MouseArea {
-                                        id: clrMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            searchInput.text = "";
-                                            searchInput.forceActiveFocus();
-                                        }
-                                    }
+                                MouseArea {
+                                    id: dismissMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.closeLauncher()
                                 }
                             }
                         }
