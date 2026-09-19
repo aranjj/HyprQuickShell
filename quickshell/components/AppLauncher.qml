@@ -15,6 +15,12 @@ Scope {
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
+    // Soft, unified typography that preserves glass translucency
+    readonly property bool isCrystal: Services.Aesthetic.preset === "crystal"
+    readonly property color txtPrimary: root.theme.textPrimary
+    readonly property color txtSecondary: root.theme.textSecondary
+    readonly property color txtMuted: root.theme.textMuted
+
     property int selectedIndex: 0
     property var results: []
     property string searchQuery: ""
@@ -1396,7 +1402,9 @@ Scope {
             right: true
         }
 
-        // Click outside to dismiss (transparent backdrop so Hyprland ignore_alpha rounds blur perfectly)
+        BackgroundEffect.blurRegion: Region { item: spotlightBox }
+
+        // Click outside to dismiss
         MouseArea {
             anchors.fill: parent
             onClicked: root.closeLauncher()
@@ -1457,7 +1465,7 @@ Scope {
                         // Magnifying glass icon
                         Text {
                             text: "󰍉"
-                            color: root.theme.textMuted
+                            color: root.txtMuted
                             font.pixelSize: 22
                             font.family: root.font
                             Layout.alignment: Qt.AlignVCenter
@@ -1468,7 +1476,7 @@ Scope {
                             id: searchInput
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
-                            color: root.theme.textPrimary
+                            color: root.txtPrimary
                             font.pixelSize: 17
                             font.family: root.font
                             font.weight: Font.Normal
@@ -1478,7 +1486,7 @@ Scope {
                             Text {
                                 anchors.fill: parent
                                 text: root.searchPlaceholder
-                                color: root.theme.textMuted
+                                color: root.txtMuted
                                 font: parent.font
                                 visible: !parent.text
                                 verticalAlignment: Text.AlignVCenter
@@ -1573,7 +1581,7 @@ Scope {
                             Text {
                                 anchors.centerIn: parent
                                 text: "×"
-                                color: root.theme.textMuted
+                                color: root.txtMuted
                                 font.pixelSize: 14
                                 font.family: root.font
                             }
@@ -1595,14 +1603,14 @@ Scope {
                             width: 32
                             height: 20
                             radius: 5
-                            color: Qt.rgba(1, 1, 1, 0.06)
-                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            color: root.isCrystal ? Qt.rgba(0, 0, 0, 0.25) : Qt.rgba(1, 1, 1, 0.06)
+                            border.color: root.isCrystal ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.08)
                             border.width: 1
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "esc"
-                                color: root.theme.textMuted
+                                color: root.txtMuted
                                 font.pixelSize: 10
                                 font.family: root.font
                             }
@@ -1621,7 +1629,7 @@ Scope {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 38
-                    color: Qt.rgba(0, 0, 0, 0.12)
+                    color: "transparent"
 
                     RowLayout {
                         anchors.fill: parent
@@ -1643,12 +1651,12 @@ Scope {
                                 readonly property bool isHovered: chipMouse.containsMouse
 
                                 color: isActive 
-                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
                                     : (isHovered ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
 
                                 border.color: isActive
-                                    ? root.theme.accent
-                                    : (isHovered ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.06))
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45)
+                                    : (isHovered ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.05))
                                 border.width: 1
 
                                 Behavior on color { ColorAnimation { duration: 100 } }
@@ -1661,19 +1669,21 @@ Scope {
 
                                     Text {
                                         text: modelData.icon
-                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.theme.textPrimary : root.theme.textMuted)
+                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.txtPrimary : root.txtMuted)
                                         font.pixelSize: 11
                                         font.family: root.font
                                         Layout.alignment: Qt.AlignVCenter
+                                        renderType: Text.NativeRendering
                                     }
 
                                     Text {
                                         text: modelData.label
-                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.theme.textPrimary : root.theme.textMuted)
+                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.txtPrimary : root.txtMuted)
                                         font.pixelSize: 11
                                         font.family: root.font
                                         font.weight: chipBox.isActive ? Font.DemiBold : Font.Normal
                                         Layout.alignment: Qt.AlignVCenter
+                                        renderType: Text.NativeRendering
                                     }
                                 }
 
@@ -1704,24 +1714,27 @@ Scope {
                                 height: 16
                                 width: tabHint.implicitWidth + 6
                                 radius: 3
-                                color: Qt.rgba(1, 1, 1, 0.08)
+                                color: Qt.rgba(1, 1, 1, 0.05)
+                                border.color: "transparent"
                                 anchors.verticalCenter: parent.verticalCenter
                                 Text {
                                     id: tabHint
                                     anchors.centerIn: parent
                                     text: "Tab"
-                                    color: root.theme.textMuted
+                                    color: root.txtMuted
                                     font.pixelSize: 9
                                     font.family: root.font
+                                    renderType: Text.NativeRendering
                                 }
                             }
 
                             Text {
                                 text: "to filter"
-                                color: root.theme.textMuted
+                                color: root.txtMuted
                                 font.pixelSize: 10
                                 font.family: root.font
                                 anchors.verticalCenter: parent.verticalCenter
+                                renderType: Text.NativeRendering
                             }
                         }
                     }
@@ -1772,11 +1785,12 @@ Scope {
                                         anchors.bottom: parent.bottom
                                         anchors.bottomMargin: 3
                                         text: modelData.category
-                                        color: root.theme.textMuted
+                                        color: root.isCrystal ? Qt.rgba(root.theme.textSecondary.r, root.theme.textSecondary.g, root.theme.textSecondary.b, 0.50) : root.txtMuted
                                         font.pixelSize: 10
                                         font.family: root.font
                                         font.weight: Font.Bold
                                         font.letterSpacing: 0.8
+                                        renderType: Text.NativeRendering
                                     }
                                 }
 
@@ -1785,7 +1799,7 @@ Scope {
                                     width: parent.width
                                     height: 40
                                     radius: 8
-                                    color: root.selectedIndex === index ? root.theme.accent : (itemMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
+                                    color: root.selectedIndex === index ? root.theme.accent : (itemMouse.containsMouse ? (root.isCrystal ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.06)) : "transparent")
 
                                     Behavior on color { ColorAnimation { duration: 80 } }
 
@@ -1800,7 +1814,9 @@ Scope {
                                             width: 24
                                             height: 24
                                             radius: 6
-                                            color: Qt.rgba(1, 1, 1, 0.08)
+                                            color: root.selectedIndex === index ? Qt.rgba(1, 1, 1, 0.20) : (root.isCrystal ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.08))
+                                            border.color: "transparent"
+                                            border.width: 1
 
                                             IconImage {
                                                 anchors.centerIn: parent
@@ -1817,35 +1833,40 @@ Scope {
                                                 font.pixelSize: 14
                                                 font.family: root.font
                                                 visible: (modelData.type !== "app" && modelData.type !== "window") || (modelData.icon ?? "") === ""
+                                                renderType: Text.NativeRendering
                                             }
                                         }
 
                                         // Title
                                         Text {
                                             text: modelData.title ?? ""
-                                            color: root.selectedIndex === index ? "#ffffff" : root.theme.textPrimary
+                                            color: root.selectedIndex === index ? "#ffffff" : root.txtPrimary
                                             font.pixelSize: 13
                                             font.family: root.font
                                             font.weight: root.selectedIndex === index ? Font.DemiBold : Font.Normal
                                             elide: Text.ElideRight
                                             Layout.fillWidth: true
+                                            renderType: Text.NativeRendering
                                         }
 
-                                        // Subtitle Tag / Badge on the right
+                                        // Subtitle Tag / Badge on the right (Application, Top Hit, etc.)
                                         Rectangle {
                                             height: 18
                                             width: tagTxt.implicitWidth + 8
                                             radius: 4
-                                            color: root.selectedIndex === index ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.06)
+                                            color: root.selectedIndex === index ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.04)
+                                            border.color: root.selectedIndex === index ? Qt.rgba(1, 1, 1, 0.18) : "transparent"
+                                            border.width: 1
 
                                             Text {
                                                 id: tagTxt
                                                 anchors.centerIn: parent
                                                 text: modelData.category === "TOP HIT" ? "Top Hit" : (modelData.kindTag ?? modelData.category)
-                                                color: root.selectedIndex === index ? "#ffffff" : root.theme.textMuted
+                                                color: root.selectedIndex === index ? "#ffffff" : root.txtMuted
                                                 font.pixelSize: 9
                                                 font.family: root.font
-                                                font.weight: Font.Medium
+                                                font.weight: Font.Normal
+                                                renderType: Text.NativeRendering
                                             }
                                         }
                                     }

@@ -95,8 +95,8 @@ Singleton {
     property color pillActive: colPrimary
 
     property color textPrimary: colOnSurface
-    property color textSecondary: colOnSurfaceVariant
-    property color textMuted: colOutline
+    property color textSecondary: Qt.rgba(colOnSurfaceVariant.r, colOnSurfaceVariant.g, colOnSurfaceVariant.b, 0.92)
+    property color textMuted: Qt.rgba(colOnSurfaceVariant.r, colOnSurfaceVariant.g, colOnSurfaceVariant.b, 0.75)
 
     property color wsActive: colPrimary
     property color wsOccupied: colOnSurfaceVariant
