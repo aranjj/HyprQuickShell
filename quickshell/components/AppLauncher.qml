@@ -247,6 +247,7 @@ Scope {
     }
 
     function openLauncher(initialText, category) {
+        Services.OverlayCoordinator.requestExclusiveSurface("launcher");
         launcherPanel.visible = true;
         const text = initialText || "";
         searchInput.text = text;
@@ -268,6 +269,7 @@ Scope {
     function closeLauncher() {
         launcherPanel.visible = false;
         searchInput.text = "";
+        Services.OverlayCoordinator.releaseExclusiveSurface("launcher");
     }
 
     // ── Math / Calculator Evaluation ─────────────────
@@ -1381,6 +1383,10 @@ Scope {
 
     Component.onCompleted: {
         root.fetchWindows();
+        Services.OverlayCoordinator.registerExclusiveSurface("launcher",
+            () => { root.openLauncher(); },
+            () => { root.closeLauncher(); }
+        );
     }
 
     // ── Full-Screen Overlay Window ───────────────────
@@ -1389,6 +1395,12 @@ Scope {
         visible: false
         focusable: true
         color: "transparent"
+
+        onVisibleChanged: {
+            if (!visible) {
+                Services.OverlayCoordinator.releaseExclusiveSurface("launcher");
+            }
+        }
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: launcherPanel.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None

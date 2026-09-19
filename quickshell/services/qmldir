@@ -8,3 +8,4 @@ singleton NightLightService 1.0 NightLightService.qml
 singleton ScreenshotService 1.0 ScreenshotService.qml
 singleton ThemeService 1.0 ThemeService.qml
 singleton Aesthetic 1.0 Aesthetic.qml
+singleton OverlayCoordinator 1.0 OverlayCoordinator.qml

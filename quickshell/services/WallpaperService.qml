@@ -3,6 +3,7 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import "." as Services
 
 Singleton {
     id: root
@@ -30,17 +31,32 @@ Singleton {
     property string currentWallpaperName: extractName(currentWallpaper)
     property var wallpapers: []
     property bool pickerOpen: false
+    onPickerOpenChanged: {
+        if (!pickerOpen) {
+            Services.OverlayCoordinator.releaseExclusiveSurface("wallpaperPicker");
+        }
+    }
 
     function togglePicker() {
-        pickerOpen = !pickerOpen;
+        if (pickerOpen) closePicker();
+        else openPicker();
     }
 
     function openPicker() {
+        Services.OverlayCoordinator.requestExclusiveSurface("wallpaperPicker");
         pickerOpen = true;
     }
 
     function closePicker() {
         pickerOpen = false;
+        Services.OverlayCoordinator.releaseExclusiveSurface("wallpaperPicker");
+    }
+
+    Component.onCompleted: {
+        Services.OverlayCoordinator.registerExclusiveSurface("wallpaperPicker",
+            () => { openPicker(); },
+            () => { closePicker(); }
+        );
     }
 
     // ── Update helper ──────────────────────────────────

@@ -42,8 +42,16 @@ Scope {
         }
     }
 
+    Component.onCompleted: {
+        Services.OverlayCoordinator.registerExclusiveSurface("clipboard",
+            () => { clipboardPanel.visible = true; },
+            () => { clipboardPanel.visible = false; }
+        );
+    }
+
     function openPopup() {
-        Services.SystemService.closeAllPopups();
+        Services.OverlayCoordinator.requestExclusiveSurface("clipboard");
+        clipboardPanel.visible = true;
         searchInput.text = "";
         root.selectedIndex = 0;
         root.statusMessage = "";
@@ -250,6 +258,8 @@ Scope {
         onVisibleChanged: {
             if (visible) {
                 openPopup();
+            } else {
+                Services.OverlayCoordinator.releaseExclusiveSurface("clipboard");
             }
         }
 

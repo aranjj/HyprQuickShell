@@ -5,6 +5,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import QtQuick
+import "." as Services
 
 Singleton {
     id: root
@@ -19,16 +20,23 @@ Singleton {
     property string controlCenterTab: "controls"
     property string controlCenterSubView: "main"
 
+    onPowerMenuOpenChanged: {
+        if (!powerMenuOpen) {
+            Services.OverlayCoordinator.releaseExclusiveSurface("powerMenu");
+        }
+    }
+
     function openControlCenter(tab, subview) {
         const targetTab = tab || "controls";
         const targetSub = subview || "main";
         if (controlCenterOpen && controlCenterTab === targetTab && controlCenterSubView === targetSub) {
             controlCenterOpen = false;
+            Services.OverlayCoordinator.releaseExclusiveSurface("controlCenter");
         } else {
             controlCenterTab = targetTab;
             controlCenterSubView = targetSub;
+            Services.OverlayCoordinator.requestExclusiveSurface("controlCenter");
             controlCenterOpen = true;
-            powerMenuOpen = false;
             if (targetTab === "controls") {
                 if (targetSub === "wifi") rescanWifi();
                 else if (targetSub === "bluetooth") {
@@ -60,10 +68,36 @@ Singleton {
 
     function togglePowerMenu() {
         powerMenuOpen = !powerMenuOpen;
-        if (powerMenuOpen) controlCenterOpen = false;
+        if (powerMenuOpen) {
+            Services.OverlayCoordinator.requestExclusiveSurface("powerMenu");
+        } else {
+            Services.OverlayCoordinator.releaseExclusiveSurface("powerMenu");
+        }
     }
 
     property bool aboutDialogOpen: false
+    onAboutDialogOpenChanged: {
+        if (aboutDialogOpen) {
+            Services.OverlayCoordinator.requestExclusiveSurface("aboutDialog");
+        } else {
+            Services.OverlayCoordinator.releaseExclusiveSurface("aboutDialog");
+        }
+    }
+
+    Component.onCompleted: {
+        Services.OverlayCoordinator.registerExclusiveSurface("controlCenter",
+            () => { openControlCenter("controls", "main"); },
+            () => { controlCenterOpen = false; }
+        );
+        Services.OverlayCoordinator.registerExclusiveSurface("powerMenu",
+            () => { Services.OverlayCoordinator.requestExclusiveSurface("powerMenu"); powerMenuOpen = true; },
+            () => { powerMenuOpen = false; }
+        );
+        Services.OverlayCoordinator.registerExclusiveSurface("aboutDialog",
+            () => { Services.OverlayCoordinator.requestExclusiveSurface("aboutDialog"); aboutDialogOpen = true; },
+            () => { aboutDialogOpen = false; }
+        );
+    }
     property bool caffeineActive: false
     property bool preventLockOnFullscreen: true
     property bool isFullscreenVideoActive: false
@@ -227,6 +261,7 @@ Singleton {
         controlCenterOpen = false;
         powerMenuOpen = false;
         aboutDialogOpen = false;
+        Services.OverlayCoordinator.closeCurrentExclusiveSurface();
     }
 
     // ── Command Runners ─────────────────────────────
@@ -1645,6 +1680,8 @@ Singleton {
     onControlCenterOpenChanged: {
         if (controlCenterOpen) {
             monitorsProc.running = true;
+        } else {
+            Services.OverlayCoordinator.releaseExclusiveSurface("controlCenter");
         }
         if (!controlCenterOpen && bluetoothDiscovering) {
             stopBluetoothScan();

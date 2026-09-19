@@ -129,8 +129,8 @@ Singleton {
         root.isSelecting = true;
         root._pendingDirectMode = m;
 
-        if (Services.SystemService.controlCenterOpen) {
-            Services.SystemService.controlCenterOpen = false;
+        if (Services.OverlayCoordinator.hasActiveExclusiveSurface()) {
+            Services.OverlayCoordinator.suspendExclusiveSurface();
             ccUnmapTimer.restart();
             return;
         }
@@ -142,8 +142,8 @@ Singleton {
         if (root.toolbarVisible) return;
         root.directSnipMode = false;
         root.isSelecting = false;
-        if (Services.SystemService.controlCenterOpen) {
-            Services.SystemService.controlCenterOpen = false;
+        if (Services.OverlayCoordinator.hasActiveExclusiveSurface()) {
+            Services.OverlayCoordinator.suspendExclusiveSurface();
             ccUnmapTimer.restart();
             return;
         }
@@ -158,6 +158,7 @@ Singleton {
         freezeImagePath = "";
         killSlurpProc.running = false;
         killSlurpProc.running = true;
+        Services.OverlayCoordinator.restoreExclusiveSurface();
     }
 
     // ── Toolbar Toggle ─────────────────────────────────
@@ -223,7 +224,7 @@ Singleton {
         if (d > 0) {
             // User requested delayed capture: close overlay, let user set up screen, then capture
             closeToolbar();
-            Services.SystemService.controlCenterOpen = false;
+            Services.OverlayCoordinator.suspendExclusiveSurface();
             root._pendingMode = m;
             root._pendingDelay = d;
             captureDelayTimer.restart();
@@ -248,9 +249,9 @@ Singleton {
 
         // Direct shortcut or background invocation
         if (m === "fullscreen") {
-            const overlayWasOpen = toolbarVisible || Services.SystemService.controlCenterOpen;
+            const overlayWasOpen = toolbarVisible || Services.OverlayCoordinator.hasActiveExclusiveSurface();
             closeToolbar();
-            Services.SystemService.controlCenterOpen = false;
+            Services.OverlayCoordinator.suspendExclusiveSurface();
 
             if (overlayWasOpen) {
                 root._pendingMode = m;

@@ -113,7 +113,9 @@ Scope {
 
             onVisibleChanged: {
                 if (visible) {
-                    Services.SystemService.controlCenterOpen = false;
+                    Services.OverlayCoordinator.requestExclusiveSurface("calendar");
+                } else {
+                    Services.OverlayCoordinator.releaseExclusiveSurface("calendar");
                 }
             }
 

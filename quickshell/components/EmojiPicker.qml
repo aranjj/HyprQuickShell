@@ -101,6 +101,11 @@ Scope {
     }
 
     Component.onCompleted: {
+        Services.OverlayCoordinator.registerExclusiveSurface("emojiPicker",
+            () => { root.open(); },
+            () => { root.dismiss(); }
+        );
+
         try {
             var raw = emojiDataFile.text();
             if (raw && raw.length > 0) {
@@ -159,7 +164,7 @@ Scope {
 
     // ── State Management & Interaction ───────────────
     function open() {
-        Services.SystemService.closeAllPopups();
+        Services.OverlayCoordinator.requestExclusiveSurface("emojiPicker");
         root.openTime = Date.now();
         root.opened = true;
         emojiPanel.visible = true;
@@ -182,6 +187,7 @@ Scope {
     function dismiss() {
         root.opened = false;
         emojiPanel.visible = false;
+        Services.OverlayCoordinator.releaseExclusiveSurface("emojiPicker");
     }
 
     function toggle() {
