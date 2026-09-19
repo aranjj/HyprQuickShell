@@ -1450,297 +1450,291 @@ Scope {
                 anchors.fill: parent
                 spacing: 0
 
-                // ── 1. SPOTLIGHT SEARCH INPUT ROW ────
-                Rectangle {
+                // ── 1. HEADER (Search Pill & Category Chips) ────
+                Item {
                     Layout.fillWidth: true
-                    height: 54
-                    color: "transparent"
+                    height: 96
 
-                    RowLayout {
+                    ColumnLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 18
-                        anchors.rightMargin: 18
-                        spacing: 12
+                        anchors.leftMargin: 14
+                        anchors.rightMargin: 14
+                        anchors.topMargin: 14
+                        anchors.bottomMargin: 8
+                        spacing: 8
 
-                        // Magnifying glass icon
-                        Text {
-                            text: "󰍉"
-                            color: root.txtMuted
-                            font.pixelSize: 22
-                            font.family: root.font
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        // Seamless search input field
-                        TextInput {
-                            id: searchInput
+                        // Search Pill (Unified design matching Clipboard and EmojiPicker)
+                        Rectangle {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignVCenter
-                            color: root.txtPrimary
-                            font.pixelSize: 17
-                            font.family: root.font
-                            font.weight: Font.Normal
-                            clip: true
-                            focus: true
-
-                            Text {
-                                anchors.fill: parent
-                                text: root.searchPlaceholder
-                                color: root.txtMuted
-                                font: parent.font
-                                visible: !parent.text
-                                verticalAlignment: Text.AlignVCenter
-                            }
-
-                            onTextChanged: {
-                                if (!launcherPanel.visible) return;
-                                root.selectedIndex = 0;
-                                root.updateSearchResults();
-                            }
-
-                            Keys.onEscapePressed: {
-                                if (text !== "") {
-                                    text = "";
-                                } else {
-                                    root.closeLauncher();
-                                }
-                            }
-
-                            Keys.onPressed: (event) => {
-                                // 1. Tab / Shift+Tab cycles Category Filter Chips
-                                if ((event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier)) || event.key === Qt.Key_Backtab) {
-                                    event.accepted = true;
-                                    root.cycleCategory(-1);
-                                    return;
-                                } else if (event.key === Qt.Key_Tab) {
-                                    event.accepted = true;
-                                    root.cycleCategory(1);
-                                    return;
-                                }
-
-                                // 2. Up/Down navigation (also Ctrl+J / Ctrl+K)
-                                if (event.key === Qt.Key_Down || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_J)) {
-                                    event.accepted = true;
-                                    if (root.results.length > 0) {
-                                        root.selectedIndex = (root.selectedIndex + 1) % root.results.length;
-                                        resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
-                                    }
-                                    return;
-                                } else if (event.key === Qt.Key_Up || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_K)) {
-                                    event.accepted = true;
-                                    if (root.results.length > 0) {
-                                        root.selectedIndex = (root.selectedIndex - 1 + root.results.length) % root.results.length;
-                                        resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
-                                    }
-                                    return;
-                                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                    event.accepted = true;
-                                    root.executeSelectedItem();
-                                    return;
-                                }
-
-                                // 3. Secondary Actions Shortcuts (Raycast-style)
-                                if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_W) {
-                                    if (root.selectedItem && root.selectedItem.type === "window") {
-                                        event.accepted = true;
-                                        root.closeWindow(root.selectedItem.address);
-                                        return;
-                                    }
-                                } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_F) {
-                                    if (root.selectedItem && root.selectedItem.type === "window") {
-                                        event.accepted = true;
-                                        root.toggleWindowFloat(root.selectedItem.address);
-                                        return;
-                                    }
-                                } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_B) {
-                                    if (root.selectedItem && (root.selectedItem.type === "cmd" || root.selectedItem.cmd)) {
-                                        event.accepted = true;
-                                        root.runBgCmd(root.selectedItem.cmd);
-                                        return;
-                                    }
-                                } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C) {
-                                    // If no text selected inside input field, copy selected item's text!
-                                    if (searchInput.selectedText === "" && root.selectedItem) {
-                                        event.accepted = true;
-                                        const cpText = root.selectedItem.result || root.selectedItem.cmd || root.selectedItem.title || "";
-                                        if (cpText) root.copyToClipboard(cpText);
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Clear "×" button if query present
-                        Rectangle {
-                            visible: searchInput.text !== ""
-                            width: 20
-                            height: 20
-                            radius: 10
-                            color: clrMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "×"
-                                color: root.txtMuted
-                                font.pixelSize: 14
-                                font.family: root.font
-                            }
-
-                            MouseArea {
-                                id: clrMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    searchInput.text = "";
-                                    searchInput.forceActiveFocus();
-                                }
-                            }
-                        }
-
-                        // "esc" hint pill
-                        Rectangle {
-                            width: 32
-                            height: 20
-                            radius: 5
-                            color: root.isCrystal ? Qt.rgba(0, 0, 0, 0.25) : Qt.rgba(1, 1, 1, 0.06)
-                            border.color: root.isCrystal ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.08)
+                            height: 42
+                            radius: 12
+                            color: Qt.rgba(1, 1, 1, 0.05)
+                            border.color: searchInput.activeFocus ? root.theme.accent : (searchInput.text ? root.theme.accent : Qt.rgba(1, 1, 1, 0.08))
                             border.width: 1
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "esc"
-                                color: root.txtMuted
-                                font.pixelSize: 10
-                                font.family: root.font
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                // Magnifying glass icon
+                                Text {
+                                    text: "󰍉"
+                                    color: searchInput.activeFocus ? root.theme.accent : root.txtMuted
+                                    font.pixelSize: 16
+                                    font.family: root.font
+                                    Layout.alignment: Qt.AlignVCenter
+                                    renderType: Text.NativeRendering
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                }
+
+                                // Search input field
+                                TextInput {
+                                    id: searchInput
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    color: root.txtPrimary
+                                    font.pixelSize: 13
+                                    font.family: root.font
+                                    font.weight: Font.Medium
+                                    clip: true
+                                    focus: true
+
+                                    Text {
+                                        anchors.fill: parent
+                                        text: root.searchPlaceholder
+                                        color: root.txtMuted
+                                        font: parent.font
+                                        visible: !parent.text
+                                        verticalAlignment: Text.AlignVCenter
+                                        renderType: Text.NativeRendering
+                                    }
+
+                                    onTextChanged: {
+                                        if (!launcherPanel.visible) return;
+                                        root.selectedIndex = 0;
+                                        root.updateSearchResults();
+                                    }
+
+                                    Keys.onEscapePressed: {
+                                        if (text !== "") {
+                                            text = "";
+                                        } else {
+                                            root.closeLauncher();
+                                        }
+                                    }
+
+                                    Keys.onPressed: (event) => {
+                                        // 1. Tab / Shift+Tab cycles Category Filter Chips
+                                        if ((event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier)) || event.key === Qt.Key_Backtab) {
+                                            event.accepted = true;
+                                            root.cycleCategory(-1);
+                                            return;
+                                        } else if (event.key === Qt.Key_Tab) {
+                                            event.accepted = true;
+                                            root.cycleCategory(1);
+                                            return;
+                                        }
+
+                                        // 2. Up/Down navigation (also Ctrl+J / Ctrl+K)
+                                        if (event.key === Qt.Key_Down || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_J)) {
+                                            event.accepted = true;
+                                            if (root.results.length > 0) {
+                                                root.selectedIndex = (root.selectedIndex + 1) % root.results.length;
+                                                resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                            }
+                                            return;
+                                        } else if (event.key === Qt.Key_Up || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_K)) {
+                                            event.accepted = true;
+                                            if (root.results.length > 0) {
+                                                root.selectedIndex = (root.selectedIndex - 1 + root.results.length) % root.results.length;
+                                                resultsList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                            }
+                                            return;
+                                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                            event.accepted = true;
+                                            root.executeSelectedItem();
+                                            return;
+                                        }
+
+                                        // 3. Secondary Actions Shortcuts (Raycast-style)
+                                        if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_W) {
+                                            if (root.selectedItem && root.selectedItem.type === "window") {
+                                                event.accepted = true;
+                                                root.closeWindow(root.selectedItem.address);
+                                                return;
+                                            }
+                                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_F) {
+                                            if (root.selectedItem && root.selectedItem.type === "window") {
+                                                event.accepted = true;
+                                                root.toggleWindowFloat(root.selectedItem.address);
+                                                return;
+                                            }
+                                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_B) {
+                                            if (root.selectedItem && (root.selectedItem.type === "cmd" || root.selectedItem.cmd)) {
+                                                event.accepted = true;
+                                                root.runBgCmd(root.selectedItem.cmd);
+                                                return;
+                                            }
+                                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C) {
+                                            // If no text selected inside input field, copy selected item's text!
+                                            if (searchInput.selectedText === "" && root.selectedItem) {
+                                                event.accepted = true;
+                                                const cpText = root.selectedItem.result || root.selectedItem.cmd || root.selectedItem.title || "";
+                                                if (cpText) root.copyToClipboard(cpText);
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Clear circular "󰅖" button if query present
+                                Rectangle {
+                                    visible: searchInput.text !== ""
+                                    width: 20
+                                    height: 20
+                                    radius: 10
+                                    color: clrMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                    Layout.alignment: Qt.AlignVCenter
+                                    Behavior on color { ColorAnimation { duration: 100 } }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "󰅖"
+                                        color: root.txtMuted
+                                        font.pixelSize: 11
+                                        font.family: root.font
+                                        renderType: Text.NativeRendering
+                                    }
+
+                                    MouseArea {
+                                        id: clrMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            searchInput.text = "";
+                                            searchInput.forceActiveFocus();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── Categories Row ──────────────────
+                        RowLayout {
+                            Layout.fillWidth: true
+                            height: 26
+                            spacing: 6
+
+                            Repeater {
+                                model: root.categoryList
+
+                                Rectangle {
+                                    id: chipBox
+                                    height: 26
+                                    Layout.alignment: Qt.AlignVCenter
+                                    width: chipRow.implicitWidth + 18
+                                    radius: 13
+
+                                    readonly property bool isActive: root.activeCategory === modelData.id
+                                    readonly property bool isHovered: chipMouse.containsMouse
+
+                                    color: isActive 
+                                        ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
+                                        : (isHovered ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+
+                                    border.color: isActive
+                                        ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45)
+                                        : (isHovered ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.05))
+                                    border.width: 1
+
+                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                    Behavior on border.color { ColorAnimation { duration: 100 } }
+
+                                    RowLayout {
+                                        id: chipRow
+                                        anchors.centerIn: parent
+                                        spacing: 5
+
+                                        Text {
+                                            text: modelData.icon
+                                            color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.txtPrimary : root.txtMuted)
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            Layout.alignment: Qt.AlignVCenter
+                                            renderType: Text.NativeRendering
+                                        }
+
+                                        Text {
+                                            text: modelData.label
+                                            color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.txtPrimary : root.txtMuted)
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            font.weight: chipBox.isActive ? Font.DemiBold : Font.Normal
+                                            Layout.alignment: Qt.AlignVCenter
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: chipMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.activeCategory = modelData.id;
+                                            root.selectedIndex = 0;
+                                            root.updateSearchResults();
+                                            searchInput.forceActiveFocus();
+                                        }
+                                    }
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            // Keyboard Tab switch hint
+                            Row {
+                                Layout.alignment: Qt.AlignVCenter
+                                spacing: 4
+                                opacity: 0.65
+
+                                Rectangle {
+                                    height: 16
+                                    width: tabHint.implicitWidth + 6
+                                    radius: 3
+                                    color: Qt.rgba(1, 1, 1, 0.05)
+                                    border.color: "transparent"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Text {
+                                        id: tabHint
+                                        anchors.centerIn: parent
+                                        text: "Tab"
+                                        color: root.txtMuted
+                                        font.pixelSize: 9
+                                        font.family: root.font
+                                        renderType: Text.NativeRendering
+                                    }
+                                }
+
+                                Text {
+                                    text: "to filter"
+                                    color: root.txtMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    renderType: Text.NativeRendering
+                                }
                             }
                         }
                     }
                 }
 
                 // ── 2. DIVIDER ───────────────────────
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 1
-                    color: Qt.rgba(1, 1, 1, 0.08)
-                }
-
-                // ── 3. INTERACTIVE CATEGORY FILTER CHIPS ROW ────
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 38
-                    color: "transparent"
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 16
-                        anchors.rightMargin: 16
-                        spacing: 6
-
-                        Repeater {
-                            model: root.categoryList
-
-                            Rectangle {
-                                id: chipBox
-                                height: 26
-                                Layout.alignment: Qt.AlignVCenter
-                                width: chipRow.implicitWidth + 18
-                                radius: 13
-
-                                readonly property bool isActive: root.activeCategory === modelData.id
-                                readonly property bool isHovered: chipMouse.containsMouse
-
-                                color: isActive 
-                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
-                                    : (isHovered ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
-
-                                border.color: isActive
-                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45)
-                                    : (isHovered ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.05))
-                                border.width: 1
-
-                                Behavior on color { ColorAnimation { duration: 100 } }
-                                Behavior on border.color { ColorAnimation { duration: 100 } }
-
-                                RowLayout {
-                                    id: chipRow
-                                    anchors.centerIn: parent
-                                    spacing: 5
-
-                                    Text {
-                                        text: modelData.icon
-                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.txtPrimary : root.txtMuted)
-                                        font.pixelSize: 11
-                                        font.family: root.font
-                                        Layout.alignment: Qt.AlignVCenter
-                                        renderType: Text.NativeRendering
-                                    }
-
-                                    Text {
-                                        text: modelData.label
-                                        color: chipBox.isActive ? root.theme.accent : (chipBox.isHovered ? root.txtPrimary : root.txtMuted)
-                                        font.pixelSize: 11
-                                        font.family: root.font
-                                        font.weight: chipBox.isActive ? Font.DemiBold : Font.Normal
-                                        Layout.alignment: Qt.AlignVCenter
-                                        renderType: Text.NativeRendering
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: chipMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        root.activeCategory = modelData.id;
-                                        root.selectedIndex = 0;
-                                        root.updateSearchResults();
-                                        searchInput.forceActiveFocus();
-                                    }
-                                }
-                            }
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        // Keyboard Tab switch hint
-                        Row {
-                            Layout.alignment: Qt.AlignVCenter
-                            spacing: 4
-                            opacity: 0.65
-
-                            Rectangle {
-                                height: 16
-                                width: tabHint.implicitWidth + 6
-                                radius: 3
-                                color: Qt.rgba(1, 1, 1, 0.05)
-                                border.color: "transparent"
-                                anchors.verticalCenter: parent.verticalCenter
-                                Text {
-                                    id: tabHint
-                                    anchors.centerIn: parent
-                                    text: "Tab"
-                                    color: root.txtMuted
-                                    font.pixelSize: 9
-                                    font.family: root.font
-                                    renderType: Text.NativeRendering
-                                }
-                            }
-
-                            Text {
-                                text: "to filter"
-                                color: root.txtMuted
-                                font.pixelSize: 10
-                                font.family: root.font
-                                anchors.verticalCenter: parent.verticalCenter
-                                renderType: Text.NativeRendering
-                            }
-                        }
-                    }
-                }
-
-                // ── 4. DIVIDER ───────────────────────
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1

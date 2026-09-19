@@ -361,7 +361,7 @@ Scope {
                                     text: "Search clipboard history..."
                                     color: root.theme.textMuted
                                     font: parent.font
-                                    visible: !parent.text && !parent.activeFocus
+                                    visible: !parent.text
                                     verticalAlignment: Text.AlignVCenter
                                     renderType: Text.NativeRendering
                                 }
