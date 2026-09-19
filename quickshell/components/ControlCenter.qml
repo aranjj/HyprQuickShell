@@ -307,17 +307,12 @@ Scope {
                 left: true
             }
 
-            // Dimmed Backdrop (click to dismiss)
-            Rectangle {
+            // Click outside to dismiss (transparent backdrop)
+            MouseArea {
                 anchors.fill: parent
-                color: Services.Aesthetic.backdropColor
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        Services.SystemService.controlCenterOpen = false;
-                        Services.SystemService.controlCenterSubView = "main";
-                    }
+                onClicked: {
+                    Services.SystemService.controlCenterOpen = false;
+                    Services.SystemService.controlCenterSubView = "main";
                 }
             }
 
