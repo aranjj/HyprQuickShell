@@ -321,18 +321,19 @@ Scope {
                     id: leftSection
                     anchors.left: parent.left
                     anchors.leftMargin: 0
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
                     spacing: 8
 
                     // ── Unified OS System Menu Button (Dynamic Distro Nerd Font) ──
                     Item {
                         id: distroBtnContainer
-                        Layout.preferredWidth: 40
+                        Layout.preferredWidth: 36
                         Layout.fillHeight: true
 
                         Rectangle {
                             id: distroBtn
-                            width: 32
+                            width: 28
                             height: 28
                             radius: 14
                             anchors.verticalCenter: parent.verticalCenter
@@ -343,7 +344,7 @@ Scope {
 
                             Text {
                                 anchors.centerIn: parent
-                                anchors.verticalCenterOffset: -1
+                                anchors.verticalCenterOffset: -2
                                 text: Services.SystemService.distroGlyph
                                 color: root.appleMenuOpen || appleMouse.containsMouse ? root.theme.accent : root.barFgPrimary
                                 font.pixelSize: 18
