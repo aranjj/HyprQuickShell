@@ -1316,37 +1316,43 @@ Scope {
                 if (tMatch || sMatch || kMatch) matchedShortcuts.push(sc);
             }
 
-            // Determine TOP HIT: Always prioritize application matches!
-            let topHit = null;
-            if (matchedCalc && (rawQ.startsWith("=") || /^[0-9+\-*/().%^ eE]+$/.test(rawQ))) {
-                topHit = matchedCalc;
-                matchedCalc = null;
-            } else if (matchedApps.length > 0 && (matchedApps[0].title.toLowerCase().startsWith(q) || (matchedApps[0].exec && matchedApps[0].exec.toLowerCase().startsWith(q)))) {
-                topHit = matchedApps.shift();
-            } else if (matchedWins.length > 0 && matchedWins[0].title.toLowerCase().startsWith(q)) {
-                topHit = matchedWins.shift();
-            } else if (matchedApps.length > 0) {
-                topHit = matchedApps.shift();
-            } else if (matchedWins.length > 0) {
-                topHit = matchedWins.shift();
-            } else if (matchedShortcuts.length > 0 && matchedShortcuts[0].title.toLowerCase().startsWith(q)) {
-                topHit = matchedShortcuts.shift();
-            } else if (matchedShortcuts.length > 0) {
-                topHit = matchedShortcuts.shift();
-            } else if (matchedCalc) {
-                topHit = matchedCalc;
-                matchedCalc = null;
-            }
-
-            if (topHit) {
+            // ── Hierarchy: 1. Matching Apps -> 2. Run Command -> 3. Web Search ──
+            // 1. Matching Apps (Top hit app first, then remaining apps)
+            if (matchedApps.length > 0) {
+                let topHit = matchedApps.shift();
                 topHit.category = "TOP HIT";
                 out.push(topHit);
+
+                for (let i = 0; i < matchedApps.length; i++) {
+                    matchedApps[i].category = "APPLICATIONS";
+                    out.push(matchedApps[i]);
+                }
+            } else if (matchedCalc && (rawQ.startsWith("=") || /^[0-9+\-*/().%^ eE]+$/.test(rawQ))) {
+                matchedCalc.category = "CALCULATOR";
+                out.push(matchedCalc);
             }
 
-            for (let i = 0; i < matchedApps.length; i++) {
-                matchedApps[i].category = "APPLICATIONS";
-                out.push(matchedApps[i]);
-            }
+            // 2. Run Command Suggestion
+            out.push({
+                id: "cmd_suggest_" + rawQ,
+                type: "cmd",
+                title: "Run: " + rawQ,
+                subtitle: "Execute command in " + root.terminalName + " terminal",
+                category: "COMMANDS",
+                kindTag: "Terminal Command",
+                icon: "󰞷",
+                glyph: "󰞷",
+                accentColor: root.theme.accent,
+                cmd: rawQ,
+                desc: "Runs '" + rawQ + "' directly in " + root.terminalName + " terminal session. Press Enter to execute.",
+                actionLabel: "Run in " + root.terminalName,
+                action: () => root.runTerminalCmd(rawQ, false)
+            });
+
+            // 3. Web Search Suggestion
+            out.push(root.makeWebSearchItem(rawQ));
+
+            // Secondary matches: Open Windows & System Shortcuts (if any)
             for (let i = 0; i < matchedWins.length; i++) {
                 matchedWins[i].category = "OPEN WINDOWS";
                 out.push(matchedWins[i]);
@@ -1355,8 +1361,6 @@ Scope {
                 matchedShortcuts[i].category = "SHORTCUTS";
                 out.push(matchedShortcuts[i]);
             }
-
-            out.push(root.makeWebSearchItem(rawQ));
 
             root.results = out;
             root.selectedIndex = 0;
