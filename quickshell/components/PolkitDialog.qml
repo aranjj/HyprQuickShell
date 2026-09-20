@@ -30,6 +30,9 @@ Scope {
     property string testMessage: "Authentication is required to run the GParted Partition Editor as superuser"
     property string testPrompt: "Password:"
 
+    // Checking / verifying credentials state
+    property bool isChecking: false
+
     // Password shake animation on failure
     property int shakeOffset: 0
 
@@ -45,7 +48,32 @@ Scope {
     readonly property bool flowFailed: root.flow ? root.flow.failed : false
     onFlowFailedChanged: {
         if (flowFailed) {
+            root.isChecking = false;
             shakeAnim.start();
+            passwordInput.text = "";
+            passwordInput.forceActiveFocus();
+        }
+    }
+
+    readonly property bool flowCompleted: root.flow ? root.flow.isCompleted : false
+    onFlowCompletedChanged: {
+        if (flowCompleted) {
+            root.isChecking = false;
+        }
+    }
+
+    onAuthActiveChanged: {
+        if (!authActive) {
+            root.isChecking = false;
+        }
+    }
+
+    Timer {
+        id: testTimer
+        interval: 1800
+        onTriggered: {
+            root.isChecking = false;
+            root.testMode = false;
         }
     }
 
@@ -63,10 +91,17 @@ Scope {
 
         function testOpen(): void {
             root.testMode = true;
+            root.isChecking = false;
+        }
+
+        function testChecking(): void {
+            root.testMode = true;
+            root.isChecking = true;
         }
 
         function testClose(): void {
             root.testMode = false;
+            root.isChecking = false;
         }
     }
 
@@ -229,18 +264,24 @@ Scope {
                     }
                 }
 
-                // ── Password Input Field ─────────────
+                // ── Password Input Field (Idle / Checking state) ─────
                 Rectangle {
+                    id: inputContainer
                     Layout.fillWidth: true
                     height: 40
                     radius: 10
-                    color: Qt.rgba(1, 1, 1, 0.06)
-                    border.color: passwordInput.activeFocus
-                        ? root.theme.accent
-                        : (root.flow && root.flow.failed ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.12))
+                    color: root.isChecking ? Qt.rgba(1, 1, 1, 0.02) : Qt.rgba(1, 1, 1, 0.06)
+                    border.color: root.isChecking
+                        ? Qt.rgba(1, 1, 1, 0.06)
+                        : (passwordInput.activeFocus
+                            ? root.theme.accent
+                            : (root.flow && root.flow.failed ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.12)))
                     border.width: 1.5
+                    opacity: root.isChecking ? 0.45 : 1.0
 
+                    Behavior on color { ColorAnimation { duration: 180 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
+                    Behavior on opacity { NumberAnimation { duration: 180 } }
 
                     RowLayout {
                         anchors.fill: parent
@@ -249,42 +290,79 @@ Scope {
                         spacing: 8
 
                         Text {
-                            text: "󰯄"  // nf-md-form_textbox_password
-                            color: passwordInput.activeFocus ? root.theme.accent : root.txtMuted
+                            id: statusIcon
+                            text: root.isChecking ? "󰑮" : "󰯄"
+                            color: root.isChecking ? root.txtMuted : (passwordInput.activeFocus ? root.theme.accent : root.txtMuted)
                             font.pixelSize: 15
                             font.family: root.font
                             renderType: Text.NativeRendering
 
+                            RotationAnimation on rotation {
+                                running: root.isChecking
+                                from: 0
+                                to: 360
+                                duration: 900
+                                loops: Animation.Infinite
+                            }
+
                             Behavior on color { ColorAnimation { duration: 150 } }
                         }
 
-                        TextInput {
-                            id: passwordInput
+                        Item {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignVCenter
-                            color: root.txtPrimary
-                            font.pixelSize: 13
-                            font.family: root.font
-                            echoMode: (root.flow && root.flow.responseVisible)
-                                ? TextInput.Normal
-                                : TextInput.Password
-                            focus: true
-                            clip: true
+                            Layout.fillHeight: true
 
                             Text {
                                 anchors.fill: parent
-                                text: root.flow ? (root.flow.inputPrompt || "Password") : "Password"
-                                color: root.txtMuted
-                                font: parent.font
-                                visible: !parent.text
                                 verticalAlignment: Text.AlignVCenter
+                                visible: root.isChecking
+                                text: "Checking credentials…"
+                                color: root.txtMuted
+                                font.pixelSize: 12
+                                font.family: root.font
+                                font.italic: true
                                 renderType: Text.NativeRendering
                             }
 
-                            Keys.onReturnPressed: submitPassword()
-                            Keys.onEnterPressed: submitPassword()
-                            Keys.onEscapePressed: cancelAuth()
+                            TextInput {
+                                id: passwordInput
+                                anchors.fill: parent
+                                verticalAlignment: Text.AlignVCenter
+                                visible: !root.isChecking
+                                enabled: !root.isChecking
+                                readOnly: root.isChecking
+                                color: root.txtPrimary
+                                font.pixelSize: 13
+                                font.family: root.font
+                                echoMode: (root.flow && root.flow.responseVisible)
+                                    ? TextInput.Normal
+                                    : TextInput.Password
+                                focus: !root.isChecking
+                                clip: true
+
+                                Text {
+                                    anchors.fill: parent
+                                    text: root.flow ? (root.flow.inputPrompt || "Password") : (root.testMode ? root.testPrompt : "Password")
+                                    color: root.txtMuted
+                                    font: parent.font
+                                    visible: !parent.text && !root.isChecking
+                                    verticalAlignment: Text.AlignVCenter
+                                    renderType: Text.NativeRendering
+                                }
+
+                                Keys.onReturnPressed: submitPassword()
+                                Keys.onEnterPressed: submitPassword()
+                                Keys.onEscapePressed: cancelAuth()
+                            }
                         }
+                    }
+
+                    // MouseArea covering container when checking so it is completely unclickable
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: root.isChecking
+                        cursorShape: Qt.ArrowCursor
+                        preventStealing: true
                     }
                 }
 
@@ -329,29 +407,43 @@ Scope {
                         Layout.fillWidth: true
                         height: 34
                         radius: 8
-                        color: authMouse.containsMouse
-                            ? Qt.lighter(root.theme.accent, 1.15)
-                            : root.theme.accent
-                        border.color: Qt.lighter(root.theme.accent, 1.3)
+                        opacity: root.isChecking ? 0.5 : 1.0
+                        color: root.isChecking
+                            ? Qt.rgba(1, 1, 1, 0.08)
+                            : (authMouse.containsMouse
+                                ? Qt.lighter(root.theme.accent, 1.15)
+                                : root.theme.accent)
+                        border.color: root.isChecking
+                            ? Qt.rgba(1, 1, 1, 0.08)
+                            : Qt.lighter(root.theme.accent, 1.3)
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 100 } }
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
 
                         RowLayout {
                             anchors.centerIn: parent
                             spacing: 6
 
                             Text {
-                                text: "󰌆"  // nf-md-key
-                                color: "#1e1e2e"
+                                text: root.isChecking ? "󰑮" : "󰌆"  // spinner or key
+                                color: root.isChecking ? root.txtMuted : "#1e1e2e"
                                 font.pixelSize: 13
                                 font.family: root.font
                                 renderType: Text.NativeRendering
+
+                                RotationAnimation on rotation {
+                                    running: root.isChecking
+                                    from: 0
+                                    to: 360
+                                    duration: 900
+                                    loops: Animation.Infinite
+                                }
                             }
 
                             Text {
-                                text: "Authenticate"
-                                color: "#1e1e2e"
+                                text: root.isChecking ? "Verifying…" : "Authenticate"
+                                color: root.isChecking ? root.txtMuted : "#1e1e2e"
                                 font.pixelSize: 12
                                 font.weight: Font.DemiBold
                                 font.family: root.font
@@ -362,8 +454,9 @@ Scope {
                         MouseArea {
                             id: authMouse
                             anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                            enabled: !root.isChecking
+                            hoverEnabled: !root.isChecking
+                            cursorShape: root.isChecking ? Qt.ArrowCursor : Qt.PointingHandCursor
                             onClicked: submitPassword()
                         }
                     }
@@ -383,6 +476,7 @@ Scope {
 
         // ── Auto-focus and clear password on show ────
         onVisibleChanged: {
+            root.isChecking = false;
             if (visible) {
                 passwordInput.text = "";
                 passwordInput.forceActiveFocus();
@@ -392,7 +486,9 @@ Scope {
 
     // ── Helper Functions ──────────────────────────────
     function cancelAuth() {
+        root.isChecking = false;
         if (root.testMode) {
+            testTimer.stop();
             root.testMode = false;
             passwordInput.text = "";
             return;
@@ -404,14 +500,17 @@ Scope {
     }
 
     function submitPassword() {
+        if (root.isChecking) return;
+
         if (root.testMode) {
-            root.testMode = false;
-            passwordInput.text = "";
+            root.isChecking = true;
+            testTimer.start();
             return;
         }
+
         if (root.flow && passwordInput.text.length > 0) {
+            root.isChecking = true;
             root.flow.submit(passwordInput.text);
-            passwordInput.text = "";
         }
     }
 }
