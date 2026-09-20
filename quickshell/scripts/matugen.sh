@@ -67,11 +67,7 @@ except Exception:
     pass
 " 2>/dev/null || true
 
-# 3. Apply KDE / Qt Color Scheme & Accent Color
-if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
-    plasma-apply-colorscheme Matugen >/dev/null 2>&1 || true
-fi
-
+# 3. Extract Primary & Tertiary colors
 if [ -f "$COLORS_JSON" ] && command -v jq >/dev/null 2>&1; then
     PRIMARY_HEX=$(jq -r '.primary' "$COLORS_JSON")
     PRIMARY_STRIPPED="${PRIMARY_HEX#'#'}"
@@ -84,8 +80,11 @@ if [ -f "$COLORS_JSON" ] && command -v jq >/dev/null 2>&1; then
     B=$((16#${PRIMARY_STRIPPED:4:2}))
     PRIMARY_RGB="$R,$G,$B"
 
+    # Set new AccentColor and disable accentColorFromWallpaper BEFORE applying scheme
     if command -v kwriteconfig6 >/dev/null 2>&1; then
         kwriteconfig6 --file kdeglobals --group General --key AccentColor "$PRIMARY_RGB" 2>/dev/null || true
+        kwriteconfig6 --file kdeglobals --group General --key accentColorFromWallpaper "false" 2>/dev/null || true
+        kwriteconfig6 --file kdeglobals --group General --key ColorScheme "" 2>/dev/null || true
     fi
 
     # 4. Update Hyprland window border gradients live
@@ -93,6 +92,80 @@ if [ -f "$COLORS_JSON" ] && command -v jq >/dev/null 2>&1; then
         hyprctl repl "hl.config({ general = { col = { active_border = { colors = {'rgba(${PRIMARY_STRIPPED}ee)', 'rgba(${TERTIARY_STRIPPED}ee)'}, angle = 45 } } } })" >/dev/null 2>&1 || true
     fi
 fi
+
+# 5. Apply KDE / Qt Color Scheme (reads the newly updated AccentColor)
+if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
+    plasma-apply-colorscheme Matugen >/dev/null 2>&1 || true
+fi
+
+# Notify running Dolphin instances to refresh view
+if command -v qdbus6 >/dev/null 2>&1; then
+    for svc in $(qdbus6 2>/dev/null | grep -E '^ org\.kde\.dolphin-' || true); do
+        qdbus6 "${svc## }" /dolphin/Dolphin_1/actions/view_redisplay trigger >/dev/null 2>&1 || true
+    done
+fi
+
+# 5b. Generate Qt6CT Color Scheme & trigger live reload for Qt6 processes
+python3 -c "
+import json, os
+
+colors_json_path = os.path.expanduser('$COLORS_JSON')
+if not os.path.exists(colors_json_path):
+    exit(0)
+
+try:
+    with open(colors_json_path) as f:
+        c = json.load(f)
+
+    def h(hex_str):
+        return hex_str.replace('#', '').lower()
+
+    window_text = '#ff' + h(c.get('on_surface', '#ffffff'))
+    btn = '#ff' + h(c.get('surface_container_high', '#2b3035'))
+    light = '#ff' + h(c.get('surface_bright', '#3c4146'))
+    midlight = '#ff' + h(c.get('surface_container_highest', '#32373c'))
+    dark = '#ff' + h(c.get('surface_container_low', '#1e2226'))
+    mid = '#ff' + h(c.get('outline_variant', '#49454f'))
+    text = '#ff' + h(c.get('on_surface', '#ffffff'))
+    bright_text = '#ff' + h(c.get('on_primary', '#ffffff'))
+    btn_text = '#ff' + h(c.get('on_surface', '#ffffff'))
+    base = '#ff' + h(c.get('surface_dim', '#14181b'))
+    window = '#ff' + h(c.get('surface', '#191d20'))
+    shadow = '#ff000000'
+    highlight = '#ff' + h(c.get('primary', '#80d5cf'))
+    highlighted_text = '#ff' + h(c.get('on_primary', '#003735'))
+    link = '#ff' + h(c.get('primary', '#80d5cf'))
+    link_visited = '#ff' + h(c.get('secondary', '#b0cccb'))
+    alt_base = '#ff' + h(c.get('surface_container', '#222629'))
+    tooltip_base = '#ff' + h(c.get('surface_container_highest', '#32373c'))
+    tooltip_text = '#ff' + h(c.get('on_surface', '#ffffff'))
+    placeholder = '#ff' + h(c.get('outline', '#8e918f'))
+    accent = '#ff' + h(c.get('primary', '#80d5cf'))
+
+    palette = [
+        window_text, btn, light, midlight, dark, mid, text, bright_text, btn_text,
+        base, window, shadow, highlight, highlighted_text, link, link_visited,
+        alt_base, tooltip_base, tooltip_text, placeholder, accent
+    ]
+    active_str = ', '.join(palette)
+    inactive_str = active_str
+    disabled_str = active_str.replace('#ff', '#80')
+
+    out_dir = os.path.expanduser('~/.config/qt6ct/colors')
+    os.makedirs(out_dir, exist_ok=True)
+    out_file = os.path.join(out_dir, 'matugen.conf')
+
+    with open(out_file, 'w') as f:
+        f.write('[ColorScheme]\n')
+        f.write(f'active_colors={active_str}\n')
+        f.write(f'disabled_colors={disabled_str}\n')
+        f.write(f'inactive_colors={inactive_str}\n')
+except Exception:
+    pass
+" 2>/dev/null || true
+
+# Trigger QFileSystemWatcher in Qt6CT
+touch ~/.config/qt6ct/qt6ct.conf 2>/dev/null || true
 
 # 5. Reload GTK Apps via xsettingsd & gsettings
 if command -v pkill >/dev/null 2>&1; then

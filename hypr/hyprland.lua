@@ -18,10 +18,10 @@
 -- require("myColors")
 
 
-
 -----ENVIRONMENT FOR QT APPS THEMING----
 hl.env("QT_QPA_PLATFORMTHEME","kde")
 ----------------------------------------
+
 
 ------------------
 ---- MONITORS ----
@@ -102,8 +102,8 @@ hl.env("HYPRCURSOR_SIZE", "24")
 -- Refer to https://wiki.hypr.land/Configuring/Basics/Variables/
 hl.config({
     general = {
-        gaps_in  = 5,
-        gaps_out = 5,
+        gaps_in  = 10,
+        gaps_out = 15,
 
         border_size = 2,
 
@@ -122,12 +122,12 @@ hl.config({
     },
 
     decoration = {
-        rounding       = 5,
+        rounding       = 10,
         rounding_power = 5,
 
         -- Change transparency of focused and unfocused windows
-        active_opacity   = 1.0,
-        inactive_opacity = 1.0,
+        active_opacity   = 0.95,
+        inactive_opacity = 0.9,
 
         shadow = {
             enabled      = true,
@@ -422,6 +422,7 @@ local quickshell_layers = {
     "quickshell-screenshot-toolbar",
     "quickshell-screenshot-preview",
     "quickshell-emojis",
+    "quickshell-polkit",
 }
 
 for _, ns in ipairs(quickshell_layers) do
