@@ -18,6 +18,11 @@
 -- require("myColors")
 
 
+
+-----ENVIRONMENT FOR QT APPS THEMING----
+hl.env("QT_QPA_PLATFORMTHEME","kde")
+----------------------------------------
+
 ------------------
 ---- MONITORS ----
 ------------------
