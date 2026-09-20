@@ -1890,23 +1890,44 @@ Scope {
                                     width: parent.width
                                     height: 40
                                     radius: 8
-                                    color: root.selectedIndex === index ? root.theme.accent : (itemMouse.containsMouse ? (root.isCrystal ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.06)) : "transparent")
+                                    color: root.selectedIndex === index 
+                                        ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
+                                        : (itemMouse.containsMouse ? (root.isCrystal ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.06)) : "transparent")
+                                    border.color: root.selectedIndex === index 
+                                        ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.40)
+                                        : "transparent"
+                                    border.width: 1
 
                                     Behavior on color { ColorAnimation { duration: 80 } }
+                                    Behavior on border.color { ColorAnimation { duration: 80 } }
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        anchors.leftMargin: 10
+                                        anchors.leftMargin: 8
                                         anchors.rightMargin: 10
-                                        spacing: 10
+                                        spacing: 8
+
+                                        // Left Accent Indicator Pill (same as Clipboard)
+                                        Rectangle {
+                                            width: 3
+                                            height: 20
+                                            radius: 1.5
+                                            color: root.theme.accent
+                                            visible: root.selectedIndex === index
+                                            Layout.alignment: Qt.AlignVCenter
+                                        }
 
                                         // Icon Container
                                         Rectangle {
                                             width: 24
                                             height: 24
                                             radius: 6
-                                            color: root.selectedIndex === index ? Qt.rgba(1, 1, 1, 0.20) : (root.isCrystal ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.08))
-                                            border.color: "transparent"
+                                            color: root.selectedIndex === index 
+                                                ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25)
+                                                : (root.isCrystal ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.08))
+                                            border.color: root.selectedIndex === index 
+                                                ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                                : "transparent"
                                             border.width: 1
 
                                             IconImage {
@@ -1920,7 +1941,7 @@ Scope {
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: modelData.glyph ?? (modelData.icon ?? "󰣆")
-                                                color: root.selectedIndex === index ? "#ffffff" : (modelData.accentColor ?? root.theme.accent)
+                                                color: modelData.accentColor ?? root.theme.accent
                                                 font.pixelSize: 14
                                                 font.family: root.font
                                                 visible: (modelData.type !== "app" && modelData.type !== "window") || (modelData.icon ?? "") === ""
@@ -1931,7 +1952,7 @@ Scope {
                                         // Title
                                         Text {
                                             text: modelData.title ?? ""
-                                            color: root.selectedIndex === index ? "#ffffff" : root.txtPrimary
+                                            color: root.txtPrimary
                                             font.pixelSize: 13
                                             font.family: root.font
                                             font.weight: root.selectedIndex === index ? Font.DemiBold : Font.Normal
@@ -1945,18 +1966,22 @@ Scope {
                                             height: 18
                                             width: tagTxt.implicitWidth + 8
                                             radius: 4
-                                            color: root.selectedIndex === index ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.04)
-                                            border.color: root.selectedIndex === index ? Qt.rgba(1, 1, 1, 0.18) : "transparent"
+                                            color: root.selectedIndex === index 
+                                                ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
+                                                : Qt.rgba(1, 1, 1, 0.04)
+                                            border.color: root.selectedIndex === index 
+                                                ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                                : "transparent"
                                             border.width: 1
 
                                             Text {
                                                 id: tagTxt
                                                 anchors.centerIn: parent
                                                 text: modelData.category === "TOP HIT" ? "Top Hit" : (modelData.kindTag ?? modelData.category)
-                                                color: root.selectedIndex === index ? "#ffffff" : root.txtMuted
+                                                color: root.selectedIndex === index ? root.theme.accent : root.txtMuted
                                                 font.pixelSize: 9
                                                 font.family: root.font
-                                                font.weight: Font.Normal
+                                                font.weight: root.selectedIndex === index ? Font.Medium : Font.Normal
                                                 renderType: Text.NativeRendering
                                             }
                                         }
