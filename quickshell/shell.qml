@@ -23,4 +23,5 @@ ShellRoot {
     AboutDialog {}
     ScreenshotToolbar {}
     ScreenshotPreview {}
+    PolkitDialog {}
 }
