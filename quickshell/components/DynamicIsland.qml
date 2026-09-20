@@ -1353,11 +1353,13 @@ Scope {
                     Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
                     Behavior on scale { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
+                    // Case A: Progress bar exists (Volume, Brightness, Battery level)
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 12
                         anchors.rightMargin: 16
                         spacing: 12
+                        visible: Services.OsdService.progress >= 0
 
                         // Circular Hardware Badge (32x32 circle)
                         Rectangle {
@@ -1381,13 +1383,11 @@ Scope {
                             }
                         }
 
-                        // Middle Content Area
-                        // Case A: Progress bar exists (Volume, Brightness, Battery level)
+                        // Middle Content Area with Slider
                         ColumnLayout {
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignVCenter
                             spacing: 4
-                            visible: Services.OsdService.progress >= 0
 
                             RowLayout {
                                 Layout.fillWidth: true
@@ -1435,13 +1435,41 @@ Scope {
                                 }
                             }
                         }
+                    }
 
-                        // Case B: No progress bar (Power Profile, etc.)
+                    // Case B: No progress bar (Power Profile, etc.) - Logo at left end, title & name centered
+                    Item {
+                        anchors.fill: parent
+                        visible: Services.OsdService.progress < 0
+
+                        // Circular Hardware Badge at Left End (matches Case A positioning)
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, Services.Aesthetic.preset === "oled" ? 0.16 : 0.12)
+                            border.color: Qt.rgba(Services.OsdService.iconColor.r, Services.OsdService.iconColor.g, Services.OsdService.iconColor.b, Services.Aesthetic.preset === "oled" ? 0.32 : 0.24)
+                            border.width: 1
+
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on border.color { ColorAnimation { duration: 200 } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: Services.OsdService.icon
+                                color: Services.OsdService.iconColor
+                                font.pixelSize: 15
+                                font.family: root.font
+                            }
+                        }
+
+                        // Power Profile Name & Title centered in the island
                         ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignVCenter
-                            spacing: 2
-                            visible: Services.OsdService.progress < 0
+                            anchors.centerIn: parent
+                            spacing: 1
 
                             Text {
                                 text: Services.OsdService.title
@@ -1449,6 +1477,8 @@ Scope {
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 font.family: root.font
+                                Layout.alignment: Qt.AlignHCenter
+                                horizontalAlignment: Text.AlignHCenter
                             }
 
                             Text {
@@ -1457,6 +1487,8 @@ Scope {
                                 font.pixelSize: 12
                                 font.weight: Font.Bold
                                 font.family: root.font
+                                Layout.alignment: Qt.AlignHCenter
+                                horizontalAlignment: Text.AlignHCenter
                             }
                         }
                     }
