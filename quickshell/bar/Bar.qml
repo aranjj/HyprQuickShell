@@ -320,36 +320,46 @@ Scope {
                 RowLayout {
                     id: leftSection
                     anchors.left: parent.left
-                    anchors.leftMargin: 16
+                    anchors.leftMargin: 0
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 8
 
                     // ── Unified OS System Menu Button (Dynamic Distro Nerd Font) ──
-                    Rectangle {
-                        id: distroBtn
-                        implicitWidth: 28
-                        implicitHeight: 28
-                        radius: 14
-                        color: root.appleMenuOpen || appleMouse.containsMouse ? root.barPillHover : "transparent"
-                        Behavior on color { ColorAnimation { duration: 100 } }
+                    Item {
+                        id: distroBtnContainer
+                        Layout.preferredWidth: 40
+                        Layout.fillHeight: true
 
-                        Text {
-                            anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: -3
-                            anchors.verticalCenterOffset: -1
-                            text: Services.SystemService.distroGlyph
-                            color: root.appleMenuOpen || appleMouse.containsMouse ? root.theme.accent : root.barFgPrimary
-                            font.pixelSize: 18
-                            font.family: root.font
-                            font.weight: Font.Bold
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignHCenter
-                            Behavior on color { ColorAnimation { duration: 120 } }
+                        Rectangle {
+                            id: distroBtn
+                            width: 32
+                            height: 28
+                            radius: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
+                            anchors.leftMargin: 8
+                            color: root.appleMenuOpen || appleMouse.containsMouse ? root.barPillHover : "transparent"
+                            Behavior on color { ColorAnimation { duration: 100 } }
+
+                            Text {
+                                anchors.centerIn: parent
+                                anchors.verticalCenterOffset: -1
+                                text: Services.SystemService.distroGlyph
+                                color: root.appleMenuOpen || appleMouse.containsMouse ? root.theme.accent : root.barFgPrimary
+                                font.pixelSize: 18
+                                font.family: root.font
+                                font.weight: Font.Bold
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                            }
                         }
 
+                        // Full empty-space clickable area (covers left edge x=0 to divider, top edge y=0 to bottom of bar)
                         MouseArea {
                             id: appleMouse
                             anchors.fill: parent
+                            anchors.rightMargin: -4
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.appleMenuOpen = !root.appleMenuOpen
@@ -359,7 +369,7 @@ Scope {
                     // Subtle Divider
                     Rectangle {
                         width: 1
-                        height: 16
+                        height: 14
                         color: root.barDividerColor
                         Layout.alignment: Qt.AlignVCenter
                     }
@@ -612,9 +622,9 @@ Scope {
                 RowLayout {
                     id: rightSection
                     anchors.right: parent.right
-                    anchors.rightMargin: 16
+                    anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 7
+                    spacing: 8
 
                     // ── 1. System Tray Icons ────────────
                     RowLayout {
@@ -1123,6 +1133,9 @@ Scope {
                         MouseArea {
                             id: clockMacMouse
                             anchors.fill: parent
+                            anchors.rightMargin: -rightSection.anchors.rightMargin
+                            anchors.topMargin: -Math.round((root.barHeight - parent.height) / 2)
+                            anchors.bottomMargin: -Math.round((root.barHeight - parent.height) / 2)
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
