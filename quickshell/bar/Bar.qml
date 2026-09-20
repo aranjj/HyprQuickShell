@@ -331,43 +331,21 @@ Scope {
                         Layout.preferredWidth: 36
                         Layout.fillHeight: true
 
-                        Rectangle {
-                            id: distroBtn
-                            width: 32
-                            height: 26
-                            radius: 7
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: 6
+                        readonly property bool isHovered: appleMouse.containsMouse
+                        readonly property bool isActive: root.appleMenuOpen
 
-                            readonly property bool isHovered: appleMouse.containsMouse
-                            readonly property bool isActive: root.appleMenuOpen
-
-                            color: isActive
-                                ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
-                                : (isHovered ? Qt.rgba(1, 1, 1, 0.09) : "transparent")
-
-                            border.color: isActive
-                                ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45)
-                                : (isHovered ? Qt.rgba(1, 1, 1, 0.14) : "transparent")
-                            border.width: 1
-
-                            Behavior on color { ColorAnimation { duration: 120 } }
-                            Behavior on border.color { ColorAnimation { duration: 120 } }
-
-                            Text {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenterOffset: -3.5
-                                anchors.verticalCenterOffset: 0
-                                text: Services.SystemService.distroGlyph
-                                color: distroBtn.isActive || distroBtn.isHovered ? root.theme.accent : root.barFgPrimary
-                                font.pixelSize: 18
-                                font.family: root.font
-                                font.weight: Font.Bold
-                                verticalAlignment: Text.AlignVCenter
-                                horizontalAlignment: Text.AlignHCenter
-                                Behavior on color { ColorAnimation { duration: 120 } }
-                            }
+                        Text {
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: 1.5
+                            anchors.verticalCenterOffset: 0
+                            text: Services.SystemService.distroGlyph
+                            color: distroBtnContainer.isActive || distroBtnContainer.isHovered ? root.theme.accent : root.barFgPrimary
+                            font.pixelSize: 18
+                            font.family: root.font
+                            font.weight: Font.Bold
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
+                            Behavior on color { ColorAnimation { duration: 150 } }
                         }
 
                         // Full empty-space clickable area (covers left edge x=0 to divider, top edge y=0 to bottom of bar)
