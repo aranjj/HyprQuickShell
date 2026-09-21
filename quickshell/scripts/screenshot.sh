@@ -50,7 +50,7 @@ case "$MODE" in
     region_frozen)
         # Selection on top of toolbar's frozen display
         pkill -9 -x slurp 2>/dev/null || true
-        GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 2>/dev/null)
+        GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 < /dev/null 2>/dev/null)
         if [ -z "$GEOM" ]; then
             quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
             exit 0
@@ -183,7 +183,7 @@ case "$MODE" in
         FREEZE_TMP="/tmp/qs_direct_$$.png"
         grim -l 1 "$FREEZE_TMP" 2>/dev/null || true
 
-        GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 2>/dev/null)
+        GEOM=$(slurp -d -b "$SLURP_BG" -c "$SLURP_BORDER" -s "$SLURP_SELECTION" -w 2 < /dev/null 2>/dev/null)
         if [ -z "$GEOM" ]; then
             rm -f "$FREEZE_TMP"
             exit 0
