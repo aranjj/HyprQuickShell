@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
+import QtQuick.Effects
 import "../services" as Services
 import "../bar" as Bar
 
@@ -70,7 +71,7 @@ Scope {
             BackgroundEffect.blurRegion: Region { item: toolbarCard }
 
             // Floating Glass Capsule
-            Rectangle {
+            Item {
                 id: toolbarCard
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
@@ -78,15 +79,66 @@ Scope {
 
                 implicitHeight: 52
                 implicitWidth: contentRow.implicitWidth + 24
-                radius: 18
-                color: Services.Aesthetic.cardBg
-                border.color: Services.Aesthetic.cardBorder
-                border.width: Services.Aesthetic.borderWidth
-                clip: true
 
                 visible: !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode
                 opacity: (!Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode) ? 1.0 : 0.0
                 Behavior on opacity { NumberAnimation { duration: 120 } }
+
+                // ── Acrylic / Frosted Blur Shader Layer ──────
+                Image {
+                    id: cardCropImage
+                    anchors.fill: parent
+                    source: Services.ScreenshotService.freezeImagePath !== "" ? ("file://" + Services.ScreenshotService.freezeImagePath + "?v=" + Services.ScreenshotService.freezeVersion) : ""
+                    sourceClipRect: Qt.rect(
+                        Math.round(modelData.x + toolbarCard.x),
+                        Math.round(modelData.y + toolbarCard.y),
+                        Math.max(1, Math.round(toolbarCard.width)),
+                        Math.max(1, Math.round(toolbarCard.height))
+                    )
+                    fillMode: Image.PreserveAspectCrop
+                    cache: false
+                    visible: false
+                }
+
+                Rectangle {
+                    id: cardMask
+                    anchors.fill: parent
+                    radius: 18
+                    color: "#ffffff"
+                    antialiasing: true
+                    visible: false
+                    layer.enabled: true
+                }
+
+                MultiEffect {
+                    id: cardBlurEffect
+                    anchors.fill: parent
+                    source: cardCropImage
+                    blurEnabled: true
+                    blur: Services.Aesthetic.preset === "crystal" ? 0.45 : 0.90
+                    blurMax: 48
+                    maskEnabled: true
+                    maskSource: cardMask
+                    visible: Services.Aesthetic.preset === "frosted" || Services.Aesthetic.preset === "crystal"
+                }
+
+                // Dimming layer matching the freeze frame
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 18
+                    color: Qt.rgba(0, 0, 0, 0.16)
+                    visible: Services.Aesthetic.preset === "frosted" || Services.Aesthetic.preset === "crystal"
+                }
+
+                // Themed Glass / Solid Background & Border
+                Rectangle {
+                    id: cardBg
+                    anchors.fill: parent
+                    radius: 18
+                    color: Services.Aesthetic.cardBg
+                    border.color: Services.Aesthetic.cardBorder
+                    border.width: Services.Aesthetic.borderWidth
+                }
 
                 // Prevent click dismissal inside card
                 MouseArea {
