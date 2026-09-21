@@ -344,10 +344,12 @@ Scope {
                         implicitHeight: 36
                         implicitWidth: 36
                         radius: 10
-                        color: mFolder.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.05)
-                        border.color: mFolder.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                        color: mFolder.pressed ? Qt.rgba(1, 1, 1, 0.20)
+                             : (mFolder.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.05))
+                        border.color: mFolder.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.08)
                         border.width: 1
                         Behavior on color { ColorAnimation { duration: 100 } }
+                        Behavior on border.color { ColorAnimation { duration: 100 } }
 
                         Text {
                             anchors.centerIn: parent
@@ -355,6 +357,9 @@ Scope {
                             color: mFolder.containsMouse ? "#ffffff" : root.theme.textMuted
                             font.pixelSize: 15
                             font.family: root.font
+                            scale: mFolder.containsMouse ? 1.08 : 1.0
+                            Behavior on color { ColorAnimation { duration: 100 } }
+                            Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
                         }
 
                         MouseArea {
@@ -378,22 +383,43 @@ Scope {
                     // 3. CLOSE
                     // ═══════════════════════════════════════════
 
-                    // Close (✕)
+                    // Close (✕) - Red Glow on Hover
                     Rectangle {
                         implicitHeight: 36
                         implicitWidth: 36
                         radius: 18
-                        color: mClose.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.05)
-                        border.color: mClose.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.08)
-                        border.width: 1
-                        Behavior on color { ColorAnimation { duration: 100 } }
+                        color: mClose.pressed ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.35)
+                             : (mClose.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.22)
+                             : Qt.rgba(1, 1, 1, 0.05))
+                        border.color: mClose.containsMouse ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.08)
+                        border.width: mClose.containsMouse ? 1.5 : 1
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                        Behavior on border.width { NumberAnimation { duration: 120 } }
+
+                        // Outer Red Glow Halo
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 44
+                            height: 44
+                            radius: 22
+                            color: Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.18)
+                            z: -1
+                            visible: mClose.containsMouse
+                            opacity: mClose.containsMouse ? 1.0 : 0.0
+                            Behavior on opacity { NumberAnimation { duration: 140 } }
+                        }
 
                         Text {
                             anchors.centerIn: parent
                             text: "✕"
-                            color: mClose.containsMouse ? "#ffffff" : root.theme.textMuted
+                            color: mClose.containsMouse ? root.theme.accentRed : root.theme.textMuted
                             font.pixelSize: 11
                             font.family: root.font
+                            font.weight: mClose.containsMouse ? Font.Bold : Font.Normal
+                            scale: mClose.containsMouse ? 1.15 : 1.0
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
                         }
 
                         MouseArea {

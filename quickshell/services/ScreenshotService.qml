@@ -85,7 +85,7 @@ Singleton {
         return false;
     }
 
-    // ── Dedicated Process for Hyprland Dispatch ────────
+    // ── Dedicated Process for Command Execution ────────
     Process {
         id: dispatchProc
         command: ["sh", "-c", ""]
@@ -93,7 +93,7 @@ Singleton {
 
     function _runCommand(cmd) {
         dispatchProc.running = false;
-        dispatchProc.command = ["hyprctl", "dispatch", "hl.dsp.exec_cmd(\"" + cmd.replace(/"/g, '\\"') + "\")"];
+        dispatchProc.command = ["sh", "-c", cmd];
         dispatchProc.running = true;
     }
 
@@ -204,7 +204,10 @@ Singleton {
 
     // ── Post-Capture Actions ───────────────────────────
     function openLastScreenshot() {
-        if (!lastScreenshotPath) return;
+        if (!lastScreenshotPath) {
+            openScreenshotsFolder();
+            return;
+        }
         _runCommand(
             "spectacle -E '" + lastScreenshotPath + "' 2>/dev/null || " +
             "gwenview '" + lastScreenshotPath + "' 2>/dev/null || " +
@@ -214,12 +217,14 @@ Singleton {
     }
 
     function openScreenshotsFolder() {
-        if (!lastScreenshotPath) return;
-        _runCommand(
-            "dolphin --select '" + lastScreenshotPath + "' 2>/dev/null || " +
-            "xdg-open /home/aran/Pictures/Screenshots"
-        );
+        closeToolbar();
         dismissPreview();
+        const dir = "/home/aran/Pictures/Screenshots";
+        if (lastScreenshotPath !== "") {
+            _runCommand("dolphin --select '" + lastScreenshotPath + "' 2>/dev/null || xdg-open '" + dir + "'");
+        } else {
+            _runCommand("dolphin '" + dir + "' 2>/dev/null || xdg-open '" + dir + "'");
+        }
     }
 
     function copyLastToClipboard() {
