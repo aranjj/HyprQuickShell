@@ -43,7 +43,6 @@ case "$MODE" in
         else
             grim "$FILE" || exit 0
         fi
-        wl-copy --type image/png < "$FILE" 2>/dev/null || true
         quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
         ;;
 
@@ -67,7 +66,6 @@ case "$MODE" in
             grim -g "$GEOM" "$FILE" || exit 0
         fi
 
-        wl-copy --type image/png < "$FILE" 2>/dev/null || true
         quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
         ;;
 
@@ -111,14 +109,12 @@ case "$MODE" in
             grim -g "$GEOM" "$FILE" || exit 0
         fi
 
-        wl-copy --type image/png < "$FILE" 2>/dev/null || true
         quickshell ipc -p /home/aran/.config/quickshell/shell.qml call screenshot close 2>/dev/null || true
         ;;
 
     fullscreen)
         pkill -9 -x slurp 2>/dev/null || true
         grim "$FILE" || exit 0
-        wl-copy --type image/png < "$FILE" 2>/dev/null || true
         ;;
 
     window)
@@ -169,7 +165,6 @@ case "$MODE" in
         else
             grim -g "$GEOM" "$FILE" || exit 0
         fi
-        wl-copy --type image/png < "$FILE" 2>/dev/null || true
         ;;
 
     region)
@@ -200,7 +195,6 @@ case "$MODE" in
         else
             grim -g "$GEOM" "$FILE" || exit 0
         fi
-        wl-copy --type image/png < "$FILE" 2>/dev/null || true
         ;;
 
     *)

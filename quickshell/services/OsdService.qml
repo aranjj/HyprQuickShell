@@ -79,6 +79,24 @@ Singleton {
         show(ic, col, "Power Source", text, Math.min(1.0, level / 100), col);
     }
 
+    function showClipboard(type, titleStr, detailStr) {
+        let ic = "󰄬";
+        let col = Services.ThemeService.accentGreen;
+        if (type === "image") {
+            ic = "󰋩";
+        } else if (type === "file") {
+            ic = "󰉋";
+        }
+        icon = ic;
+        iconColor = col;
+        title = titleStr || "Copied";
+        valueText = detailStr || "";
+        progress = -2;
+        visible = true;
+        hideTimer.interval = 1500;
+        hideTimer.restart();
+    }
+
     Timer {
         id: hideTimer
         interval: 1400

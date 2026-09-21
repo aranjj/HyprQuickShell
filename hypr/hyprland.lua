@@ -58,8 +58,9 @@ local editor      = "code"
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("quickshell -p /home/aran/.config/quickshell/shell.qml")
-    hl.exec_cmd("wl-paste --type text --watch cliphist store")
-    hl.exec_cmd("wl-paste --type image --watch cliphist store")
+    hl.exec_cmd("wl-clip-persist --clipboard regular")
+    hl.exec_cmd("wl-paste --type text --watch /home/aran/.config/quickshell/scripts/clipboard-watcher.sh text")
+    hl.exec_cmd("wl-paste --type image --watch /home/aran/.config/quickshell/scripts/clipboard-watcher.sh image")
 end)
 
 
@@ -126,8 +127,8 @@ hl.config({
         rounding_power = 5,
 
         -- Change transparency of focused and unfocused windows
-        active_opacity   = 0.95,
-        inactive_opacity = 0.9,
+        active_opacity   = 0.97,
+        inactive_opacity = 0.95,
 
         shadow = {
             enabled      = true,

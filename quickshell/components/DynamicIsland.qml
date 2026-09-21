@@ -264,6 +264,9 @@ Scope {
         function collapse() {
             root.isMediaExpanded = false;
         }
+        function copyFeedback(type: string, title: string, detail: string): void {
+            Services.OsdService.showClipboard(type, title, detail);
+        }
     }
 
     // ── Fullscreen Window Tracking ───────────────────────
@@ -1440,7 +1443,7 @@ Scope {
                     // Case B: No progress bar (Power Profile, etc.) - Logo at left end, title & name centered
                     Item {
                         anchors.fill: parent
-                        visible: Services.OsdService.progress < 0
+                        visible: Services.OsdService.progress === -1
 
                         // Circular Hardware Badge at Left End (matches Case A positioning)
                         Rectangle {
@@ -1489,6 +1492,62 @@ Scope {
                                 font.family: root.font
                                 Layout.alignment: Qt.AlignHCenter
                                 horizontalAlignment: Text.AlignHCenter
+                            }
+                        }
+                    }
+
+                    // Case C: Clipboard Copy Feedback (progress === -2)
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 14
+                        anchors.rightMargin: 16
+                        spacing: 12
+                        visible: Services.OsdService.progress === -2
+
+                        // Circular Success Badge (32x32) with green checkmark
+                        Rectangle {
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: Qt.rgba(Services.ThemeService.accentGreen.r, Services.ThemeService.accentGreen.g, Services.ThemeService.accentGreen.b, Services.Aesthetic.preset === "oled" ? 0.16 : 0.12)
+                            border.color: Qt.rgba(Services.ThemeService.accentGreen.r, Services.ThemeService.accentGreen.g, Services.ThemeService.accentGreen.b, Services.Aesthetic.preset === "oled" ? 0.35 : 0.25)
+                            border.width: 1
+                            Layout.alignment: Qt.AlignVCenter
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "󰄬"
+                                color: Services.ThemeService.accentGreen
+                                font.pixelSize: 15
+                                font.family: root.font
+                            }
+                        }
+
+                        // Left-aligned Text Column
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                            spacing: 2
+
+                            Text {
+                                text: Services.OsdService.title
+                                color: root.theme.textPrimary
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                                font.family: root.font
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                                renderType: Text.NativeRendering
+                            }
+
+                            Text {
+                                text: Services.OsdService.valueText
+                                color: root.theme.textMuted
+                                font.pixelSize: 11
+                                font.family: root.font
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                                renderType: Text.NativeRendering
                             }
                         }
                     }
