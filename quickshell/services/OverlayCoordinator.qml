@@ -40,6 +40,9 @@ Singleton {
     // Currently active exclusive surface identifier ("" when none is active)
     property string activeExclusiveSurface: ""
 
+    // Timestamp (epoch ms) of when the last exclusive surface was closed or unmapped
+    property double lastSurfaceClosedTime: 0
+
     // Suspended shell state for workflow overlays (e.g. Screenshot capture & restore)
     property string suspendedExclusiveSurface: ""
 
@@ -59,6 +62,7 @@ Singleton {
         if (activeExclusiveSurface !== "") {
             const prev = activeExclusiveSurface;
             activeExclusiveSurface = "";
+            lastSurfaceClosedTime = Date.now();
             const entry = _surfaces[prev];
             if (entry && typeof entry.close === "function") {
                 try {
@@ -76,6 +80,7 @@ Singleton {
     function releaseExclusiveSurface(name) {
         if (activeExclusiveSurface === name) {
             activeExclusiveSurface = "";
+            lastSurfaceClosedTime = Date.now();
         }
     }
 
@@ -84,6 +89,7 @@ Singleton {
         if (activeExclusiveSurface !== "") {
             const prev = activeExclusiveSurface;
             activeExclusiveSurface = "";
+            lastSurfaceClosedTime = Date.now();
             const entry = _surfaces[prev];
             if (entry && typeof entry.close === "function") {
                 try {
@@ -106,6 +112,7 @@ Singleton {
     function suspendExclusiveSurface() {
         suspendedExclusiveSurface = activeExclusiveSurface;
         if (activeExclusiveSurface !== "") {
+            lastSurfaceClosedTime = Date.now();
             closeCurrentExclusiveSurface();
         }
         return suspendedExclusiveSurface;

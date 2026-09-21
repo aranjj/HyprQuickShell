@@ -1621,8 +1621,7 @@ Scope {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        Services.SystemService.controlCenterOpen = false;
-                                        Services.ScreenshotService.toggleToolbar();
+                                        Services.ScreenshotService.openToolbar();
                                     }
                                 }
                             }

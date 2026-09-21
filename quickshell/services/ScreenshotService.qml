@@ -54,12 +54,35 @@ Singleton {
         }
     }
 
-    // ── Control Center Unmap Delay for Freeze ──────────
+    // ── Overlay Unmap Delay for Freeze ─────────────────
     Timer {
-        id: ccUnmapTimer
-        interval: 120
+        id: overlayUnmapTimer
+        interval: 280
         repeat: false
         onTriggered: root._startFreeze()
+    }
+
+    function _prepareForCapture() {
+        const msSinceClose = Date.now() - (Services.OverlayCoordinator.lastSurfaceClosedTime || 0);
+        const overlayJustClosed = msSinceClose < 350;
+        const hadOverlay = Services.OverlayCoordinator.hasActiveExclusiveSurface()
+                        || Services.SystemService.controlCenterOpen
+                        || Services.SystemService.powerMenuOpen
+                        || Services.SystemService.aboutDialogOpen
+                        || overlayJustClosed;
+
+        if (hadOverlay) {
+            Services.OverlayCoordinator.closeCurrentExclusiveSurface();
+            Services.SystemService.controlCenterOpen = false;
+            Services.SystemService.powerMenuOpen = false;
+            Services.SystemService.aboutDialogOpen = false;
+
+            const waitTime = overlayJustClosed ? Math.max(120, 280 - msSinceClose) : 280;
+            overlayUnmapTimer.interval = waitTime;
+            overlayUnmapTimer.restart();
+            return true;
+        }
+        return false;
     }
 
     // ── Dedicated Process for Hyprland Dispatch ────────
@@ -129,9 +152,7 @@ Singleton {
         root.isSelecting = true;
         root._pendingDirectMode = m;
 
-        if (Services.OverlayCoordinator.hasActiveExclusiveSurface()) {
-            Services.OverlayCoordinator.suspendExclusiveSurface();
-            ccUnmapTimer.restart();
+        if (_prepareForCapture()) {
             return;
         }
 
@@ -142,11 +163,11 @@ Singleton {
         if (root.toolbarVisible) return;
         root.directSnipMode = false;
         root.isSelecting = false;
-        if (Services.OverlayCoordinator.hasActiveExclusiveSurface()) {
-            Services.OverlayCoordinator.suspendExclusiveSurface();
-            ccUnmapTimer.restart();
+
+        if (_prepareForCapture()) {
             return;
         }
+
         _startFreeze();
     }
 
@@ -158,7 +179,6 @@ Singleton {
         freezeImagePath = "";
         killSlurpProc.running = false;
         killSlurpProc.running = true;
-        Services.OverlayCoordinator.restoreExclusiveSurface();
     }
 
     // ── Toolbar Toggle ─────────────────────────────────
@@ -249,9 +269,18 @@ Singleton {
 
         // Direct shortcut or background invocation
         if (m === "fullscreen") {
-            const overlayWasOpen = toolbarVisible || Services.OverlayCoordinator.hasActiveExclusiveSurface();
+            const msSinceClose = Date.now() - (Services.OverlayCoordinator.lastSurfaceClosedTime || 0);
+            const overlayWasOpen = toolbarVisible 
+                                || Services.OverlayCoordinator.hasActiveExclusiveSurface()
+                                || Services.SystemService.controlCenterOpen
+                                || Services.SystemService.powerMenuOpen
+                                || Services.SystemService.aboutDialogOpen
+                                || (msSinceClose < 350);
             closeToolbar();
-            Services.OverlayCoordinator.suspendExclusiveSurface();
+            Services.OverlayCoordinator.closeCurrentExclusiveSurface();
+            Services.SystemService.controlCenterOpen = false;
+            Services.SystemService.powerMenuOpen = false;
+            Services.SystemService.aboutDialogOpen = false;
 
             if (overlayWasOpen) {
                 root._pendingMode = m;
