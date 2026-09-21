@@ -107,8 +107,17 @@ Singleton {
     readonly property color innerCardBorder: Qt.rgba(1, 1, 1, preset === "oled" ? 0.09 : (preset === "crystal" ? 0.08 : 0.06))
 
     // ── Slider Tokens (Soft Translucent Tahoe Design) ──
-    readonly property color sliderTrackBg: Qt.rgba(1, 1, 1, preset === "oled" ? 0.10 : (preset === "crystal" ? 0.14 : 0.20))
-    readonly property color sliderFill: Qt.rgba(1, 1, 1, preset === "oled" ? 0.95 : 0.82)
+    readonly property color sliderTrackBg: {
+        if (preset === "oled") return Qt.rgba(1, 1, 1, 0.10);
+        return Qt.rgba(
+            Services.ThemeService.colPrimary.r,
+            Services.ThemeService.colPrimary.g,
+            Services.ThemeService.colPrimary.b,
+            preset === "crystal" ? 0.15 : 0.20
+        );
+    }
+    readonly property color sliderFill: Services.ThemeService.accent
+    readonly property color sliderOnFill: Services.ThemeService.colOnPrimary
 
     // ── Computed Card Colors ────────────────────────
     property color cardBg: {

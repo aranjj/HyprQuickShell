@@ -1331,7 +1331,7 @@ Scope {
                                         width: Services.SystemService.brightness <= 0 ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.brightness / 100)))
                                         height: parent.height
                                         radius: 16
-                                        color: Services.Aesthetic.sliderFill
+                                        color: root.theme.accent
                                         clip: true
                                         Behavior on width {
                                             enabled: !brightMouse.pressed
@@ -1343,7 +1343,7 @@ Scope {
                                             x: 10
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: Services.SystemService.brightness <= 33 ? "󰃞" : (Services.SystemService.brightness <= 66 ? "󰃟" : "󰃠")
-                                            color: "#16161a"
+                                            color: root.theme.onPrimary
                                             font.pixelSize: 15
                                             font.family: root.font
                                         }
@@ -1483,19 +1483,19 @@ Scope {
                                         width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
                                         height: parent.height
                                         radius: 16
-                                        color: Services.Aesthetic.sliderFill
+                                        color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.accent
                                         clip: true
                                         Behavior on width {
                                             enabled: !soundMouse.pressed
                                             NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
                                         }
 
-                                        // Foreground Dark Glyph
+                                        // Foreground Glyph
                                         Text {
                                             x: 10
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: Services.SystemService.volumeIcon
-                                            color: "#16161a"
+                                            color: Services.SystemService.volumeMuted ? "#ffffff" : root.theme.onPrimary
                                             font.pixelSize: 15
                                             font.family: root.font
                                         }
@@ -4192,7 +4192,7 @@ Scope {
                                             width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
                                             height: parent.height
                                             radius: 16
-                                            color: Services.Aesthetic.sliderFill
+                                            color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.accent
                                             clip: true
                                             Behavior on width {
                                                 enabled: !subSoundMouse.pressed
@@ -4203,7 +4203,7 @@ Scope {
                                                 x: 10
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 text: Services.SystemService.volumeIcon
-                                                color: "#16161a"
+                                                color: Services.SystemService.volumeMuted ? "#ffffff" : root.theme.onPrimary
                                                 font.pixelSize: 15
                                                 font.family: root.font
                                             }
@@ -4558,7 +4558,7 @@ Scope {
                                                         width: (streamRow.currentMuted || streamRow.currentVol <= 0) ? 0 : Math.max(0, Math.min(appVolBar.width, appVolBar.width * (Math.min(100, streamRow.currentVol) / 100)))
                                                         height: parent.height
                                                         radius: 15
-                                                        color: Services.Aesthetic.sliderFill
+                                                        color: streamRow.currentMuted ? root.theme.accentRed : root.theme.accent
                                                         clip: true
                                                         Behavior on width {
                                                             enabled: !appVolMouse.pressed
@@ -4570,7 +4570,7 @@ Scope {
                                                             x: 10
                                                             anchors.verticalCenter: parent.verticalCenter
                                                             text: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
-                                                            color: "#16161a"
+                                                            color: streamRow.currentMuted ? "#ffffff" : root.theme.onPrimary
                                                             font.pixelSize: 13
                                                             font.family: root.font
                                                         }
@@ -4786,12 +4786,12 @@ Scope {
                                                 font.family: root.font
                                             }
 
-                                            Rectangle {
+                                             Rectangle {
                                                 id: subMicFill
                                                 width: (Services.SystemService.micMuted || Services.SystemService.micVolume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.micVolume) / 100)))
                                                 height: parent.height
                                                 radius: 16
-                                                color: Services.SystemService.micInUse ? "#ff9f0a" : Services.Aesthetic.sliderFill
+                                                color: Services.SystemService.micMuted ? root.theme.accentRed : (Services.SystemService.micInUse ? "#ff9f0a" : root.theme.accent)
                                                 clip: true
                                                 Behavior on width {
                                                     enabled: !subMicMouse.pressed
@@ -4803,7 +4803,7 @@ Scope {
                                                     x: 10
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
-                                                    color: "#16161a"
+                                                    color: (Services.SystemService.micMuted || Services.SystemService.micInUse) ? "#ffffff" : root.theme.onPrimary
                                                     font.pixelSize: 15
                                                     font.family: root.font
                                                 }
