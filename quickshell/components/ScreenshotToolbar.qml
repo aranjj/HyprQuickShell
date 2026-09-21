@@ -37,7 +37,7 @@ Scope {
             visible: root.isOpen || closeAnimTimer.running
             color: "transparent"
 
-            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.keyboardFocus: (root.isOpen && !Services.ScreenshotService.directSnipMode && !Services.ScreenshotService.isSelecting) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
             WlrLayershell.namespace: "quickshell-screenshot-toolbar"
             exclusionMode: ExclusionMode.Ignore
@@ -75,6 +75,7 @@ Scope {
             MouseArea {
                 anchors.fill: parent
                 enabled: !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode
+                visible: !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode
                 onClicked: Services.ScreenshotService.closeToolbar()
             }
 
