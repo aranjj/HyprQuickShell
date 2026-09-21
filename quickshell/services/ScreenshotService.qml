@@ -208,11 +208,7 @@ Singleton {
             openScreenshotsFolder();
             return;
         }
-        _runCommand(
-            "spectacle -E '" + lastScreenshotPath + "' 2>/dev/null || " +
-            "gwenview '" + lastScreenshotPath + "' 2>/dev/null || " +
-            "xdg-open '" + lastScreenshotPath + "'"
-        );
+        _runCommand("xdg-open '" + lastScreenshotPath + "'");
         dismissPreview();
     }
 
