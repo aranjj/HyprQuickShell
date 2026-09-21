@@ -44,14 +44,29 @@ Scope {
         setIndex(rand);
     }
 
+    property bool isOpen: Services.WallpaperService.pickerOpen
+    onIsOpenChanged: {
+        if (!isOpen) {
+            closeAnimTimer.restart();
+        } else {
+            closeAnimTimer.stop();
+        }
+    }
+
+    Timer {
+        id: closeAnimTimer
+        interval: 180
+        repeat: false
+    }
+
     PanelWindow {
         id: pickerWin
-        visible: Services.WallpaperService.pickerOpen
+        visible: root.isOpen || closeAnimTimer.running
         focusable: true
         color: "transparent"
 
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: pickerWin.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: (root.isOpen || closeAnimTimer.running) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         WlrLayershell.namespace: "quickshell-wallpaper-picker"
         exclusionMode: ExclusionMode.Ignore
 
@@ -65,7 +80,7 @@ Scope {
         }
 
         onVisibleChanged: {
-            if (visible) {
+            if (visible && root.isOpen) {
                 const list = Services.WallpaperService.wallpapers;
                 const curr = Services.WallpaperService.currentWallpaper.replace(/^file:\/\//, "");
                 let idx = list.indexOf(curr);
@@ -83,6 +98,8 @@ Scope {
         Rectangle {
             anchors.fill: parent
             color: Services.Aesthetic.backdropColor
+            opacity: root.isOpen ? 1.0 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
 
             MouseArea {
                 anchors.fill: parent
@@ -135,6 +152,31 @@ Scope {
         Rectangle {
             id: mainModal
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: root.isOpen ? 0 : -16
+            scale: root.isOpen ? 1.0 : 0.92
+            opacity: root.isOpen ? 1.0 : 0.0
+            transformOrigin: Item.Center
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: root.isOpen ? 220 : 160
+                    easing.type: root.isOpen ? Easing.OutBack : Easing.InQuad
+                    easing.overshoot: 1.05
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutQuad
+                }
+            }
+            Behavior on anchors.verticalCenterOffset {
+                NumberAnimation {
+                    duration: root.isOpen ? 220 : 160
+                    easing.type: root.isOpen ? Easing.OutCubic : Easing.InQuad
+                }
+            }
+
             width: Math.min(pickerWin.width * 0.88, 1040)
             height: 540
             radius: Services.Aesthetic.cardRadius

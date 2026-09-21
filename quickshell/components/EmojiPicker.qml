@@ -161,13 +161,26 @@ Scope {
     }
 
     property real openTime: 0
+    property bool isRevealed: false
+
+    Timer {
+        id: emojiCloseTimer
+        interval: 180
+        repeat: false
+        onTriggered: {
+            emojiPanel.visible = false;
+            Services.OverlayCoordinator.releaseExclusiveSurface("emojiPicker");
+        }
+    }
 
     // ── State Management & Interaction ───────────────
     function open() {
+        emojiCloseTimer.stop();
         Services.OverlayCoordinator.requestExclusiveSurface("emojiPicker");
         root.openTime = Date.now();
         root.opened = true;
         emojiPanel.visible = true;
+        root.isRevealed = true;
         if (searchInput.text !== "") {
             searchInput.text = "";
         }
@@ -185,9 +198,10 @@ Scope {
     }
 
     function dismiss() {
+        if (!emojiPanel.visible) return;
         root.opened = false;
-        emojiPanel.visible = false;
-        Services.OverlayCoordinator.releaseExclusiveSurface("emojiPicker");
+        root.isRevealed = false;
+        emojiCloseTimer.restart();
     }
 
     function toggle() {
@@ -330,13 +344,13 @@ Scope {
     // ── Full-Screen Layer Overlay ───────────────────
     PanelWindow {
         id: emojiPanel
-        visible: false
+        visible: root.isRevealed || emojiCloseTimer.running
         focusable: true
         color: "transparent"
 
         WlrLayershell.namespace: "quickshell-emojis"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: emojiPanel.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: (root.isRevealed || emojiCloseTimer.running) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         exclusionMode: ExclusionMode.Ignore
 
         anchors {
@@ -352,6 +366,8 @@ Scope {
         Rectangle {
             anchors.fill: parent
             color: Services.Aesthetic.backdropColor
+            opacity: root.isRevealed ? 1.0 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
 
             MouseArea {
                 anchors.fill: parent
@@ -366,6 +382,31 @@ Scope {
         Rectangle {
             id: cardBox
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: root.isRevealed ? 0 : -14
+            scale: root.isRevealed ? 1.0 : 0.94
+            opacity: root.isRevealed ? 1.0 : 0.0
+            transformOrigin: Item.Center
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: root.isRevealed ? 220 : 160
+                    easing.type: root.isRevealed ? Easing.OutBack : Easing.InQuad
+                    easing.overshoot: 1.05
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutQuad
+                }
+            }
+            Behavior on anchors.verticalCenterOffset {
+                NumberAnimation {
+                    duration: root.isRevealed ? 220 : 160
+                    easing.type: root.isRevealed ? Easing.OutCubic : Easing.InQuad
+                }
+            }
+
             width: root.cardWidth
             height: root.cardHeight
             radius: Services.Aesthetic.cardRadius

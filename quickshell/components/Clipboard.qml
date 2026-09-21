@@ -18,23 +18,35 @@ Scope {
     property string statusMessage: ""
 
     // ── IPC Handler for External Toggle (Super + V) ─────────────
+    property bool isOpen: false
+
+    Timer {
+        id: clipCloseTimer
+        interval: 180
+        repeat: false
+        onTriggered: {
+            clipboardPanel.visible = false;
+            Services.OverlayCoordinator.releaseExclusiveSurface("clipboard");
+        }
+    }
+
     IpcHandler {
         target: "clipboard"
 
         function toggle(): void {
-            clipboardPanel.visible = !clipboardPanel.visible;
-            if (clipboardPanel.visible) {
+            if (root.isOpen) {
+                closePopup();
+            } else {
                 openPopup();
             }
         }
 
         function open(): void {
-            clipboardPanel.visible = true;
             openPopup();
         }
 
         function close(): void {
-            clipboardPanel.visible = false;
+            closePopup();
         }
 
         function clear(): void {
@@ -44,14 +56,16 @@ Scope {
 
     Component.onCompleted: {
         Services.OverlayCoordinator.registerExclusiveSurface("clipboard",
-            () => { clipboardPanel.visible = true; },
-            () => { clipboardPanel.visible = false; }
+            () => { openPopup(); },
+            () => { closePopup(); }
         );
     }
 
     function openPopup() {
+        clipCloseTimer.stop();
         Services.OverlayCoordinator.requestExclusiveSurface("clipboard");
         clipboardPanel.visible = true;
+        root.isOpen = true;
         searchInput.text = "";
         root.selectedIndex = 0;
         root.statusMessage = "";
@@ -59,6 +73,12 @@ Scope {
         Qt.callLater(() => {
             searchInput.forceActiveFocus();
         });
+    }
+
+    function closePopup() {
+        if (!clipboardPanel.visible) return;
+        root.isOpen = false;
+        clipCloseTimer.restart();
     }
 
     // ── Command Runner ──────────────────────────────
@@ -274,10 +294,12 @@ Scope {
         Rectangle {
             anchors.fill: parent
             color: Services.Aesthetic.backdropColor
+            opacity: root.isOpen ? 1.0 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: clipboardPanel.visible = false
+                onClicked: root.closePopup()
             }
         }
 
@@ -286,7 +308,9 @@ Scope {
             id: cardBox
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: parent.height * 0.16
+            anchors.topMargin: root.isOpen ? (parent.height * 0.16) : (parent.height * 0.16 - 18)
+            scale: root.isOpen ? 1.0 : 0.94
+            opacity: root.isOpen ? 1.0 : 0.0
 
             width: 640
             height: Math.min(560, Math.max(220, root.filteredItems.length * 62 + 150))
@@ -295,6 +319,10 @@ Scope {
             border.color: Services.Aesthetic.cardBorder
             border.width: Services.Aesthetic.borderWidth
             clip: true
+
+            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack; easing.overshoot: 1.05 } }
+            Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
             // Top specular glass highlight
             Rectangle {
@@ -380,7 +408,7 @@ Scope {
                                     root.selectedIndex = 0;
                                 }
 
-                                Keys.onEscapePressed: clipboardPanel.visible = false
+                                Keys.onEscapePressed: root.closePopup()
 
                                 Keys.onPressed: (event) => {
                                     // Alt + 1..9 instant copy

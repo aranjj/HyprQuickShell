@@ -11,6 +11,21 @@ Scope {
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
+    property bool isOpen: Services.ScreenshotService.toolbarVisible
+    onIsOpenChanged: {
+        if (!isOpen) {
+            closeAnimTimer.restart();
+        } else {
+            closeAnimTimer.stop();
+        }
+    }
+
+    Timer {
+        id: closeAnimTimer
+        interval: 160
+        repeat: false
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -19,11 +34,11 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: Services.ScreenshotService.toolbarVisible
+            visible: root.isOpen || closeAnimTimer.running
             color: "transparent"
 
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: (Services.ScreenshotService.directSnipMode || Services.ScreenshotService.isSelecting) ? WlrKeyboardFocus.None : WlrKeyboardFocus.OnDemand
+            WlrLayershell.keyboardFocus: (root.isOpen && !Services.ScreenshotService.directSnipMode && !Services.ScreenshotService.isSelecting) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
             WlrLayershell.namespace: "quickshell-screenshot-toolbar"
             exclusionMode: ExclusionMode.Ignore
 
@@ -43,6 +58,8 @@ Scope {
                 fillMode: Image.PreserveAspectCrop
                 cache: false
                 visible: Services.ScreenshotService.freezeImagePath !== ""
+                opacity: root.isOpen ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
             }
 
             // Subtle Dimming Overlay (indicating freeze mode)
@@ -50,6 +67,8 @@ Scope {
                 anchors.fill: parent
                 color: Qt.rgba(0, 0, 0, 0.16)
                 visible: Services.ScreenshotService.freezeImagePath !== ""
+                opacity: root.isOpen ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
             }
 
             // Click outside toolbar capsule to dismiss
@@ -75,14 +94,33 @@ Scope {
                 id: toolbarCard
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 36
+                anchors.bottomMargin: (root.isOpen && !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode) ? 36 : 16
+                scale: (root.isOpen && !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode) ? 1.0 : 0.92
+                opacity: (root.isOpen && !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode) ? 1.0 : 0.0
+                transformOrigin: Item.Bottom
+
+                Behavior on anchors.bottomMargin {
+                    NumberAnimation {
+                        duration: root.isOpen ? 220 : 150
+                        easing.type: root.isOpen ? Easing.OutCubic : Easing.InQuad
+                    }
+                }
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: root.isOpen ? 220 : 150
+                        easing.type: root.isOpen ? Easing.OutBack : Easing.InQuad
+                        easing.overshoot: 1.06
+                    }
+                }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutQuad
+                    }
+                }
 
                 implicitHeight: 52
                 implicitWidth: contentRow.implicitWidth + 24
-
-                visible: !Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode
-                opacity: (!Services.ScreenshotService.isSelecting && !Services.ScreenshotService.directSnipMode) ? 1.0 : 0.0
-                Behavior on opacity { NumberAnimation { duration: 120 } }
 
                 // ── Acrylic / Frosted Blur Shader Layer ──────
                 Image {

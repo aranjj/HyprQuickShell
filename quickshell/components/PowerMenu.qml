@@ -19,8 +19,19 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: Services.SystemService.powerMenuOpen
+            readonly property bool isOpen: Services.SystemService.powerMenuOpen
+            visible: isOpen || closeAnimTimer.running
             color: "transparent"
+
+            Timer {
+                id: closeAnimTimer
+                interval: 180
+                repeat: false
+            }
+
+            onIsOpenChanged: {
+                if (!isOpen) closeAnimTimer.restart();
+            }
 
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -40,6 +51,8 @@ Scope {
             Rectangle {
                 anchors.fill: parent
                 color: Services.Aesthetic.backdropColor
+                opacity: powerMenuWindow.isOpen ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
                 MouseArea {
                     anchors.fill: parent
@@ -51,6 +64,9 @@ Scope {
             Rectangle {
                 id: powerCard
                 anchors.centerIn: parent
+                anchors.verticalCenterOffset: powerMenuWindow.isOpen ? 0 : -14
+                scale: powerMenuWindow.isOpen ? 1.0 : 0.90
+                opacity: powerMenuWindow.isOpen ? 1.0 : 0.0
                 width: 440
                 height: 180
                 radius: Services.Aesthetic.cardRadius
@@ -58,6 +74,10 @@ Scope {
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
+
+                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack; easing.overshoot: 1.08 } }
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
                 // Top specular glass highlight
                 Rectangle {

@@ -246,9 +246,24 @@ Scope {
         }
     }
 
+    property bool isRevealed: false
+
+    Timer {
+        id: launcherCloseTimer
+        interval: 180
+        repeat: false
+        onTriggered: {
+            launcherPanel.visible = false;
+            searchInput.text = "";
+            Services.OverlayCoordinator.releaseExclusiveSurface("launcher");
+        }
+    }
+
     function openLauncher(initialText, category) {
+        launcherCloseTimer.stop();
         Services.OverlayCoordinator.requestExclusiveSurface("launcher");
         launcherPanel.visible = true;
+        root.isRevealed = true;
         const text = initialText || "";
         searchInput.text = text;
         if (category) {
@@ -267,9 +282,9 @@ Scope {
     }
 
     function closeLauncher() {
-        launcherPanel.visible = false;
-        searchInput.text = "";
-        Services.OverlayCoordinator.releaseExclusiveSurface("launcher");
+        if (!launcherPanel.visible) return;
+        root.isRevealed = false;
+        launcherCloseTimer.restart();
     }
 
     // ── Math / Calculator Evaluation ─────────────────
@@ -1420,10 +1435,17 @@ Scope {
 
         BackgroundEffect.blurRegion: Region { item: spotlightBox }
 
-        // Click outside to dismiss
-        MouseArea {
+        // Dimmed backdrop (click outside to dismiss)
+        Rectangle {
             anchors.fill: parent
-            onClicked: root.closeLauncher()
+            color: Services.Aesthetic.backdropColor
+            opacity: root.isRevealed ? 1.0 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.closeLauncher()
+            }
         }
 
         // ── Spotlight Floating Card (macOS Tahoe & Raycast Scopes) ──────
@@ -1431,7 +1453,9 @@ Scope {
             id: spotlightBox
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: parent.height * 0.15
+            anchors.topMargin: root.isRevealed ? (parent.height * 0.15) : (parent.height * 0.15 - 18)
+            scale: root.isRevealed ? 1.0 : 0.94
+            opacity: root.isRevealed ? 1.0 : 0.0
 
             width: 740
             height: 520
@@ -1444,6 +1468,9 @@ Scope {
             Behavior on height {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
+            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack; easing.overshoot: 1.05 } }
+            Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
             // Top specular highlight line (macOS glass edge)
             Rectangle {

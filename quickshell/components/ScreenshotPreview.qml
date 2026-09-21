@@ -11,6 +11,21 @@ Scope {
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
+    property bool isOpen: Services.ScreenshotService.previewVisible && Services.ScreenshotService.lastScreenshotPath !== ""
+    onIsOpenChanged: {
+        if (!isOpen) {
+            closeAnimTimer.restart();
+        } else {
+            closeAnimTimer.stop();
+        }
+    }
+
+    Timer {
+        id: closeAnimTimer
+        interval: 180
+        repeat: false
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -19,7 +34,7 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: Services.ScreenshotService.previewVisible && Services.ScreenshotService.lastScreenshotPath !== ""
+            visible: (root.isOpen || closeAnimTimer.running) && Services.ScreenshotService.lastScreenshotPath !== ""
             color: "transparent"
 
             WlrLayershell.layer: WlrLayer.Overlay
@@ -51,11 +66,24 @@ Scope {
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
 
-                // Scale / entrance animation
-                scale: Services.ScreenshotService.previewVisible ? 1.0 : 0.88
-                opacity: Services.ScreenshotService.previewVisible ? 1.0 : 0.0
-                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
-                Behavior on opacity { NumberAnimation { duration: 160 } }
+                // Scale / entrance & exit animation
+                scale: root.isOpen ? 1.0 : 0.88
+                opacity: root.isOpen ? 1.0 : 0.0
+                transformOrigin: Item.BottomRight
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: root.isOpen ? 220 : 160
+                        easing.type: root.isOpen ? Easing.OutBack : Easing.InQuad
+                        easing.overshoot: 1.06
+                    }
+                }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutQuad
+                    }
+                }
 
                 // Thumbnail Container
                 Rectangle {

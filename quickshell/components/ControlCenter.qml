@@ -290,8 +290,19 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: Services.SystemService.controlCenterOpen
+            readonly property bool isOpen: Services.SystemService.controlCenterOpen
+            visible: isOpen || closeAnimTimer.running
             color: "transparent"
+
+            Timer {
+                id: closeAnimTimer
+                interval: 200
+                repeat: false
+            }
+
+            onIsOpenChanged: {
+                if (!isOpen) closeAnimTimer.restart();
+            }
 
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: (root.activeView === "wifi" && (root.wifiPromptSsid !== "" || root.wifiShowOtherNetworkModal)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
@@ -322,14 +333,22 @@ Scope {
                 width: 382
                 height: 640
                 anchors.top: parent.top
-                anchors.topMargin: 44
+                anchors.topMargin: controlCenterWindow.isOpen ? 44 : 26
                 anchors.right: parent.right
                 anchors.rightMargin: 14
+                scale: controlCenterWindow.isOpen ? 1.0 : 0.94
+                opacity: controlCenterWindow.isOpen ? 1.0 : 0.0
+                transformOrigin: Item.TopRight
+
                 radius: Services.Aesthetic.cardRadius
                 color: Services.Aesthetic.cardBg
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
+
+                Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
                 // Top specular glass highlight
                 Rectangle {

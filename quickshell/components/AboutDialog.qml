@@ -28,8 +28,19 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: Services.SystemService.aboutDialogOpen
+            readonly property bool isOpen: Services.SystemService.aboutDialogOpen
+            visible: isOpen || closeAnimTimer.running
             color: "transparent"
+
+            Timer {
+                id: closeAnimTimer
+                interval: 180
+                repeat: false
+            }
+
+            onIsOpenChanged: {
+                if (!isOpen) closeAnimTimer.restart();
+            }
 
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
@@ -49,6 +60,8 @@ Scope {
             Rectangle {
                 anchors.fill: parent
                 color: Services.Aesthetic.backdropColor
+                opacity: aboutWin.isOpen ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
                 MouseArea {
                     anchors.fill: parent
@@ -62,11 +75,18 @@ Scope {
                 width: 430
                 implicitHeight: cardContent.implicitHeight + 42
                 anchors.centerIn: parent
+                anchors.verticalCenterOffset: aboutWin.isOpen ? 0 : -14
+                scale: aboutWin.isOpen ? 1.0 : 0.92
+                opacity: aboutWin.isOpen ? 1.0 : 0.0
                 radius: Services.Aesthetic.cardRadius
                 color: Services.Aesthetic.cardBg
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
+
+                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack; easing.overshoot: 1.06 } }
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
                 // Top specular glass highlight
                 Rectangle {

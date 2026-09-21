@@ -105,15 +105,30 @@ Scope {
         }
     }
 
+    readonly property bool hasPendingAuth: root.authActive || root.testMode
+    onHasPendingAuthChanged: {
+        if (!hasPendingAuth) {
+            closeAnimTimer.restart();
+        } else {
+            closeAnimTimer.stop();
+        }
+    }
+
+    Timer {
+        id: closeAnimTimer
+        interval: 180
+        repeat: false
+    }
+
     // ── Full-Screen Overlay Window ────────────────────
     PanelWindow {
         id: polkitPanel
-        visible: root.authActive || root.testMode
+        visible: root.hasPendingAuth || closeAnimTimer.running
         focusable: true
         color: "transparent"
 
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: polkitPanel.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: (root.hasPendingAuth || closeAnimTimer.running) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         WlrLayershell.namespace: "quickshell-polkit"
         exclusionMode: ExclusionMode.Ignore
 
@@ -130,6 +145,8 @@ Scope {
         Rectangle {
             anchors.fill: parent
             color: Services.Aesthetic.backdropColor
+            opacity: root.hasPendingAuth ? 1.0 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
 
             MouseArea {
                 anchors.fill: parent
@@ -144,6 +161,31 @@ Scope {
             implicitHeight: cardContent.implicitHeight + 48
             anchors.centerIn: parent
             anchors.horizontalCenterOffset: root.shakeOffset
+            anchors.verticalCenterOffset: root.hasPendingAuth ? 0 : -14
+            scale: root.hasPendingAuth ? 1.0 : 0.90
+            opacity: root.hasPendingAuth ? 1.0 : 0.0
+            transformOrigin: Item.Center
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: root.hasPendingAuth ? 220 : 160
+                    easing.type: root.hasPendingAuth ? Easing.OutBack : Easing.InQuad
+                    easing.overshoot: 1.05
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutQuad
+                }
+            }
+            Behavior on anchors.verticalCenterOffset {
+                NumberAnimation {
+                    duration: root.hasPendingAuth ? 220 : 160
+                    easing.type: root.hasPendingAuth ? Easing.OutCubic : Easing.InQuad
+                }
+            }
+
             radius: Services.Aesthetic.cardRadius
             color: Services.Aesthetic.cardBg
             border.color: Services.Aesthetic.cardBorder
@@ -477,7 +519,7 @@ Scope {
         // ── Auto-focus and clear password on show ────
         onVisibleChanged: {
             root.isChecking = false;
-            if (visible) {
+            if (visible && root.hasPendingAuth) {
                 passwordInput.text = "";
                 passwordInput.forceActiveFocus();
             }

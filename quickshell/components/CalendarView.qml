@@ -94,8 +94,19 @@ Scope {
             required property ShellScreen modelData
             screen: modelData
 
-            visible: Services.ClockService.calendarOpen
+            readonly property bool isOpen: Services.ClockService.calendarOpen
+            visible: isOpen || closeAnimTimer.running
             color: "transparent"
+
+            Timer {
+                id: closeAnimTimer
+                interval: 200
+                repeat: false
+            }
+
+            onIsOpenChanged: {
+                if (!isOpen) closeAnimTimer.restart();
+            }
 
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -129,9 +140,12 @@ Scope {
             Rectangle {
                 id: calCard
                 anchors.top: parent.top
-                anchors.topMargin: 46
+                anchors.topMargin: calWindow.isOpen ? 46 : 28
                 anchors.right: parent.right
                 anchors.rightMargin: 12
+                scale: calWindow.isOpen ? 1.0 : 0.94
+                opacity: calWindow.isOpen ? 1.0 : 0.0
+                transformOrigin: Item.TopRight
 
                 width: 320
                 height: 380
@@ -139,11 +153,11 @@ Scope {
                 color: Services.Aesthetic.cardBg
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
+                clip: true
 
-                opacity: Services.ClockService.calendarOpen ? 1.0 : 0.0
-                scale: Services.ClockService.calendarOpen ? 1.0 : 0.95
-                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack } }
+                Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
                 MouseArea {
                     anchors.fill: parent
