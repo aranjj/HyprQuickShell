@@ -15,8 +15,19 @@ Scope {
     onIsOpenChanged: {
         if (!isOpen) {
             closeAnimTimer.restart();
+            justCopied = false;
         } else {
             closeAnimTimer.stop();
+        }
+    }
+
+    property bool justCopied: false
+    Timer {
+        id: copyResetTimer
+        interval: 1500
+        repeat: false
+        onTriggered: {
+            root.justCopied = false;
         }
     }
 
@@ -53,10 +64,10 @@ Scope {
                 right: 28
             }
 
-            implicitWidth: 268
-            implicitHeight: 182
+            implicitWidth: 284
+            implicitHeight: 196
 
-            // macOS Floating Screenshot Thumbnail Card
+            // Floating Screenshot Thumbnail Card
             Rectangle {
                 id: card
                 anchors.fill: parent
@@ -65,6 +76,23 @@ Scope {
                 border.color: Services.Aesthetic.cardBorder
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
+
+                // Active overlay state for thumbnail center
+                property string activeOverlayIcon: ""
+                property string activeOverlayText: ""
+                property color activeOverlayColor: "#ffffff"
+
+                function setOverlay(icon, text, col) {
+                    activeOverlayIcon = icon;
+                    activeOverlayText = text;
+                    activeOverlayColor = col !== undefined ? col : "#ffffff";
+                }
+
+                function clearOverlay() {
+                    activeOverlayIcon = "";
+                    activeOverlayText = "";
+                    activeOverlayColor = "#ffffff";
+                }
 
                 // Scale / entrance & exit animation
                 scale: root.isOpen ? 1.0 : 0.88
@@ -85,134 +113,288 @@ Scope {
                     }
                 }
 
-                // Thumbnail Container
-                Rectangle {
-                    id: thumbContainer
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.margins: 5
-                    radius: 12
-                    color: Qt.rgba(0, 0, 0, 0.4)
-                    clip: true
+                // HoverHandler tracks hover across entire card to pause dismiss timer
+                HoverHandler {
+                    id: cardHover
+                    onHoveredChanged: Services.ScreenshotService.previewHovered = hovered
+                }
 
-                    Image {
-                        id: thumbImg
-                        anchors.fill: parent
-                        source: Services.ScreenshotService.lastScreenshotPath ? ("file://" + Services.ScreenshotService.lastScreenshotPath) : ""
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        cache: false
-                    }
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 6
 
-                    // HoverHandler tracks hover across entire container
-                    HoverHandler {
-                        id: cardHover
-                        onHoveredChanged: Services.ScreenshotService.previewHovered = hovered
-                    }
-
-                    // Click on image area to open screenshot
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.bottomMargin: 36
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: Services.ScreenshotService.openLastScreenshot()
-                    }
-
-                    // Action Bar — visible whenever the card is hovered
+                    // ── Thumbnail Container ─────────────────
                     Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 36
-                        color: Qt.rgba(root.theme.surfaceDim.r, root.theme.surfaceDim.g, root.theme.surfaceDim.b, 0.90)
-                        border.color: Qt.rgba(root.theme.outline.r, root.theme.outline.g, root.theme.outline.b, 0.20)
+                        id: thumbContainer
+                        width: parent.width
+                        height: 130
+                        radius: 12
+                        color: Qt.rgba(0, 0, 0, 0.45)
+                        border.color: Qt.rgba(255, 255, 255, 0.10)
                         border.width: 1
-                        opacity: cardHover.hovered ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 120 } }
+                        clip: true
+
+                        Image {
+                            id: thumbImg
+                            anchors.fill: parent
+                            source: Services.ScreenshotService.lastScreenshotPath ? ("file://" + Services.ScreenshotService.lastScreenshotPath) : ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            cache: false
+                        }
+
+                        // Centered Action Overlay (appears when hovering buttons or thumbnail)
+                        readonly property bool showOverlay: card.activeOverlayText !== "" || imgHover.hovered
+                        readonly property string currentIcon: card.activeOverlayIcon !== "" ? card.activeOverlayIcon : "󰋩"
+                        readonly property string currentText: card.activeOverlayText !== "" ? card.activeOverlayText : "Open Image"
+                        readonly property color currentColor: card.activeOverlayText !== "" ? card.activeOverlayColor : "#ffffff"
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Qt.rgba(0, 0, 0, thumbContainer.showOverlay ? 0.42 : 0.0)
+                            Behavior on color { ColorAnimation { duration: 150 } }
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 8
+                                opacity: thumbContainer.showOverlay ? 1.0 : 0.0
+                                scale: thumbContainer.showOverlay ? 1.0 : 0.94
+                                Behavior on opacity { NumberAnimation { duration: 140 } }
+                                Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+
+                                Text {
+                                    text: thumbContainer.currentIcon
+                                    color: thumbContainer.currentColor
+                                    font.pixelSize: 18
+                                    font.family: root.font
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                }
+                                Text {
+                                    text: thumbContainer.currentText
+                                    color: thumbContainer.currentColor
+                                    font.pixelSize: 14
+                                    font.weight: Font.DemiBold
+                                    font.family: root.font
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                }
+                            }
+                        }
+
+                        HoverHandler {
+                            id: imgHover
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Services.ScreenshotService.openLastScreenshot()
+                        }
+                    }
+
+                    // ── Auto-dismiss Progress Bar ───────────
+                    // Width matches thumbnail container; perfectly aligned within card margins
+                    Rectangle {
+                        id: timerTrack
+                        width: parent.width
+                        height: 3
+                        radius: 1.5
+                        color: Qt.rgba(255, 255, 255, 0.10)
+                        clip: true
+
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.left: parent.left
+                            width: parent.width * Math.max(0, Math.min(1.0, Services.ScreenshotService.previewProgress))
+                            radius: 1.5
+                            color: Services.ScreenshotService.previewHovered ? root.theme.textMuted : root.theme.accent
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                        }
+                    }
+
+                    // ── Action Controls Row ─────────────────
+                    Item {
+                        id: actionControlsItem
+                        width: parent.width
+                        height: 34
 
                         RowLayout {
-                            anchors.centerIn: parent
+                            anchors.fill: parent
                             spacing: 6
 
-                            // Open in viewer
+                            // 1. Open Image Button
                             Rectangle {
-                                width: 26; height: 26; radius: 6
-                                color: openM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                radius: 8
+                                color: openM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (openM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+                                border.color: openM.containsMouse ? Qt.rgba(255, 255, 255, 0.24) : Qt.rgba(255, 255, 255, 0.08)
+                                border.width: 1
+                                scale: openM.pressed ? 0.94 : (openM.containsMouse ? 1.04 : 1.0)
+                                Behavior on scale { NumberAnimation { duration: 100 } }
                                 Behavior on color { ColorAnimation { duration: 100 } }
-                                Text { anchors.centerIn: parent; text: "󰋩"; color: "#ffffff"; font.pixelSize: 13; font.family: root.font }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰋩"
+                                    color: "#ffffff"
+                                    font.pixelSize: 13
+                                    font.family: root.font
+                                }
+
                                 MouseArea {
-                                    id: openM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    id: openM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onEntered: card.setOverlay("󰋩", "Open Image", "#ffffff")
+                                    onExited: card.clearOverlay()
                                     onClicked: Services.ScreenshotService.openLastScreenshot()
                                 }
                             }
 
-                            // Show in Dolphin
+                            // 2. Open Folder Button
                             Rectangle {
-                                width: 26; height: 26; radius: 6
-                                color: folM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                radius: 8
+                                color: folM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (folM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+                                border.color: folM.containsMouse ? Qt.rgba(255, 255, 255, 0.24) : Qt.rgba(255, 255, 255, 0.08)
+                                border.width: 1
+                                scale: folM.pressed ? 0.94 : (folM.containsMouse ? 1.04 : 1.0)
+                                Behavior on scale { NumberAnimation { duration: 100 } }
                                 Behavior on color { ColorAnimation { duration: 100 } }
-                                Text { anchors.centerIn: parent; text: "󰉋"; color: "#ffffff"; font.pixelSize: 13; font.family: root.font }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰉋"
+                                    color: "#ffffff"
+                                    font.pixelSize: 13
+                                    font.family: root.font
+                                }
+
                                 MouseArea {
-                                    id: folM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    id: folM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onEntered: card.setOverlay("󰉋", "Open Folder", "#ffffff")
+                                    onExited: card.clearOverlay()
                                     onClicked: Services.ScreenshotService.openScreenshotsFolder()
                                 }
                             }
 
-                            // Copy to clipboard
+                            // 3. Copy to Clipboard Button
                             Rectangle {
-                                width: 26; height: 26; radius: 6
-                                color: copyM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                radius: 8
+                                color: copyM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (root.justCopied ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.25) : (copyM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07)))
+                                border.color: root.justCopied ? root.theme.accentGreen : (copyM.containsMouse ? Qt.rgba(255, 255, 255, 0.24) : Qt.rgba(255, 255, 255, 0.08))
+                                border.width: 1
+                                scale: copyM.pressed ? 0.94 : (copyM.containsMouse ? 1.04 : 1.0)
+                                Behavior on scale { NumberAnimation { duration: 100 } }
                                 Behavior on color { ColorAnimation { duration: 100 } }
-                                Text { anchors.centerIn: parent; text: "󰅍"; color: "#ffffff"; font.pixelSize: 13; font.family: root.font }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.justCopied ? "󰄬" : "󰅍"
+                                    color: root.justCopied ? root.theme.accentGreen : "#ffffff"
+                                    font.pixelSize: 13
+                                    font.family: root.font
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                }
+
                                 MouseArea {
-                                    id: copyM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                    onClicked: Services.ScreenshotService.copyLastToClipboard()
+                                    id: copyM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onEntered: {
+                                        if (root.justCopied) {
+                                            card.setOverlay("󰄬", "Copied to Clipboard", root.theme.accentGreen);
+                                        } else {
+                                            card.setOverlay("󰅍", "Copy to Clipboard", "#ffffff");
+                                        }
+                                    }
+                                    onExited: card.clearOverlay()
+                                    onClicked: {
+                                        Services.ScreenshotService.copyLastToClipboard();
+                                        root.justCopied = true;
+                                        copyResetTimer.restart();
+                                        card.setOverlay("󰄬", "Copied to Clipboard", root.theme.accentGreen);
+                                    }
                                 }
                             }
 
-                            // Delete (Trash)
+                            // 4. Delete Button
                             Rectangle {
-                                width: 26; height: 26; radius: 6
-                                color: delM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                radius: 8
+                                color: delM.pressed ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.35) : (delM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.22) : Qt.rgba(1, 1, 1, 0.07))
+                                border.color: delM.containsMouse ? root.theme.accentRed : Qt.rgba(255, 255, 255, 0.08)
+                                border.width: 1
+                                scale: delM.pressed ? 0.94 : (delM.containsMouse ? 1.04 : 1.0)
+                                Behavior on scale { NumberAnimation { duration: 100 } }
                                 Behavior on color { ColorAnimation { duration: 100 } }
-                                Text { anchors.centerIn: parent; text: "󰩹"; color: delM.containsMouse ? root.theme.accentRed : "#ffffff"; font.pixelSize: 13; font.family: root.font }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰩹"
+                                    color: delM.containsMouse ? root.theme.accentRed : "#ffffff"
+                                    font.pixelSize: 13
+                                    font.family: root.font
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                }
+
                                 MouseArea {
-                                    id: delM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    id: delM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onEntered: card.setOverlay("󰩹", "Delete Screenshot", root.theme.accentRed)
+                                    onExited: card.clearOverlay()
                                     onClicked: Services.ScreenshotService.deleteLastScreenshot()
                                 }
                             }
 
-                            // Dismiss
+                            // 5. Cross / Close Button
                             Rectangle {
-                                width: 26; height: 26; radius: 6
-                                color: disM.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 30
+                                radius: 8
+                                color: disM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (disM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+                                border.color: disM.containsMouse ? Qt.rgba(255, 255, 255, 0.24) : Qt.rgba(255, 255, 255, 0.08)
+                                border.width: 1
+                                scale: disM.pressed ? 0.94 : (disM.containsMouse ? 1.04 : 1.0)
+                                Behavior on scale { NumberAnimation { duration: 100 } }
                                 Behavior on color { ColorAnimation { duration: 100 } }
-                                Text { anchors.centerIn: parent; text: "✕"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✕"
+                                    color: disM.containsMouse ? "#ffffff" : root.theme.textMuted
+                                    font.pixelSize: 11
+                                    font.family: root.font
+                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                }
+
                                 MouseArea {
-                                    id: disM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    id: disM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onEntered: card.setOverlay("✕", "Close Preview", "#ffffff")
+                                    onExited: card.clearOverlay()
                                     onClicked: Services.ScreenshotService.dismissPreview()
                                 }
                             }
                         }
-                    }
-                }
-
-                // Auto-dismiss Timer Bar (at bottom edge)
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: 2
-                    color: Qt.rgba(1, 1, 1, 0.08)
-
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        width: parent.width * Math.max(0, Math.min(1.0, Services.ScreenshotService.previewProgress))
-                        color: root.theme.accent
                     }
                 }
             }
