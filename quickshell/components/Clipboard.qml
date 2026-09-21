@@ -142,10 +142,25 @@ Scope {
             let fileSize = "";
             let format = "";
 
-            // Check if item is binary image data
+            // Check if item is a file URI or path
+            let isLocalFile = false;
+            let localPath = "";
+            if (trimmed.startsWith("file://")) {
+                try {
+                    localPath = decodeURIComponent(trimmed.replace(/^file:\/\//, ""));
+                    isLocalFile = true;
+                } catch(e) {
+                    localPath = trimmed.replace(/^file:\/\//, "");
+                    isLocalFile = true;
+                }
+            } else if (trimmed.startsWith("/") && /\.(png|jpe?g|webp|gif|bmp|svg|pdf|zip|tar(?:\.gz)?|txt|mp4|mkv|mp3)$/i.test(trimmed)) {
+                localPath = trimmed;
+                isLocalFile = true;
+            }
+
+            // Check if item is binary image data or image file
             const isBinaryImage = /^\[\[\s*binary data/i.test(trimmed) || trimmed.includes("binary data") || trimmed.includes("PNG") || trimmed.includes("JFIF") || trimmed.includes("WEBP") || trimmed.includes("IHDR") || trimmed.charCodeAt(0) === 0x89;
-            const isFileImage = /^file:\/\/\S+\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(trimmed);
-            const isPathImage = /^\/\S+\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(trimmed);
+            const isFileImage = isLocalFile && /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(localPath);
 
             if (isBinaryImage) {
                 type = "image";
@@ -163,14 +178,18 @@ Scope {
 
                 title = format + " Image" + (dimensions ? " (" + dimensions + ")" : "");
                 subtitle = (fileSize ? fileSize + " • " : "") + format + " • Press ↵ to copy";
-            } else if (isFileImage || isPathImage) {
+            } else if (isFileImage) {
                 type = "image";
                 isImage = true;
-                thumbSource = isFileImage ? trimmed : ("file://" + trimmed);
-                const rawPath = isFileImage ? decodeURIComponent(trimmed.replace(/^file:\/\//, "")) : trimmed;
-                const fileName = rawPath.split("/").pop() || "Image";
+                thumbSource = "file://" + localPath;
+                const fileName = localPath.split("/").pop() || "Image";
                 title = fileName;
-                subtitle = "Local Image File • Press ↵ to copy";
+                subtitle = "Local Image • Press ↵ to copy PNG, ⇧↵ for path";
+            } else if (isLocalFile) {
+                type = "file";
+                const fileName = localPath.split("/").pop() || "File";
+                title = fileName;
+                subtitle = "Local File • Press ↵ to copy file, ⇧↵ for path";
             } else if (/^https?:\/\/\S+/i.test(trimmed) || /^www\.\S+/i.test(trimmed)) {
                 type = "url";
                 isUrl = true;
@@ -202,6 +221,8 @@ Scope {
                 preview: preview,
                 type: type,
                 isImage: isImage,
+                isLocalFile: isLocalFile,
+                localPath: localPath,
                 isUrl: isUrl,
                 isColor: isColor,
                 isCode: isCode,
@@ -234,11 +255,12 @@ Scope {
     }
 
     // ── Actions ─────────────────────────────────────
-    function copyItem(item) {
+    function copyItem(item, mode) {
         if (!item) return;
-        const cmd = "printf '%s\\t' " + item.id + " | cliphist decode | wl-copy";
+        const m = mode || "auto";
+        const cmd = "/home/aran/.config/quickshell/scripts/cliphist-copy.sh '" + item.id + "' " + m;
         runAction(cmd);
-        clipboardPanel.visible = false;
+        closePopup();
     }
 
     function deleteItem(item) {
@@ -432,7 +454,9 @@ Scope {
                                     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                                         event.accepted = true;
                                         if (root.filteredItems.length > 0 && root.selectedIndex >= 0) {
-                                            root.copyItem(root.filteredItems[root.selectedIndex]);
+                                            const item = root.filteredItems[root.selectedIndex];
+                                            const mode = (event.modifiers & Qt.ShiftModifier) ? "text" : "auto";
+                                            root.copyItem(item, mode);
                                         }
                                     } else if (event.key === Qt.Key_Delete || (event.key === Qt.Key_Backspace && (event.modifiers & Qt.ShiftModifier))) {
                                         event.accepted = true;
@@ -772,6 +796,36 @@ Scope {
                                 }
                             }
 
+                            // Secondary: Copy Path Button for local files
+                            Rectangle {
+                                height: 20
+                                Layout.preferredWidth: copyPathText.implicitWidth + 12
+                                radius: 5
+                                color: copyPathArea.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.07)
+                                border.color: Qt.rgba(1, 1, 1, 0.12)
+                                border.width: 1
+                                visible: itemRow.isSelected && itemData.isLocalFile
+                                Layout.alignment: Qt.AlignVCenter
+
+                                Text {
+                                    id: copyPathText
+                                    anchors.centerIn: parent
+                                    text: "⇧↵ Path"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    renderType: Text.NativeRendering
+                                }
+
+                                MouseArea {
+                                    id: copyPathArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.copyItem(itemData, "text")
+                                }
+                            }
+
                             // Return/Copy hint pill on selected row
                             Rectangle {
                                 height: 20
@@ -786,12 +840,19 @@ Scope {
                                 Text {
                                      id: copyHintText
                                      anchors.centerIn: parent
-                                     text: "↵ Copy"
+                                     text: itemData.isImage ? "↵ Copy PNG" : (itemData.isLocalFile ? "↵ Copy File" : "↵ Copy")
                                      color: root.theme.accent
                                      font.pixelSize: 10
                                      font.weight: Font.DemiBold
                                      font.family: root.font
                                      renderType: Text.NativeRendering
+                                }
+
+                                MouseArea {
+                                     anchors.fill: parent
+                                     hoverEnabled: true
+                                     cursorShape: Qt.PointingHandCursor
+                                     onClicked: root.copyItem(itemData, "auto")
                                 }
                             }
                         }
