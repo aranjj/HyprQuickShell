@@ -8,7 +8,24 @@ import "." as Services
 Singleton {
     id: root
 
-    readonly property string wallpapersDir: "/home/aran/Pictures/Wallpapers"
+    // ── Persistent Wallpaper Directory Configuration ───
+    FileView {
+        id: dirFile
+        path: "/home/aran/.config/quickshell/wallpaper_dir.txt"
+        preload: true
+        blockLoading: true
+    }
+
+    readonly property string savedDir: {
+        try {
+            const t = dirFile.text().trim();
+            if (t.length > 0) return t;
+        } catch (e) {}
+        return "";
+    }
+
+    readonly property string defaultDir: "/home/aran/Pictures/Wallpapers"
+    property string wallpapersDir: savedDir !== "" ? savedDir : defaultDir
 
     FileView {
         id: wallFile
@@ -31,6 +48,7 @@ Singleton {
     property string currentWallpaperName: extractName(currentWallpaper)
     property var wallpapers: []
     property bool pickerOpen: false
+
     onPickerOpenChanged: {
         if (!pickerOpen) {
             Services.OverlayCoordinator.releaseExclusiveSurface("wallpaperPicker");
@@ -43,6 +61,7 @@ Singleton {
     }
 
     function openPicker() {
+        scanWallpapers();
         Services.OverlayCoordinator.requestExclusiveSurface("wallpaperPicker");
         pickerOpen = true;
     }
@@ -57,6 +76,29 @@ Singleton {
             () => { openPicker(); },
             () => { closePicker(); }
         );
+        scanWallpapers();
+    }
+
+    // ── Directory Management ───────────────────────────
+    function setWallpapersDir(path) {
+        if (!path || path.trim().length === 0) return;
+        let clean = path.trim().replace(/\/+$/, "");
+        if (clean.startsWith("~")) {
+            clean = "/home/aran" + clean.substring(1);
+        }
+        wallpapersDir = clean;
+        saveDirProc.command = ["sh", "-c", "echo '" + clean + "' > /home/aran/.config/quickshell/wallpaper_dir.txt"];
+        saveDirProc.running = true;
+        scanWallpapers();
+    }
+
+    function resetWallpapersDir() {
+        setWallpapersDir(defaultDir);
+    }
+
+    function scanWallpapers() {
+        listProc.command = ["sh", "-c", "if [ -d '" + wallpapersDir + "' ]; then find '" + wallpapersDir + "' -maxdepth 1 -type f \\( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.webp' \\) | sort; fi"];
+        listProc.running = true;
     }
 
     // ── Update helper ──────────────────────────────────
@@ -118,12 +160,13 @@ Singleton {
         function togglePicker() { root.togglePicker(); }
         function openPicker() { root.openPicker(); }
         function closePicker() { root.closePicker(); }
+        function setFolder(p: string) { root.setWallpapersDir(p); }
+        function resetFolder() { root.resetWallpapersDir(); }
     }
 
     // ── Process: Discover Wallpapers ───────────────────
     Process {
         id: listProc
-        command: ["sh", "-c", "find /home/aran/Pictures/Wallpapers -maxdepth 1 -type f \\( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.webp' \\) | sort"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
@@ -141,6 +184,12 @@ Singleton {
     // ── Process: Save Wallpaper State ──────────────────
     Process {
         id: saveProc
+        command: ["sh", "-c", ""]
+    }
+
+    // ── Process: Save Directory State ──────────────────
+    Process {
+        id: saveDirProc
         command: ["sh", "-c", ""]
     }
 }
