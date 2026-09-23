@@ -33,3 +33,8 @@ output_path = "/home/aran/.config/kitty/colors-matugen.conf"
 [templates.hyprland]
 input_path = "/home/aran/.config/matugen/templates/hyprland.conf"
 output_path = "/home/aran/.config/hypr/colors.conf"
+
+[templates.hyprland_lua]
+input_path = "/home/aran/.config/matugen/templates/colors.lua"
+output_path = "/home/aran/.config/hypr/colors.lua"
+

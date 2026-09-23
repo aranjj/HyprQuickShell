@@ -216,8 +216,8 @@ Scope {
             root.openLauncher("", "apps");
         }
 
-        function query(text: string): void {
-            root.openLauncher(text);
+        function query(text: string, category: string): void {
+            root.openLauncher(text, category || (launcherPanel.visible ? root.activeCategory : ""));
         }
 
         function setCategory(cat: string): void {
@@ -1331,8 +1331,29 @@ Scope {
                 if (tMatch || sMatch || kMatch) matchedShortcuts.push(sc);
             }
 
-            // ── Hierarchy: 1. Matching Apps -> 2. Run Command -> 3. Web Search ──
-            // 1. Matching Apps (Top hit app first, then remaining apps)
+            // Commands match
+            for (let i = 0; i < root.suggestedCommands.length; i++) {
+                const cmd = root.suggestedCommands[i];
+                const tMatch = cmd.title.toLowerCase().includes(q);
+                const cMatch = cmd.cmd.toLowerCase().includes(q);
+                const kMatch = cmd.keywords.some(k => k.includes(q));
+                if (tMatch || cMatch || kMatch) matchedCommands.push(cmd);
+            }
+
+            // ── Hierarchy Engine ─────────────────────────────────────────────
+            // When matching apps are found:
+            // 1. Applications (Top hit + remaining)
+            // 2. Open Windows
+            // 3. Shortcuts
+            // 4. Commands
+            // 5. Web Search (always last)
+            //
+            // When NO matching app is found:
+            // 1st Priority: Shortcut
+            // 2nd Priority: Command (curated CLI tools + terminal runner)
+            // Last Priority: Web Search
+            // ─────────────────────────────────────────────────────────────────
+
             if (matchedApps.length > 0) {
                 let topHit = matchedApps.shift();
                 topHit.category = "TOP HIT";
@@ -1342,39 +1363,93 @@ Scope {
                     matchedApps[i].category = "APPLICATIONS";
                     out.push(matchedApps[i]);
                 }
-            } else if (matchedCalc && (rawQ.startsWith("=") || /^[0-9+\-*/().%^ eE]+$/.test(rawQ))) {
-                matchedCalc.category = "CALCULATOR";
-                out.push(matchedCalc);
-            }
 
-            // 2. Run Command Suggestion
-            out.push({
-                id: "cmd_suggest_" + rawQ,
-                type: "cmd",
-                title: "Run: " + rawQ,
-                subtitle: "Execute command in " + root.terminalName + " terminal",
-                category: "COMMANDS",
-                kindTag: "Terminal Command",
-                icon: "󰞷",
-                glyph: "󰞷",
-                accentColor: root.theme.accent,
-                cmd: rawQ,
-                desc: "Runs '" + rawQ + "' directly in " + root.terminalName + " terminal session. Press Enter to execute.",
-                actionLabel: "Run in " + root.terminalName,
-                action: () => root.runTerminalCmd(rawQ, false)
-            });
+                // Matched Open Windows
+                for (let i = 0; i < matchedWins.length; i++) {
+                    matchedWins[i].category = "OPEN WINDOWS";
+                    out.push(matchedWins[i]);
+                }
 
-            // 3. Web Search Suggestion
-            out.push(root.makeWebSearchItem(rawQ));
+                // Matched System Shortcuts
+                for (let i = 0; i < matchedShortcuts.length; i++) {
+                    out.push(Object.assign({}, matchedShortcuts[i], {
+                        category: "SHORTCUTS"
+                    }));
+                }
 
-            // Secondary matches: Open Windows & System Shortcuts (if any)
-            for (let i = 0; i < matchedWins.length; i++) {
-                matchedWins[i].category = "OPEN WINDOWS";
-                out.push(matchedWins[i]);
-            }
-            for (let i = 0; i < matchedShortcuts.length; i++) {
-                matchedShortcuts[i].category = "SHORTCUTS";
-                out.push(matchedShortcuts[i]);
+                // Matched Curated Commands
+                for (let i = 0; i < matchedCommands.length; i++) {
+                    out.push(Object.assign({}, matchedCommands[i], {
+                        category: "COMMANDS"
+                    }));
+                }
+
+                // Run Command Suggestion
+                out.push({
+                    id: "cmd_suggest_" + rawQ,
+                    type: "cmd",
+                    title: "Run: " + rawQ,
+                    subtitle: "Execute command in " + root.terminalName + " terminal",
+                    category: "COMMANDS",
+                    kindTag: "Terminal Command",
+                    icon: "󰞷",
+                    glyph: "󰞷",
+                    accentColor: root.theme.accent,
+                    cmd: rawQ,
+                    desc: "Runs '" + rawQ + "' directly in " + root.terminalName + " terminal session. Press Enter to execute.",
+                    actionLabel: "Run in " + root.terminalName,
+                    action: () => root.runTerminalCmd(rawQ, false)
+                });
+
+                // Web Search (Last priority)
+                out.push(root.makeWebSearchItem(rawQ));
+            } else {
+                // Calculator evaluation if applicable
+                if (matchedCalc && (rawQ.startsWith("=") || /^[0-9+\-*/().%^ eE]+$/.test(rawQ))) {
+                    matchedCalc.category = out.length === 0 ? "TOP HIT" : "CALCULATOR";
+                    out.push(matchedCalc);
+                }
+
+                // ── 1st Priority: Shortcut ───────────────────────────────────
+                for (let i = 0; i < matchedShortcuts.length; i++) {
+                    out.push(Object.assign({}, matchedShortcuts[i], {
+                        category: out.length === 0 ? "TOP HIT" : "SHORTCUTS"
+                    }));
+                }
+
+                // Open Windows (if any window matches)
+                for (let i = 0; i < matchedWins.length; i++) {
+                    matchedWins[i].category = out.length === 0 ? "TOP HIT" : "OPEN WINDOWS";
+                    out.push(matchedWins[i]);
+                }
+
+                // ── 2nd Priority: Command ────────────────────────────────────
+                // Matched curated CLI commands (e.g. btop, fastfetch, yazi)
+                for (let i = 0; i < matchedCommands.length; i++) {
+                    out.push(Object.assign({}, matchedCommands[i], {
+                        category: out.length === 0 ? "TOP HIT" : "COMMANDS"
+                    }));
+                }
+
+                // Generic terminal command runner
+                out.push({
+                    id: "cmd_suggest_" + rawQ,
+                    type: "cmd",
+                    title: "Run: " + rawQ,
+                    subtitle: "Execute command in " + root.terminalName + " terminal",
+                    category: out.length === 0 ? "TOP HIT" : "COMMANDS",
+                    kindTag: "Terminal Command",
+                    icon: "󰞷",
+                    glyph: "󰞷",
+                    accentColor: root.theme.accent,
+                    cmd: rawQ,
+                    desc: "Runs '" + rawQ + "' directly in " + root.terminalName + " terminal session. Press Enter to execute.",
+                    actionLabel: "Run in " + root.terminalName,
+                    action: () => root.runTerminalCmd(rawQ, false)
+                });
+
+                // ── Last Priority: Web Search ────────────────────────────────
+                out.push(root.makeWebSearchItem(rawQ));
             }
 
             root.results = out;
@@ -2092,7 +2167,7 @@ Scope {
                                 Text {
                                     Layout.alignment: Qt.AlignHCenter
                                     Layout.maximumWidth: 260
-                                    text: root.selectedItem?.title ?? "Spotlight Search"
+                                    text: root.selectedItem?.title ?? "Search"
                                     color: root.theme.textPrimary
                                     font.pixelSize: 14
                                     font.family: root.font

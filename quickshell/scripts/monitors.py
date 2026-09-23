@@ -65,10 +65,14 @@ def apply_monitor(name, mode="preferred", pos="auto", scale=1.0, transform=0, vr
         kw_cmd = f'{name},{mode},{pos},{scale_str},transform,{int(transform)}'
         subprocess.run(['hyprctl', 'keyword', 'monitor', kw_cmd], capture_output=True, text=True)
 
-    # 2. Persist to hyprland.lua in both ~/.config/hypr and ~/dotfiles/hypr
+    # 2. Persist to monitors.lua and hyprland.lua in configs and repos
     persist_paths = [
+        Path.home() / '.config/hypr/monitors.lua',
+        Path.home() / 'dotfiles/hypr/monitors.lua',
+        Path.home() / 'Projects/Github/HyprQuickShell/hypr/monitors.lua',
         Path.home() / '.config/hypr/hyprland.lua',
-        Path.home() / 'dotfiles/hypr/hyprland.lua'
+        Path.home() / 'dotfiles/hypr/hyprland.lua',
+        Path.home() / 'Projects/Github/HyprQuickShell/hypr/hyprland.lua'
     ]
     for p in persist_paths:
         if p.exists():
