@@ -7,7 +7,7 @@ local hypr_dir = os.getenv("HOME") .. "/.config/hypr/"
 package.path = hypr_dir .. "?.lua;" .. package.path
 
 -- ── Environment Variables ────────────────────────────────────────────────────
-hl.env("QT_QPA_PLATFORMTHEME", "kde")
+hl.env("QT_QPA_PLATFORMTHEME", "kde")  --replace kde with qt6ct to use qt6 settings for theming
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
