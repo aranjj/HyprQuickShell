@@ -38,6 +38,7 @@ CONFIG_DIR="${XDG_CONFIG_HOME:-$TARGET_HOME/.config}"
 
 DO_BACKUP=true
 DO_SYMLINK=false
+AUTO_YES=false
 
 # Usage / Help
 show_help() {
@@ -47,6 +48,7 @@ ${BOLD}Usage:${RESET}
   ./install.sh [options]
 
 ${BOLD}Options:${RESET}
+  -y, --yes        Proceed with installation automatically without prompt
   -l, --link       Create symbolic links instead of copying files
   -n, --no-backup  Skip backing up existing configuration directories
   -h, --help       Show this help message"
@@ -55,6 +57,10 @@ ${BOLD}Options:${RESET}
 # Parse CLI options
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -y|--yes)
+            AUTO_YES=true
+            shift
+            ;;
         -l|--link)
             DO_SYMLINK=true
             shift
@@ -112,6 +118,23 @@ echo -e "  ${CYAN}yay -S --needed quickshell matugen-bin${RESET}"
 echo ""
 echo "─────────────────────────────────────────────────────────────────"
 echo ""
+
+# Confirmation Prompt
+if [ "$AUTO_YES" = false ]; then
+    echo -ne "${BOLD}Do you want to proceed with the installation? [y/N]: ${RESET}"
+    read -r response
+    case "$response" in
+        [yY][eE][sS]|[yY])
+            echo ""
+            ;;
+        *)
+            echo ""
+            warn "Installation aborted by user."
+            exit 0
+            ;;
+    esac
+fi
+
 
 # ─────────────────────────────────────────────────────────────────
 # 2. Backup Existing Configurations
