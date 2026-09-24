@@ -154,6 +154,14 @@ Singleton {
         if (preset === "oled") {
             return "#000000";
         }
+        if (preset === "solid") {
+            return Qt.rgba(
+                Services.ThemeService.colSurface.r,
+                Services.ThemeService.colSurface.g,
+                Services.ThemeService.colSurface.b,
+                barFloatingOpacity
+            );
+        }
         if (isLight) {
             return Qt.rgba(1, 1, 1, 0.25);
         }

@@ -92,22 +92,22 @@ Scope {
     readonly property int currentWorkspaceId: Hyprland.focusedWorkspace?.id ?? 1
     readonly property string currentWorkspaceName: Hyprland.focusedWorkspace?.name ?? ("" + currentWorkspaceId)
 
-    // ── Adaptive Contrast Tokens (follows wallpaper luminance, always dark on OLED) ──
-    readonly property bool barContentLightMode: Services.Aesthetic.preset !== "oled" && root.theme.barIsLight
+    // ── Adaptive Contrast Tokens (follows wallpaper luminance, always dark on OLED and Solid) ──
+    readonly property bool barContentLightMode: Services.Aesthetic.preset !== "oled" && Services.Aesthetic.preset !== "solid" && root.theme.barIsLight
 
-    property color barFgPrimary: barContentLightMode ? "#1a1b20" : "#ffffff"
+    property color barFgPrimary: barContentLightMode ? "#1a1b20" : (Services.Aesthetic.preset === "solid" ? Services.ThemeService.colOnSurface : "#ffffff")
     Behavior on barFgPrimary { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
-    property color barFgSecondary: barContentLightMode ? Qt.rgba(0.1, 0.1, 0.12, 0.72) : Qt.rgba(1, 1, 1, 0.72)
+    property color barFgSecondary: barContentLightMode ? Qt.rgba(0.1, 0.1, 0.12, 0.72) : (Services.Aesthetic.preset === "solid" ? Services.ThemeService.colOnSurfaceVariant : Qt.rgba(1, 1, 1, 0.72))
     Behavior on barFgSecondary { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
-    property color barFgMuted: barContentLightMode ? Qt.rgba(0.1, 0.1, 0.12, 0.45) : Qt.rgba(1, 1, 1, 0.45)
+    property color barFgMuted: barContentLightMode ? Qt.rgba(0.1, 0.1, 0.12, 0.45) : (Services.Aesthetic.preset === "solid" ? Qt.rgba(Services.ThemeService.colOnSurfaceVariant.r, Services.ThemeService.colOnSurfaceVariant.g, Services.ThemeService.colOnSurfaceVariant.b, 0.70) : Qt.rgba(1, 1, 1, 0.45))
     Behavior on barFgMuted { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
-    property color barPillHover: barContentLightMode ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.14)
+    property color barPillHover: barContentLightMode ? Qt.rgba(0, 0, 0, 0.08) : (Services.Aesthetic.preset === "solid" ? Qt.rgba(Services.ThemeService.colPrimary.r, Services.ThemeService.colPrimary.g, Services.ThemeService.colPrimary.b, 0.15) : Qt.rgba(1, 1, 1, 0.14))
     Behavior on barPillHover { ColorAnimation { duration: 150 } }
 
-    property color barDividerColor: barContentLightMode ? Qt.rgba(0, 0, 0, 0.15) : Qt.rgba(1, 1, 1, 0.18)
+    property color barDividerColor: barContentLightMode ? Qt.rgba(0, 0, 0, 0.15) : (Services.Aesthetic.preset === "solid" ? Qt.rgba(Services.ThemeService.colOutline.r, Services.ThemeService.colOutline.g, Services.ThemeService.colOutline.b, 0.25) : Qt.rgba(1, 1, 1, 0.18))
     Behavior on barDividerColor { ColorAnimation { duration: 250 } }
 
     // ── Live Client Tracker (Ground Truth directly from Hyprland IPC) ──
@@ -279,14 +279,23 @@ Scope {
                 color: Services.Aesthetic.barGlassColor(root.barContentLightMode)
                 Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
-                // Top subtle micro-scrim (improves text contrast over busy wallpapers for standard presets)
+                // Top subtle micro-scrim (improves text contrast over busy wallpapers for standard frosted preset)
                 Rectangle {
                     anchors.fill: parent
-                    visible: Services.Aesthetic.preset !== "crystal" && Services.Aesthetic.preset !== "oled"
+                    visible: Services.Aesthetic.preset === "frosted"
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: root.theme.barIsLight ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.22) }
                         GradientStop { position: 1.0; color: "transparent" }
                     }
+                }
+
+                // Subtle bottom border for solid / oled mode
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 1
+                    color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.10) : (Services.Aesthetic.preset === "solid" ? Services.Aesthetic.cardBorder : (Services.Aesthetic.preset === "oled" ? Qt.rgba(1, 1, 1, 0.10) : "transparent"))
                 }
 
                 // Crystal Clear Profile: Backdrop Shadow (transparent bar with soft top-down shadow for maximum widget readability)
@@ -373,8 +382,8 @@ Scope {
                         implicitWidth: wsRow.implicitWidth + 8
                         implicitHeight: 28
                         radius: 14
-                        color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.04) : Qt.rgba(1, 1, 1, 0.07)
-                        border.color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(1, 1, 1, 0.09)
+                        color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.04) : (Services.Aesthetic.preset === "solid" ? Services.Aesthetic.innerCardBg : Qt.rgba(1, 1, 1, 0.07))
+                        border.color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.06) : (Services.Aesthetic.preset === "solid" ? Services.Aesthetic.innerCardBorder : Qt.rgba(1, 1, 1, 0.09))
                         border.width: 1
                         Layout.alignment: Qt.AlignVCenter
 
