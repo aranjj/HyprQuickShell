@@ -59,7 +59,7 @@ Scope {
             color: root.theme.accentOrange,
             execute: () => {
                 root.closeMenu();
-                Services.SystemService.runCmd("hyprctl dispatch exit");
+                Services.SystemService.runCmd("hyprctl dispatch 'hl.dsp.exit()' || loginctl terminate-session ${XDG_SESSION_ID:-self}");
             }
         },
         {
