@@ -8,10 +8,13 @@ import "." as Services
 Singleton {
     id: root
 
+    // ── Dynamic User Paths ─────────────────────────────
+    readonly property string homeDir: Quickshell.env("HOME") || ("/home/" + (Quickshell.env("USER") || "user"))
+
     // ── Persistent Wallpaper Directory Configuration ───
     FileView {
         id: dirFile
-        path: "/home/aran/.config/quickshell/wallpaper_dir.txt"
+        path: root.homeDir + "/.config/quickshell/wallpaper_dir.txt"
         preload: true
         blockLoading: true
     }
@@ -24,12 +27,12 @@ Singleton {
         return "";
     }
 
-    readonly property string defaultDir: "/home/aran/Pictures/Wallpapers"
+    readonly property string defaultDir: root.homeDir + "/Pictures/Wallpapers"
     property string wallpapersDir: savedDir !== "" ? savedDir : defaultDir
 
     FileView {
         id: wallFile
-        path: "/home/aran/.config/quickshell/wallpaper.txt"
+        path: root.homeDir + "/.config/quickshell/wallpaper.txt"
         preload: true
         blockLoading: true
     }
@@ -42,7 +45,7 @@ Singleton {
         return "";
     }
 
-    readonly property string defaultWallpaper: "file:///home/aran/Pictures/Wallpapers/blueeve.jpg"
+    readonly property string defaultWallpaper: "file://" + root.defaultDir + "/blueeve.jpg"
 
     property string currentWallpaper: savedWallpaper !== "" ? savedWallpaper : defaultWallpaper
     property string currentWallpaperName: extractName(currentWallpaper)
@@ -84,10 +87,10 @@ Singleton {
         if (!path || path.trim().length === 0) return;
         let clean = path.trim().replace(/\/+$/, "");
         if (clean.startsWith("~")) {
-            clean = "/home/aran" + clean.substring(1);
+            clean = root.homeDir + clean.substring(1);
         }
         wallpapersDir = clean;
-        saveDirProc.command = ["sh", "-c", "echo '" + clean + "' > /home/aran/.config/quickshell/wallpaper_dir.txt"];
+        saveDirProc.command = ["sh", "-c", "echo '" + clean + "' > '" + root.homeDir + "/.config/quickshell/wallpaper_dir.txt'"];
         saveDirProc.running = true;
         scanWallpapers();
     }
@@ -118,7 +121,7 @@ Singleton {
         currentWallpaperName = extractName(path);
 
         if (persist) {
-            saveProc.command = ["sh", "-c", "echo '" + formatted + "' > /home/aran/.config/quickshell/wallpaper.txt"];
+            saveProc.command = ["sh", "-c", "echo '" + formatted + "' > '" + root.homeDir + "/.config/quickshell/wallpaper.txt'"];
             saveProc.running = true;
         }
 

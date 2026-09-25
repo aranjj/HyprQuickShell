@@ -222,12 +222,25 @@ success "Script permissions verified."
 # ─────────────────────────────────────────────────────────────────
 WP_FILE="${CONFIG_DIR}/quickshell/wallpaper.txt"
 
-# If wallpaper.txt is missing or empty, find or set a default
-if [ ! -s "$WP_FILE" ]; then
-    FIRST_WP=$(find "${TARGET_HOME}/Pictures/Wallpapers" -type f \( -name "*.jpg" -o -name "*.png" -o -name "*.jpeg" -o -name "*.webp" \) 2>/dev/null | head -n 1 || true)
-    if [ -n "$FIRST_WP" ]; then
+# If wallpaper.txt is missing, empty, or points to a non-existent file, find or set a default
+WP_VALID=false
+if [ -f "$WP_FILE" ]; then
+    SAVED_WP=$(cat "$WP_FILE" 2>/dev/null | tr -d '\n' || true)
+    SAVED_WP="${SAVED_WP#file://}"
+    if [ -n "$SAVED_WP" ] && [ -f "$SAVED_WP" ] && [ -s "$SAVED_WP" ]; then
+        WP_VALID=true
+    fi
+fi
+
+if [ "$WP_VALID" = false ]; then
+    FIRST_WP=$(find "${TARGET_HOME}/Pictures/Wallpapers" "${TARGET_HOME}/Pictures" "/usr/share/backgrounds" "/usr/share/wallpapers" -maxdepth 2 -type f \( -name "*.jpg" -o -name "*.png" -o -name "*.jpeg" -o -name "*.webp" \) 2>/dev/null | sort | head -n 1 || true)
+    if [ -n "$FIRST_WP" ] && [ -f "$FIRST_WP" ]; then
         echo "file://${FIRST_WP}" > "$WP_FILE"
         success "Configured wallpaper: ${FIRST_WP}"
+    else
+        # Remove invalid pointer so matugen.sh falls back cleanly
+        rm -f "$WP_FILE" 2>/dev/null || true
+        info "No local wallpapers detected; Matugen will generate colors using fallback palette."
     fi
 fi
 
