@@ -21,8 +21,22 @@ Singleton {
 
     readonly property string savedDir: {
         try {
-            const t = dirFile.text().trim();
-            if (t.length > 0) return t;
+            let t = dirFile.text().trim();
+            if (t.length > 0) {
+                if (t.startsWith("/home/")) {
+                    const slashIdx = t.indexOf("/", 6);
+                    if (slashIdx !== -1) {
+                        const userInPath = t.substring(6, slashIdx);
+                        const currentUser = Quickshell.env("USER");
+                        if (currentUser && userInPath !== currentUser) {
+                            t = root.homeDir + t.substring(slashIdx);
+                        }
+                    }
+                } else if (t.startsWith("~")) {
+                    t = root.homeDir + t.substring(1);
+                }
+                return t;
+            }
         } catch (e) {}
         return "";
     }
@@ -39,8 +53,26 @@ Singleton {
 
     readonly property string savedWallpaper: {
         try {
-            const t = wallFile.text().trim();
-            if (t.length > 0) return t;
+            let t = wallFile.text().trim();
+            if (t.length > 0) {
+                const isUri = t.startsWith("file://");
+                let clean = isUri ? t.substring(7) : t;
+                if (clean.startsWith("/home/")) {
+                    const slashIdx = clean.indexOf("/", 6);
+                    if (slashIdx !== -1) {
+                        const userInPath = clean.substring(6, slashIdx);
+                        const currentUser = Quickshell.env("USER");
+                        if (currentUser && userInPath !== currentUser) {
+                            clean = root.homeDir + clean.substring(slashIdx);
+                            t = isUri ? ("file://" + clean) : clean;
+                        }
+                    }
+                } else if (clean.startsWith("~")) {
+                    clean = root.homeDir + clean.substring(1);
+                    t = isUri ? ("file://" + clean) : clean;
+                }
+                return t;
+            }
         } catch (e) {}
         return "";
     }
@@ -88,6 +120,15 @@ Singleton {
         let clean = path.trim().replace(/\/+$/, "");
         if (clean.startsWith("~")) {
             clean = root.homeDir + clean.substring(1);
+        } else if (clean.startsWith("/home/")) {
+            const slashIdx = clean.indexOf("/", 6);
+            if (slashIdx !== -1) {
+                const userInPath = clean.substring(6, slashIdx);
+                const currentUser = Quickshell.env("USER");
+                if (currentUser && userInPath !== currentUser) {
+                    clean = root.homeDir + clean.substring(slashIdx);
+                }
+            }
         }
         wallpapersDir = clean;
         saveDirProc.command = ["sh", "-c", "echo '" + clean + "' > '" + root.homeDir + "/.config/quickshell/wallpaper_dir.txt'"];
@@ -100,7 +141,15 @@ Singleton {
     }
 
     function scanWallpapers() {
-        listProc.command = ["sh", "-c", "if [ -d '" + wallpapersDir + "' ]; then find '" + wallpapersDir + "' -maxdepth 1 -type f \\( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.webp' \\) | sort; fi"];
+        listProc.command = [
+            "sh", "-c",
+            "DIR='" + wallpapersDir + "'\n" +
+            "if [ ! -d \"$DIR\" ]; then DIR='" + defaultDir + "'; fi\n" +
+            "if [ ! -d \"$DIR\" ]; then DIR='" + root.homeDir + "/Pictures'; fi\n" +
+            "if [ -d \"$DIR\" ]; then\n" +
+            "    find \"$DIR\" -maxdepth 1 -type f \\( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.webp' \\) | sort\n" +
+            "fi"
+        ];
         listProc.running = true;
     }
 

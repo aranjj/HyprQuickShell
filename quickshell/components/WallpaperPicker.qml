@@ -1095,7 +1095,7 @@ Scope {
 
                                     Text {
                                         anchors.fill: parent
-                                        text: "Enter folder path (e.g. ~/Pictures/Wallpapers)..."
+                                        text: "Enter folder path (e.g. " + Services.WallpaperService.homeDir + "/Pictures/Wallpapers)..."
                                         color: root.theme.textMuted
                                         font.pixelSize: 12
                                         font.family: root.font
@@ -1133,9 +1133,9 @@ Scope {
 
                             Repeater {
                                 model: [
-                                    { name: "Wallpapers", path: "~/Pictures/Wallpapers" },
-                                    { name: "Pictures", path: "~/Pictures" },
-                                    { name: "Screenshots", path: "~/Pictures/Screenshots" }
+                                    { name: "Wallpapers", path: Services.WallpaperService.homeDir + "/Pictures/Wallpapers" },
+                                    { name: "Pictures", path: Services.WallpaperService.homeDir + "/Pictures" },
+                                    { name: "Screenshots", path: Services.WallpaperService.homeDir + "/Pictures/Screenshots" }
                                 ]
 
                                 Rectangle {
