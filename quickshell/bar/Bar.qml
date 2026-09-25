@@ -90,7 +90,12 @@ Scope {
 
     // Current Workspace & Active Window Helpers
     readonly property int currentWorkspaceId: Hyprland.focusedWorkspace?.id ?? 1
-    readonly property string currentWorkspaceName: Hyprland.focusedWorkspace?.name ?? ("" + currentWorkspaceId)
+    readonly property string currentWorkspaceName: {
+        const ws = Hyprland.focusedWorkspace;
+        if (!ws) return "1";
+        if (ws.id < 0 || (ws.name && ws.name.startsWith("special"))) return "Special";
+        return ws.name ?? ("" + currentWorkspaceId);
+    }
 
     // ── Adaptive Contrast Tokens (follows wallpaper luminance, always dark on OLED and Solid) ──
     readonly property bool barContentLightMode: Services.Aesthetic.preset !== "oled" && Services.Aesthetic.preset !== "solid" && root.theme.barIsLight
@@ -160,16 +165,16 @@ Scope {
         }
     }
 
-    // Dynamic workspace list: includes persistent 1..5, focused workspace, and any occupied workspace
+    // Dynamic workspace list: includes persistent 1..5, focused workspace, and any occupied regular workspace (excluding special workspaces with negative IDs)
     readonly property var workspaceList: {
         root.wsTick;
         const set = new Set([1, 2, 3, 4, 5]);
         const focused = Hyprland.focusedWorkspace?.id ?? 1;
-        set.add(focused);
+        if (focused > 0) set.add(focused);
         if (root.clientCounts) {
             for (const wsId in root.clientCounts) {
                 const id = parseInt(wsId, 10);
-                if (!isNaN(id) && root.clientCounts[wsId] > 0) {
+                if (!isNaN(id) && id > 0 && root.clientCounts[wsId] > 0) {
                     set.add(id);
                 }
             }
