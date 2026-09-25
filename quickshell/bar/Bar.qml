@@ -295,7 +295,8 @@ Scope {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     height: 1
-                    color: root.barContentLightMode ? Qt.rgba(0, 0, 0, 0.10) : (Services.Aesthetic.preset === "solid" ? Services.Aesthetic.cardBorder : (Services.Aesthetic.preset === "oled" ? Qt.rgba(1, 1, 1, 0.10) : "transparent"))
+                    visible: Services.Aesthetic.preset === "solid" || Services.Aesthetic.preset === "oled"
+                    color: Services.Aesthetic.preset === "solid" ? Services.Aesthetic.cardBorder : Qt.rgba(1, 1, 1, 0.10)
                 }
 
                 // Crystal Clear Profile: Backdrop Shadow (transparent bar with soft top-down shadow for maximum widget readability)
