@@ -16,6 +16,23 @@ Scope {
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
+    // ── Dynamic User Identity ─────────────────────────
+    readonly property string currentUser: Quickshell.env("USER") || "unknown"
+    readonly property string homeDir: Quickshell.env("HOME") || ("/home/" + currentUser)
+    property string displayName: currentUser.charAt(0).toUpperCase() + currentUser.slice(1)
+
+    Process {
+        id: gecosProc
+        command: ["sh", "-c", "getent passwd \"$USER\" | cut -d: -f5"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const name = text.trim();
+                if (name.length > 0) root.displayName = name;
+            }
+        }
+    }
+
     property bool authenticating: false
     property bool authError: false
     property string errorMessage: ""
@@ -170,13 +187,13 @@ Scope {
 
    function playLockSound() {
         soundProc.running = false;
-        soundProc.command = ["sh", "-c", "pw-play /home/aran/.config/quickshell/sounds/lock.wav 2>/dev/null || paplay /home/aran/.config/quickshell/sounds/lock.wav 2>/dev/null || canberra-gtk-play -i service-logout 2>/dev/null &"];
+        soundProc.command = ["sh", "-c", "pw-play " + root.homeDir + "/.config/quickshell/sounds/lock.wav 2>/dev/null || paplay " + root.homeDir + "/.config/quickshell/sounds/lock.wav 2>/dev/null || canberra-gtk-play -i service-logout 2>/dev/null &"];
         soundProc.running = true;
     }
 
     function playUnlockSound() {
         soundProc.running = false;
-        soundProc.command = ["sh", "-c", "pw-play /home/aran/.config/quickshell/sounds/unlock.wav 2>/dev/null || paplay /home/aran/.config/quickshell/sounds/unlock.wav 2>/dev/null || canberra-gtk-play -i service-login 2>/dev/null &"];
+        soundProc.command = ["sh", "-c", "pw-play " + root.homeDir + "/.config/quickshell/sounds/unlock.wav 2>/dev/null || paplay " + root.homeDir + "/.config/quickshell/sounds/unlock.wav 2>/dev/null || canberra-gtk-play -i service-login 2>/dev/null &"];
         soundProc.running = true;
     }
 
@@ -329,7 +346,7 @@ Scope {
     // ── PAM Authentication Context ──────────────────────────────
     PamContext {
         id: pam
-        user: "aran"
+        user: root.currentUser
         config: "system-auth"
 
         onCompleted: (result) => {
@@ -639,7 +656,7 @@ Scope {
                             Image {
                                 id: userAvatarImg
                                 anchors.fill: parent
-                                source: "file:///var/lib/AccountsService/icons/aran"
+                                source: "file:///var/lib/AccountsService/icons/" + root.currentUser
                                 fillMode: Image.PreserveAspectCrop
                                 visible: false
                                 asynchronous: true
@@ -687,7 +704,7 @@ Scope {
 
                         // Username
                         Text {
-                            text: "Aran"
+                            text: root.displayName
                             color: "#ffffff"
                             font.pixelSize: 20
                             font.weight: Font.DemiBold
