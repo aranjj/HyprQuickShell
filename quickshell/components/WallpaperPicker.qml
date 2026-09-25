@@ -1133,9 +1133,9 @@ Scope {
 
                             Repeater {
                                 model: [
-                                    { name: "Wallpapers", path: "/home/aran/Pictures/Wallpapers" },
-                                    { name: "Pictures", path: "/home/aran/Pictures" },
-                                    { name: "Screenshots", path: "/home/aran/Pictures/Screenshots" }
+                                    { name: "Wallpapers", path: "~/Pictures/Wallpapers" },
+                                    { name: "Pictures", path: "~/Pictures" },
+                                    { name: "Screenshots", path: "~/Pictures/Screenshots" }
                                 ]
 
                                 Rectangle {
