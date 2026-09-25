@@ -1087,7 +1087,8 @@ Scope {
                             width: 7
                             height: 7
                             radius: 3.5
-                            color: theme.accentRed
+                            color: theme.accent
+                            Behavior on color { ColorAnimation { duration: 250 } }
                             anchors.top: parent.top
                             anchors.topMargin: 3
                             anchors.right: parent.right
