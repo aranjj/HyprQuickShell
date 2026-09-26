@@ -658,7 +658,7 @@ Scope {
                                 IconImage {
                                     anchors.centerIn: parent
                                     source: trayDelegate.modelData.icon
-                                    implicitSize: 18
+                                    implicitSize: 20
                                 }
 
                                 QsMenuAnchor {
