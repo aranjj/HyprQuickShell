@@ -41,6 +41,10 @@ Scope {
         function setProfile(profile: string): void {
             Services.SystemService.setPowerProfile(profile);
         }
+
+        function cycleProfile(): void {
+            Services.SystemService.cyclePowerProfile();
+        }
     }
 
     // Quick toggles states

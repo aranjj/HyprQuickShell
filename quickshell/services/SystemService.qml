@@ -630,6 +630,22 @@ Singleton {
         OsdService.showPowerProfile(profile);
     }
 
+    function cyclePowerProfile() {
+        const order = ["power-saver", "balanced", "performance"];
+        let idx = order.indexOf(powerProfile);
+        if (idx === -1) idx = 1;
+        const next = order[(idx + 1) % order.length];
+        setPowerProfile(next);
+    }
+
+    IpcHandler {
+        target: "powerprofile"
+        function cycle(): void { root.cyclePowerProfile(); }
+        function toggle(): void { root.cyclePowerProfile(); }
+        function next(): void { root.cyclePowerProfile(); }
+        function set(profile: string): void { root.setPowerProfile(profile); }
+    }
+
     property bool _sysReady: false
     Timer {
         interval: 3000

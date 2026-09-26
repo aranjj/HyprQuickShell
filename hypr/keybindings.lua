@@ -29,13 +29,14 @@ hl.bind(mainMod .. " + CTRL + E",hl.dsp.exec_cmd("quickshell ipc call emojis tog
 hl.bind(mainMod .. " + period",  hl.dsp.exec_cmd("quickshell ipc call emojis toggle"))
 hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("quickshell ipc call lock lock"))
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("quickshell ipc call nightlight toggle"))
+hl.bind(mainMod .. " + P",       hl.dsp.exec_cmd("quickshell ipc call powerprofile cycle"))
 
 -- ── Window Management ────────────────────────────────────────────────────────
 hl.bind(mainMod .. " + C", hl.dsp.window.close())
 hl.bind(mainMod .. " + T", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
+
 
 -- Focus Movement (Arrow keys)
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
