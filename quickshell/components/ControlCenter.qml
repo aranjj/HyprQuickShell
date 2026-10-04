@@ -30,6 +30,10 @@ Scope {
             Services.SystemService.openControlCenter("controls", "main");
         }
 
+        function openNotifications(): void {
+            Services.SystemService.openControlCenter("notifications", "main");
+        }
+
         function openSub(sub: string): void {
             Services.SystemService.openControlCenter("controls", sub || "main");
         }
@@ -335,7 +339,10 @@ Scope {
             Rectangle {
                 id: card
                 width: 382
-                height: 640
+                readonly property bool isControlsMain: Services.SystemService.controlCenterTab === "controls" && root.activeView === "main"
+                readonly property bool isCompact: controlCenterWindow.screen.height < 600
+                readonly property real maxCardHeight: controlCenterWindow.screen.height - (controlCenterWindow.isOpen ? 44 : 26) - 14
+                height: Math.min(maxCardHeight, isControlsMain ? (mainContentCol.implicitHeight + 68) : Math.min(640, controlCenterWindow.screen.height - 70))
                 anchors.top: parent.top
                 anchors.topMargin: controlCenterWindow.isOpen ? 44 : 26
                 anchors.right: parent.right
@@ -352,6 +359,7 @@ Scope {
 
                 Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
                 // Top specular glass highlight
@@ -499,7 +507,7 @@ Scope {
                                 }
 
                                 Text {
-                                    text: "Notifications" + (Services.NotificationService.unreadCount > 0 ? " (" + Services.NotificationService.unreadCount + ")" : "")
+                                    text: "Notifications"
                                     color: Services.SystemService.controlCenterTab === "notifications" ? "#ffffff" : root.theme.textMuted
                                     font.pixelSize: 12
                                     font.family: root.font
@@ -529,10 +537,11 @@ Scope {
                     anchors.top: tabSegmentedBar.bottom
                     anchors.topMargin: 10
                     anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 10
+                    anchors.bottomMargin: 12
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    contentHeight: mainContentCol.implicitHeight + 20
+                    contentHeight: mainContentCol.implicitHeight
+                    interactive: contentHeight > height
                     boundsBehavior: Flickable.StopAtBounds
                     clip: true
 
@@ -541,21 +550,21 @@ Scope {
                         width: parent.width - 24
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: parent.top
-                        anchors.topMargin: 8
-                        spacing: 8
+                        anchors.topMargin: 0
+                        spacing: card.isCompact ? 6 : 8
 
                         // ═══════════════════════════════════════════
                         // 1. TOP QUADRANT: Connectivity (Left) & Quick Utility Tiles (Right)
                         // ═══════════════════════════════════════════
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: card.isCompact ? 6 : 8
 
                             // Left: Connectivity 2x2 Capsule Card
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 184
-                                implicitHeight: 140
+                                implicitHeight: card.isCompact ? 128 : 140
                                 radius: 16
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -563,13 +572,13 @@ Scope {
 
                                 ColumnLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 10
-                                    spacing: 4
+                                    anchors.margins: card.isCompact ? 8 : 10
+                                    spacing: card.isCompact ? 2 : 4
 
                                     // Wi-Fi Row
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        implicitHeight: 38
+                                        implicitHeight: card.isCompact ? 34 : 38
                                         radius: 10
                                         color: wifiRowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
@@ -617,7 +626,7 @@ Scope {
                                                  Text {
                                                      text: Services.SystemService.wifiEnabled ? (Services.SystemService.wifiSsid || "Not Connected") : "Off"
                                                      color: root.theme.textMuted
-                                                     font.pixelSize: 10
+                                                     font.pixelSize: 11
                                                      font.family: root.font
                                                      Layout.fillWidth: true
                                                      elide: Text.ElideRight
@@ -647,7 +656,7 @@ Scope {
                                     // Bluetooth Row
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        implicitHeight: 38
+                                        implicitHeight: card.isCompact ? 34 : 38
                                         radius: 10
                                         color: btRowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
@@ -702,7 +711,7 @@ Scope {
                                                          return "On";
                                                      }
                                                      color: root.theme.textMuted
-                                                     font.pixelSize: 10
+                                                     font.pixelSize: 11
                                                      font.family: root.font
                                                      Layout.fillWidth: true
                                                      elide: Text.ElideRight
@@ -732,7 +741,7 @@ Scope {
                                     // AirDrop / LocalSend Row
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        implicitHeight: 38
+                                        implicitHeight: card.isCompact ? 34 : 38
                                         radius: 10
                                         color: shareRowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
@@ -746,7 +755,8 @@ Scope {
                                                  width: 30
                                                  height: 30
                                                  radius: 15
-                                                 color: "#30d158"
+                                                 color: root.theme.accent
+                                                 Behavior on color { ColorAnimation { duration: 120 } }
 
                                                  Text {
                                                      anchors.centerIn: parent
@@ -773,7 +783,7 @@ Scope {
                                                  Text {
                                                      text: "LocalSend"
                                                      color: root.theme.textMuted
-                                                     font.pixelSize: 10
+                                                     font.pixelSize: 11
                                                      font.family: root.font
                                                      Layout.fillWidth: true
                                                      elide: Text.ElideRight
@@ -807,7 +817,7 @@ Scope {
                                 Layout.preferredWidth: 154
                                 Layout.minimumWidth: 154
                                 Layout.maximumWidth: 154
-                                implicitHeight: 140
+                                implicitHeight: card.isCompact ? 128 : 140
                                 radius: 16
                                 color: mediaCardMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -826,7 +836,7 @@ Scope {
 
                                 ColumnLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 10
+                                    anchors.margins: card.isCompact ? 8 : 10
                                     spacing: 0
 
                                     // Top Header: Thumbnail + Track Info + Cava Waveform + Expand Chevron
@@ -834,11 +844,11 @@ Scope {
                                         Layout.fillWidth: true
                                         spacing: 8
 
-                                        // Thumbnail / Art (46x46, slightly rounded radius 8)
+                                        // Thumbnail / Art (slightly rounded radius 8)
                                         Rectangle {
                                             id: ccIosThumbBox
-                                            width: 46
-                                            height: 46
+                                            width: card.isCompact ? 38 : 46
+                                            height: card.isCompact ? 38 : 46
                                             radius: 8
                                             color: Services.Aesthetic.innerCardBg
                                             border.color: Services.Aesthetic.innerCardBorder
@@ -890,6 +900,8 @@ Scope {
                                                 anchors.centerIn: parent
                                                 text: "󰝚"
                                                 color: "#fa2d48"
+                                                opacity: root.activePlayer ? 1.0 : 0.4
+                                                Behavior on opacity { NumberAnimation { duration: 150 } }
                                                 font.pixelSize: 22
                                                 font.family: root.font
                                                 visible: !ccIosThumbEffect.visible
@@ -927,6 +939,7 @@ Scope {
 
                                             // Live Beat Cava Waveform
                                             Row {
+                                                visible: !!root.activePlayer
                                                 spacing: 2
                                                 height: 10
                                                 Layout.topMargin: 1
@@ -967,6 +980,8 @@ Scope {
                                     RowLayout {
                                         id: mediaControlsRow
                                         Layout.fillWidth: true
+                                        opacity: root.activePlayer ? 1.0 : 0.4
+                                        Behavior on opacity { NumberAnimation { duration: 150 } }
                                         Layout.alignment: Qt.AlignHCenter
                                         spacing: 4
                                         z: 2
@@ -997,8 +1012,9 @@ Scope {
                                             MouseArea {
                                                 id: prevIosM
                                                 anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
+                                                enabled: !!root.activePlayer
+                                                hoverEnabled: !!root.activePlayer
+                                                cursorShape: root.activePlayer ? Qt.PointingHandCursor : Qt.ArrowCursor
                                                 onClicked: root.activePlayer?.previous()
                                             }
                                         }
@@ -1026,8 +1042,9 @@ Scope {
                                             MouseArea {
                                                 id: playIosM
                                                 anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
+                                                enabled: !!root.activePlayer
+                                                hoverEnabled: !!root.activePlayer
+                                                cursorShape: root.activePlayer ? Qt.PointingHandCursor : Qt.ArrowCursor
                                                 onClicked: root.activePlayer?.togglePlaying()
                                             }
                                         }
@@ -1060,8 +1077,9 @@ Scope {
                                             MouseArea {
                                                 id: nextIosM
                                                 anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
+                                                enabled: !!root.activePlayer
+                                                hoverEnabled: !!root.activePlayer
+                                                cursorShape: root.activePlayer ? Qt.PointingHandCursor : Qt.ArrowCursor
                                                 onClicked: root.activePlayer?.next()
                                             }
                                         }
@@ -1075,12 +1093,12 @@ Scope {
                         // ═══════════════════════════════════════════
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: card.isCompact ? 6 : 8
 
                             // 1. Focus / DND Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 52
+                                implicitHeight: card.isCompact ? 46 : 52
                                 radius: 14
                                 color: focusMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.NotificationService.dnd ? Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -1102,7 +1120,7 @@ Scope {
                                         Text {
                                             anchors.centerIn: parent
                                             text: Services.NotificationService.dnd ? "󰂛" : "󰍡"
-                                            color: Services.NotificationService.dnd ? "#ffffff" : root.theme.textMuted
+                                            color: Services.NotificationService.dnd ? "#ffffff" : root.theme.textSecondary
                                             font.pixelSize: 13
                                             font.family: root.font
                                         }
@@ -1125,7 +1143,7 @@ Scope {
                                         Text {
                                             text: Services.NotificationService.dnd ? "On" : "Off"
                                             color: Services.NotificationService.dnd ? root.theme.accentMauve : root.theme.textMuted
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1145,7 +1163,7 @@ Scope {
                             // 2. Night Shift Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 52
+                                implicitHeight: card.isCompact ? 46 : 52
                                 radius: 14
                                 color: nightShiftMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.NightLightService.active ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.45) : Services.Aesthetic.innerCardBorder
@@ -1167,7 +1185,7 @@ Scope {
                                         Text {
                                             anchors.centerIn: parent
                                             text: "󰔎"
-                                            color: Services.NightLightService.active ? "#ffffff" : root.theme.textMuted
+                                            color: Services.NightLightService.active ? "#ffffff" : root.theme.textSecondary
                                             font.pixelSize: 13
                                             font.family: root.font
                                         }
@@ -1190,7 +1208,7 @@ Scope {
                                         Text {
                                             text: Services.NightLightService.active ? "3000K" : "Off"
                                             color: Services.NightLightService.active ? root.theme.accentOrange : root.theme.textMuted
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1210,7 +1228,7 @@ Scope {
                             // 3. Caffeine Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 52
+                                implicitHeight: card.isCompact ? 46 : 52
                                 radius: 14
                                 color: caffeineMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.SystemService.caffeineActive ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.45) : (Services.SystemService.idleInhibited ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.3) : Services.Aesthetic.innerCardBorder)
@@ -1232,7 +1250,7 @@ Scope {
                                         Text {
                                             anchors.centerIn: parent
                                             text: "󰅶"
-                                            color: Services.SystemService.caffeineActive ? "#000000" : (Services.SystemService.idleInhibited ? root.theme.accentYellow : root.theme.textMuted)
+                                            color: Services.SystemService.caffeineActive ? "#000000" : (Services.SystemService.idleInhibited ? root.theme.accentYellow : root.theme.textSecondary)
                                             font.pixelSize: 13
                                             font.family: root.font
                                         }
@@ -1255,7 +1273,7 @@ Scope {
                                         Text {
                                             text: Services.SystemService.caffeineActive ? "Active" : (Services.SystemService.idleInhibited ? "Auto (Fullscreen)" : "Off")
                                             color: Services.SystemService.idleInhibited ? "#ffb340" : root.theme.textMuted
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1278,7 +1296,7 @@ Scope {
                         // ═══════════════════════════════════════════
                         Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: 82
+                            implicitHeight: card.isCompact ? 72 : 82
                             radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
@@ -1286,8 +1304,8 @@ Scope {
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 8
+                                anchors.margins: card.isCompact ? 8 : 12
+                                spacing: card.isCompact ? 6 : 8
 
                                 RowLayout {
                                     Layout.fillWidth: true
@@ -1304,6 +1322,32 @@ Scope {
                                         color: root.theme.textMuted
                                         font.pixelSize: 12
                                         font.family: root.font
+                                    }
+                                    // Displays Detail Page Chevron Button
+                                    Rectangle {
+                                        width: 20
+                                        height: 20
+                                        radius: 10
+                                        color: dispOpenBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "›"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 14
+                                            font.family: root.font
+                                        }
+                                        MouseArea {
+                                            id: dispOpenBtnM
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                Services.SystemService.rescanMonitors();
+                                                Services.SystemService.controlCenterSubView = "displays";
+                                            }
+                                        }
                                     }
                                 }
 
@@ -1399,7 +1443,7 @@ Scope {
                         // ═══════════════════════════════════════════
                         Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: 82
+                            implicitHeight: card.isCompact ? 72 : 82
                             radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
@@ -1408,8 +1452,8 @@ Scope {
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 8
+                                anchors.margins: card.isCompact ? 8 : 12
+                                spacing: card.isCompact ? 6 : 8
 
                                 // ── Sound Output Header ──
                                 RowLayout {
@@ -1581,12 +1625,12 @@ Scope {
                         // ═══════════════════════════════════════════
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: card.isCompact ? 6 : 8
 
                             // 1. Screen Capture Tile (opens floating screenshot module)
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 52
+                                implicitHeight: card.isCompact ? 46 : 52
                                 radius: 14
                                 color: snapTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1630,7 +1674,7 @@ Scope {
                                         Text {
                                             text: "Screenshot"
                                             color: root.theme.textMuted
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1652,7 +1696,7 @@ Scope {
                             // 2. Power Menu Tile
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 52
+                                implicitHeight: card.isCompact ? 46 : 52
                                 radius: 14
                                 color: powerMenuTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1696,7 +1740,7 @@ Scope {
                                         Text {
                                             text: "Menu"
                                             color: root.theme.textMuted
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1768,7 +1812,7 @@ Scope {
                                         Text {
                                             text: Services.SystemService.batteryCharging ? "Charging" : (Services.SystemService.batteryPlugged ? "AC Connected" : "Battery")
                                             color: root.theme.textMuted
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -1829,7 +1873,7 @@ Scope {
                                         spacing: 1
 
                                         Text {
-                                            text: Services.SystemService.currentMonitor ? (Services.SystemService.currentMonitor.name + "  •  " + Math.round(Services.SystemService.monitorScale * 100) + "%") : "Displays"
+                                            text: Services.SystemService.currentMonitor ? (Services.SystemService.currentMonitor.name + " • " + Math.round(Services.SystemService.monitorScale * 100) + "% scale") : "Displays"
                                             color: root.theme.textPrimary
                                             font.pixelSize: 12
                                             font.family: root.font
@@ -1840,7 +1884,7 @@ Scope {
                                         Text {
                                             text: "Displays & Scaling"
                                             color: root.theme.textMuted
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.family: root.font
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
@@ -6446,51 +6490,55 @@ Scope {
                     anchors.left: parent.left
                     anchors.right: parent.right
 
+                    property int timestampTick: 0
+
+                    onVisibleChanged: {
+                        if (visible) timestampTick++;
+                    }
+
+                    Timer {
+                        interval: 15000
+                        repeat: true
+                        running: Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "notifications"
+                        onTriggered: notificationsView.timestampTick++
+                    }
+
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 14
                         anchors.rightMargin: 14
                         spacing: 10
 
-                        // Header Bar: "Notification Center" | DND Pill | "Clear All"
+                        // Header Bar: DND Pill (Left) | Spacer | Clear All Pill (Right)
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 8
 
-                            Text {
-                                text: "Notification Center"
-                                color: root.theme.textPrimary
-                                font.pixelSize: 13
-                                font.family: root.font
-                                font.weight: Font.Bold
-                            }
-
-                            Item { Layout.fillWidth: true }
-
                             // DND Pill
                             Rectangle {
-                                implicitHeight: 24
-                                implicitWidth: dndPillRow.implicitWidth + 12
-                                radius: 12
-                                color: Services.NotificationService.dnd ? "#5856d6" : Qt.rgba(1, 1, 1, 0.10)
+                                id: dndPill
+                                implicitHeight: 26
+                                implicitWidth: dndPillRow.implicitWidth + 14
+                                radius: 13
+                                color: Services.NotificationService.dnd ? root.theme.accent : (dndPillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
                                 Row {
                                     id: dndPillRow
                                     anchors.centerIn: parent
-                                    spacing: 4
+                                    spacing: 5
 
                                     Text {
                                         text: Services.NotificationService.dnd ? "󰂛" : "󰂚"
-                                        color: "#ffffff"
-                                        font.pixelSize: 11
+                                        color: Services.NotificationService.dnd ? root.theme.onPrimary : root.theme.textSecondary
+                                        font.pixelSize: 12
                                         font.family: root.font
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Text {
-                                        text: Services.NotificationService.dnd ? "DND On" : "DND"
-                                        color: "#ffffff"
+                                        text: Services.NotificationService.dnd ? "DND On" : "Do Not Disturb"
+                                        color: Services.NotificationService.dnd ? root.theme.onPrimary : root.theme.textSecondary
                                         font.pixelSize: 11
                                         font.family: root.font
                                         font.weight: Font.Medium
@@ -6499,19 +6547,23 @@ Scope {
                                 }
 
                                 MouseArea {
+                                    id: dndPillMouse
                                     anchors.fill: parent
+                                    hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: Services.NotificationService.toggleDnd()
                                 }
                             }
 
-                            // Clear All Button
+                            Item { Layout.fillWidth: true }
+
+                            // Clear All Pill
                             Rectangle {
-                                implicitHeight: 24
-                                implicitWidth: clearAllText.implicitWidth + 14
-                                radius: 12
+                                implicitHeight: 26
+                                implicitWidth: clearAllText.implicitWidth + 16
+                                radius: 13
                                 color: clearAllMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                                visible: Services.NotificationService.unreadCount > 0
+                                visible: Services.NotificationService.unreadCount > 0 || notifRepeater.count > 0
                                 Behavior on color { ColorAnimation { duration: 100 } }
 
                                 Text {
@@ -6543,7 +6595,7 @@ Scope {
                             Column {
                                 anchors.centerIn: parent
                                 spacing: 10
-                                visible: Services.NotificationService.unreadCount === 0
+                                visible: Services.NotificationService.unreadCount === 0 && notifRepeater.count === 0
 
                                 Rectangle {
                                     width: 56
@@ -6581,11 +6633,12 @@ Scope {
 
                             // Active Notifications List
                             Flickable {
+                                id: notifFlickable
                                 anchors.fill: parent
                                 contentHeight: notifCol.implicitHeight + 10
                                 boundsBehavior: Flickable.StopAtBounds
                                 clip: true
-                                visible: Services.NotificationService.unreadCount > 0
+                                visible: Services.NotificationService.unreadCount > 0 || notifRepeater.count > 0
 
                                 ColumnLayout {
                                     id: notifCol
@@ -6593,12 +6646,15 @@ Scope {
                                     spacing: 8
 
                                     Repeater {
+                                        id: notifRepeater
                                         model: Services.NotificationService.server.trackedNotifications
 
                                         Rectangle {
                                             id: notifCard
                                             required property var modelData
                                             required property int index
+                                            property bool isExpanded: false
+                                            readonly property bool canExpand: bodyText.truncated || isExpanded
 
                                             Layout.fillWidth: true
                                             implicitHeight: notifCardCol.implicitHeight + 20
@@ -6615,7 +6671,7 @@ Scope {
                                                 anchors.topMargin: 10
                                                 spacing: 6
 
-                                                // App Header & Dismiss Button
+                                                // App Header, Timestamp & Dismiss Button
                                                 RowLayout {
                                                     Layout.fillWidth: true
                                                     spacing: 6
@@ -6654,20 +6710,36 @@ Scope {
 
                                                     Item { Layout.fillWidth: true }
 
-                                                    // Dismiss Button
-                                                    Rectangle {
-                                                        width: 18
-                                                        height: 18
-                                                        radius: 9
-                                                        color: dismissMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                                                    // Delivery Time
+                                                    Text {
+                                                        text: Services.NotificationService.getNotificationTime(notifCard.modelData?.id)
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 10
+                                                        font.family: root.font
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                    }
+
+                                                    // Dismiss Button with 28x28px hit area
+                                                    Item {
+                                                        width: 28
+                                                        height: 28
                                                         Layout.alignment: Qt.AlignVCenter
 
-                                                        Text {
+                                                        Rectangle {
+                                                            width: 18
+                                                            height: 18
+                                                            radius: 9
                                                             anchors.centerIn: parent
-                                                            text: "✕"
-                                                            color: root.theme.textSecondary
-                                                            font.pixelSize: 9
-                                                            font.bold: true
+                                                            color: dismissMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                                                            Behavior on color { ColorAnimation { duration: 100 } }
+
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: "✕"
+                                                                color: root.theme.textSecondary
+                                                                font.pixelSize: 9
+                                                                font.bold: true
+                                                            }
                                                         }
 
                                                         MouseArea {
@@ -6682,8 +6754,9 @@ Scope {
                                                     }
                                                 }
 
-                                                // Notification Content
+                                                // Notification Content (Title omitted if empty)
                                                 Text {
+                                                    id: summaryText
                                                     Layout.fillWidth: true
                                                     text: notifCard.modelData.summary ?? ""
                                                     color: root.theme.textPrimary
@@ -6691,18 +6764,28 @@ Scope {
                                                     font.family: root.font
                                                     font.weight: Font.Bold
                                                     wrapMode: Text.Wrap
+                                                    visible: (notifCard.modelData.summary ?? "").trim().length > 0
                                                 }
 
+                                                // Notification Body (Truncated to 3 lines, click to expand up to 12 lines)
                                                 Text {
+                                                    id: bodyText
                                                     Layout.fillWidth: true
                                                     text: notifCard.modelData.body ?? ""
-                                                    color: Qt.rgba(0.9, 0.9, 0.95, 0.85)
+                                                    color: root.theme.textSecondary
                                                     font.pixelSize: 11
                                                     font.family: root.font
                                                     wrapMode: Text.Wrap
-                                                    maximumLineCount: 4
+                                                    maximumLineCount: notifCard.isExpanded ? 12 : 3
                                                     elide: Text.ElideRight
                                                     visible: (notifCard.modelData.body ?? "").length > 0
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        enabled: notifCard.canExpand
+                                                        cursorShape: notifCard.canExpand ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                                        onClicked: notifCard.isExpanded = !notifCard.isExpanded
+                                                    }
                                                 }
 
                                                 // Action Buttons (if any)
@@ -6750,9 +6833,24 @@ Scope {
                                     }
                                 }
                             }
+
+                            // Subtle Bottom Fade Gradient
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: 28
+                                visible: Services.NotificationService.unreadCount > 0 && notifFlickable.contentHeight > notifFlickable.height
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: "transparent" }
+                                    GradientStop { position: 1.0; color: Services.Aesthetic.cardBg }
+                                }
+                                z: 5
+                            }
                         }
                     }
                 }
+
 
                 // ═══════════════════════════════════════════
                 // VIEW 6: NOW PLAYING / MEDIA DETAILS (1:1 DYNAMIC ISLAND)

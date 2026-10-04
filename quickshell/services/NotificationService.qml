@@ -14,6 +14,89 @@ Singleton {
     property var islandNotification: null
     readonly property int unreadCount: notifServer.trackedNotifications && notifServer.trackedNotifications.values ? notifServer.trackedNotifications.values.length : 0
 
+    property var timestamps: {
+        try {
+            const txt = tsFileView.text();
+            if (txt && txt.trim().length > 0) {
+                const parsed = JSON.parse(txt.trim());
+                if (parsed && typeof parsed === "object") return parsed;
+            }
+        } catch (e) {}
+        return ({});
+    }
+    readonly property string tsFile: "/home/aran/.cache/quickshell/notification_timestamps.json"
+
+    FileView {
+        id: tsFileView
+        path: root.tsFile
+        preload: true
+        blockLoading: true
+    }
+
+    Process {
+        id: saveTsProc
+        running: false
+    }
+
+    property bool savePending: false
+
+    function saveTimestamps() {
+        if (saveTsProc.running) {
+            savePending = true;
+            return;
+        }
+        try {
+            const json = JSON.stringify(root.timestamps);
+            saveTsProc.command = ["sh", "-c", "mkdir -p ~/.cache/quickshell && printf '%s' '" + json.replace(/'/g, "'\\''") + "' > '" + root.tsFile + "'"];
+            saveTsProc.running = true;
+        } catch (e) {}
+    }
+
+    Connections {
+        target: saveTsProc
+        function onRunningChanged() {
+            if (!saveTsProc.running && root.savePending) {
+                root.savePending = false;
+                root.saveTimestamps();
+            }
+        }
+    }
+
+    function recordTimestamp(id, timeMs) {
+        if (!id && id !== 0) return;
+        const key = String(id);
+        if (root.timestamps[key]) return;
+        const now = timeMs || Date.now();
+        let ts = Object.assign({}, root.timestamps);
+        ts[key] = now;
+        root.timestamps = ts;
+        saveTimestamps();
+    }
+
+    function getNotificationTime(id) {
+        if (!id && id !== 0) return "";
+        const key = String(id);
+        let t = root.timestamps[key];
+        if (!t) {
+            recordTimestamp(key, Date.now());
+            t = Date.now();
+        }
+        const notifDate = new Date(Number(t));
+        const now = new Date();
+        const isToday = notifDate.getDate() === now.getDate() &&
+                        notifDate.getMonth() === now.getMonth() &&
+                        notifDate.getFullYear() === now.getFullYear();
+        if (isToday) {
+            return Qt.formatTime(notifDate, "h:mm AP");
+        } else {
+            return Qt.formatDateTime(notifDate, "MMM d, h:mm AP");
+        }
+    }
+
+    function getRelativeTime(id, tick) {
+        return getNotificationTime(id);
+    }
+
     Timer {
         id: islandTimer
         interval: 3000
@@ -49,6 +132,8 @@ Singleton {
             } catch (e) {}
         }
         popups = [];
+        timestamps = ({});
+        saveTimestamps();
         dismissIsland();
     }
 
@@ -110,10 +195,15 @@ Singleton {
 
         onNotification: (notif) => {
             notif.tracked = true;
+            root.recordTimestamp(notif.id, Date.now());
             root.addPopup(notif);
 
             notif.closed.connect(() => {
                 root.removePopup(notif.id);
+                let ts2 = Object.assign({}, root.timestamps);
+                delete ts2[notif.id];
+                root.timestamps = ts2;
+                root.saveTimestamps();
             });
         }
     }
