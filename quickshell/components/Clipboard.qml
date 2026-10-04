@@ -12,10 +12,124 @@ Scope {
 
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
+    readonly property string monoFont: "MesloLGL Nerd Font Mono, MesloLGM Nerd Font, monospace"
+    readonly property bool isCrystal: Services.Aesthetic.preset === "crystal"
 
     property var clipboardItems: []
     property int selectedIndex: 0
     property string statusMessage: ""
+
+    readonly property var currentItem: (filteredItems.length > 0 && selectedIndex >= 0 && selectedIndex < filteredItems.length) ? filteredItems[selectedIndex] : null
+
+    property string previewText: ""
+    property bool isPreviewTruncated: false
+    property int previewCharCount: 0
+    property int previewLineCount: 0
+
+    onSelectedIndexChanged: {
+        previewDebounceTimer.restart();
+    }
+
+    onFilteredItemsChanged: {
+        if (root.selectedIndex >= root.filteredItems.length) {
+            root.selectedIndex = Math.max(0, root.filteredItems.length - 1);
+        }
+        previewDebounceTimer.restart();
+    }
+
+    Timer {
+        id: previewDebounceTimer
+        interval: 60
+        repeat: false
+        onTriggered: {
+            root.requestPreview();
+        }
+    }
+
+    Process {
+        id: decodeTextProc
+        property string targetId: ""
+        command: ["sh", "-c", ""]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (root.currentItem && decodeTextProc.targetId === root.currentItem.id) {
+                    root.setDecodedPreview(decodeTextProc.targetId, text);
+                }
+            }
+        }
+    }
+
+    Process {
+        id: decodeImageProc
+        property string targetId: ""
+        command: ["sh", "-c", ""]
+        running: false
+        function ensureImage(id) {
+            if (!id) return;
+            targetId = id;
+            running = false;
+            command = ["sh", "-c", "f=\"/tmp/quickshell_clip_thumbs/$1.png\"; if [ ! -s \"$f\" ]; then printf '%s\\t' \"$1\" | cliphist decode > \"$f\"; fi", "--", id];
+            running = true;
+        }
+    }
+
+    function requestPreview() {
+        const item = root.currentItem;
+        if (!item) {
+            root.previewText = "";
+            root.isPreviewTruncated = false;
+            root.previewCharCount = 0;
+            root.previewLineCount = 0;
+            return;
+        }
+
+        if (item.isImage) {
+            root.previewText = "";
+            root.isPreviewTruncated = false;
+            root.previewCharCount = 0;
+            root.previewLineCount = 0;
+            if (item.thumbSource && item.thumbSource.startsWith("file:///tmp/quickshell_clip_thumbs/")) {
+                decodeImageProc.ensureImage(item.id);
+            }
+            return;
+        }
+
+        // Set initial preview while full text decodes
+        root.previewText = item.preview || "";
+        root.previewCharCount = (item.preview || "").length;
+        root.previewLineCount = (item.preview || "").split("\n").length;
+        root.isPreviewTruncated = false;
+
+        // Decode full content
+        decodeTextProc.targetId = item.id;
+        decodeTextProc.running = false;
+        decodeTextProc.command = ["sh", "-c", "printf '%s\\t' \"$1\" | cliphist decode", "--", item.id];
+        decodeTextProc.running = true;
+    }
+
+    function setDecodedPreview(id, fullText) {
+        if (!root.currentItem || root.currentItem.id !== id) return;
+        root.previewCharCount = fullText.length;
+        root.previewLineCount = fullText.length > 0 ? fullText.split("\n").length : 0;
+        if (fullText.length > 5000) {
+            root.previewText = fullText.substring(0, 5000);
+            root.isPreviewTruncated = true;
+        } else {
+            root.previewText = fullText;
+            root.isPreviewTruncated = false;
+        }
+    }
+
+    function getItemTypeLabel(item) {
+        if (!item) return "";
+        if (item.isImage) return item.format ? (item.format + " Image") : "Image";
+        if (item.isUrl) return "Web Link";
+        if (item.isColor) return "Color Hex";
+        if (item.isCode) return "Code Snippet";
+        if (item.isLocalFile) return "Local File";
+        return "Plain Text";
+    }
 
     // ── IPC Handler for External Toggle (Super + V) ─────────────
     property bool isOpen: false
@@ -70,6 +184,7 @@ Scope {
         root.selectedIndex = 0;
         root.statusMessage = "";
         fetchClipboard();
+        previewDebounceTimer.restart();
         Qt.callLater(() => {
             searchInput.forceActiveFocus();
         });
@@ -269,11 +384,15 @@ Scope {
         runAction(cmd);
 
         // Update local array immediately
+        const prevIndex = root.selectedIndex;
         const newArr = root.clipboardItems.filter(i => i.id !== item.id);
         root.clipboardItems = newArr;
-        if (root.selectedIndex >= root.filteredItems.length) {
+        if (prevIndex >= root.filteredItems.length) {
             root.selectedIndex = Math.max(0, root.filteredItems.length - 1);
+        } else {
+            root.selectedIndex = prevIndex;
         }
+        previewDebounceTimer.restart();
     }
 
     function wipeHistory() {
@@ -281,6 +400,7 @@ Scope {
         root.clipboardItems = [];
         root.selectedIndex = 0;
         root.statusMessage = "Clipboard history cleared";
+        previewDebounceTimer.restart();
     }
 
     // ── Full-Screen Layer Overlay ───────────────────
@@ -330,12 +450,12 @@ Scope {
             id: cardBox
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: root.isOpen ? (parent.height * 0.16) : (parent.height * 0.16 - 18)
+            anchors.topMargin: root.isOpen ? (parent.height < 640 ? 44 : parent.height * 0.16) : ((parent.height < 640 ? 44 : parent.height * 0.16) - 18)
             scale: root.isOpen ? 1.0 : 0.94
             opacity: root.isOpen ? 1.0 : 0.0
 
-            width: 640
-            height: Math.min(560, Math.max(220, root.filteredItems.length * 62 + 150))
+            width: Math.min(740, parent.width - 40)
+            height: Math.min(520, parent.height - (parent.height < 640 ? 44 : parent.height * 0.16) - 24)
             radius: Services.Aesthetic.cardRadius
             color: Services.Aesthetic.cardBg
             border.color: Services.Aesthetic.cardBorder
@@ -358,10 +478,6 @@ Scope {
                 z: 10
             }
 
-            Behavior on height {
-                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
-            }
-
             // Prevent clicks from dismissing when inside card
             MouseArea {
                 anchors.fill: parent
@@ -378,9 +494,10 @@ Scope {
                     Layout.fillWidth: true
                     spacing: 8
 
-                    // Search Pill
+                    // Search Pill (stretches over the rows: 363px)
                     Rectangle {
-                        Layout.fillWidth: true
+                        Layout.preferredWidth: 363
+                        Layout.fillWidth: false
                         height: 42
                         radius: 12
                         color: Qt.rgba(1, 1, 1, 0.05)
@@ -445,23 +562,26 @@ Scope {
 
                                     if (event.key === Qt.Key_Down) {
                                         event.accepted = true;
-                                        root.selectedIndex = Math.min(root.selectedIndex + 1, root.filteredItems.length - 1);
-                                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                        if (root.filteredItems.length > 0) {
+                                            root.selectedIndex = Math.min(root.selectedIndex + 1, root.filteredItems.length - 1);
+                                            itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                        }
                                     } else if (event.key === Qt.Key_Up) {
                                         event.accepted = true;
-                                        root.selectedIndex = Math.max(root.selectedIndex - 1, 0);
-                                        itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                        if (root.filteredItems.length > 0) {
+                                            root.selectedIndex = Math.max(root.selectedIndex - 1, 0);
+                                            itemList.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+                                        }
                                     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                                         event.accepted = true;
-                                        if (root.filteredItems.length > 0 && root.selectedIndex >= 0) {
-                                            const item = root.filteredItems[root.selectedIndex];
+                                        if (root.currentItem) {
                                             const mode = (event.modifiers & Qt.ShiftModifier) ? "text" : "auto";
-                                            root.copyItem(item, mode);
+                                            root.copyItem(root.currentItem, mode);
                                         }
                                     } else if (event.key === Qt.Key_Delete || (event.key === Qt.Key_Backspace && (event.modifiers & Qt.ShiftModifier))) {
                                         event.accepted = true;
-                                        if (root.filteredItems.length > 0 && root.selectedIndex >= 0) {
-                                            root.deleteItem(root.filteredItems[root.selectedIndex]);
+                                        if (root.currentItem) {
+                                            root.deleteItem(root.currentItem);
                                         }
                                     }
                                 }
@@ -498,6 +618,8 @@ Scope {
                             }
                         }
                     }
+
+                    Item { Layout.fillWidth: true }
 
                     // Count Badge
                     Rectangle {
@@ -573,18 +695,18 @@ Scope {
                     color: Qt.rgba(1, 1, 1, 0.08)
                 }
 
-                // ── Empty State ─────────────────────────────
+                // ── Empty State (When Clipboard is Empty) ───
                 Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    visible: root.filteredItems.length === 0
+                    visible: root.clipboardItems.length === 0
 
                     ColumnLayout {
                         anchors.centerIn: parent
                         spacing: 8
 
                         Text {
-                            text: searchInput.text.trim() ? "󰍉" : "󰅍"
+                            text: "󰅍"
                             color: root.theme.textMuted
                             font.pixelSize: 40
                             font.family: root.font
@@ -593,7 +715,7 @@ Scope {
                         }
 
                         Text {
-                            text: searchInput.text.trim() ? ("No clips matching \"" + searchInput.text.trim() + "\"") : "Clipboard history is empty"
+                            text: "Clipboard is empty"
                             color: root.theme.textMuted
                             font.pixelSize: 14
                             font.weight: Font.Medium
@@ -609,262 +731,564 @@ Scope {
                             font.family: root.font
                             opacity: 0.7
                             Layout.alignment: Qt.AlignHCenter
-                            visible: !searchInput.text.trim()
                             renderType: Text.NativeRendering
                         }
                     }
                 }
 
-                // ── Items List ──────────────────────────────
-                ListView {
-                    id: itemList
+                // ── Dual-Pane Content (When Items Exist) ────
+                RowLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    clip: true
-                    spacing: 3
-                    visible: root.filteredItems.length > 0
-                    boundsBehavior: Flickable.StopAtBounds
-                    model: root.filteredItems
+                    spacing: 0
+                    visible: root.clipboardItems.length > 0
 
-                    delegate: Rectangle {
-                        id: itemRow
-                        width: itemList.width
-                        height: itemData.isImage ? 56 : 44
-                        radius: 8
+                    // ── LEFT PANE: RESULTS LIST (width: 363px) ──
+                    Rectangle {
+                        Layout.preferredWidth: 363
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: "transparent"
+                        clip: true
 
-                        readonly property bool isSelected: index === root.selectedIndex
-                        readonly property var itemData: modelData
-
-                        color: isSelected 
-                            ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
-                            : (rowHover.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
-                        border.color: isSelected 
-                            ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.40)
-                            : "transparent"
-                        border.width: 1
-
-                        Behavior on color { ColorAnimation { duration: 100 } }
-                        Behavior on border.color { ColorAnimation { duration: 100 } }
-
-                        RowLayout {
+                        // "No results" when search filter matches nothing
+                        Item {
                             anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 10
-                            spacing: 10
+                            visible: root.filteredItems.length === 0
 
-                            // Left Accent Indicator Pill
-                            Rectangle {
-                                width: 3
-                                height: itemData.isImage ? 26 : 20
-                                radius: 1.5
-                                color: root.theme.accent
-                                visible: itemRow.isSelected
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            // Quick Pick Index Badge (for top 9 items)
-                            Rectangle {
-                                width: 20
-                                height: 20
-                                radius: 5
-                                color: itemRow.isSelected ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3) : Qt.rgba(1, 1, 1, 0.05)
-                                border.color: Qt.rgba(1, 1, 1, 0.06)
-                                border.width: 1
-                                visible: index < 9
-                                Layout.alignment: Qt.AlignVCenter
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: String(index + 1)
-                                    color: itemRow.isSelected ? "#ffffff" : root.theme.textMuted
-                                    font.pixelSize: 10
-                                    font.weight: Font.DemiBold
-                                    font.family: root.font
-                                    renderType: Text.NativeRendering
-                                }
-                            }
-
-                            // Type Icon Badge or Image Thumbnail
-                            Rectangle {
-                                width: itemData.isImage ? 42 : 28
-                                height: itemData.isImage ? 42 : 28
-                                radius: 6
-                                Layout.alignment: Qt.AlignVCenter
-                                color: {
-                                    if (itemData.isImage) return Qt.rgba(0, 0, 0, 0.35);
-                                    if (itemData.isUrl) return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.14);
-                                    if (itemData.isColor) return Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.14);
-                                    if (itemData.isCode) return Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.14);
-                                    return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12);
-                                }
-                                border.color: itemData.isImage ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
-                                border.width: itemData.isImage ? 1 : 0
-                                clip: true
-
-                                // Thumbnail Image
-                                Image {
-                                    id: thumbImg
-                                    anchors.fill: parent
-                                    source: (itemData.isImage && itemData.thumbSource) ? itemData.thumbSource : ""
-                                    fillMode: Image.PreserveAspectCrop
-                                    asynchronous: true
-                                    smooth: true
-                                    mipmap: true
-                                    cache: true
-                                    visible: itemData.isImage && status === Image.Ready
-                                }
-
-                                // Fallback Icon / Type Icon
-                                Text {
-                                    anchors.centerIn: parent
-                                    visible: !itemData.isImage || thumbImg.status !== Image.Ready
-                                    text: {
-                                        if (itemData.isImage) return "󰋩";
-                                        if (itemData.isUrl) return "󰌹";
-                                        if (itemData.isColor) return "󰏘";
-                                        if (itemData.isCode) return "󰘐";
-                                        return "󰅍";
-                                    }
-                                    color: {
-                                        if (itemData.isImage) return root.theme.accentPink;
-                                        if (itemData.isUrl) return root.theme.accent;
-                                        if (itemData.isColor) return root.theme.accentYellow;
-                                        if (itemData.isCode) return root.theme.accentMauve;
-                                        return root.theme.accent;
-                                    }
-                                    font.pixelSize: itemData.isImage ? 16 : 14
-                                    font.family: root.font
-                                    renderType: Text.NativeRendering
-                                }
-                            }
-
-                            // Content Preview (Title & Subtitle)
                             ColumnLayout {
-                                Layout.fillWidth: true
-                                Layout.alignment: Qt.AlignVCenter
-                                spacing: 2
+                                anchors.centerIn: parent
+                                spacing: 8
 
                                 Text {
-                                    Layout.fillWidth: true
-                                    text: itemData.title || itemData.preview
-                                    color: root.theme.textPrimary
-                                    font.pixelSize: 12
-                                    font.weight: itemRow.isSelected ? Font.DemiBold : Font.Normal
-                                    font.family: root.font
-                                    elide: Text.ElideRight
-                                    renderType: Text.NativeRendering
-                                }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: itemData.subtitle || ""
+                                    text: "󰍉"
                                     color: root.theme.textMuted
-                                    font.pixelSize: 10
+                                    font.pixelSize: 32
                                     font.family: root.font
-                                    elide: Text.ElideRight
-                                    renderType: Text.NativeRendering
+                                    Layout.alignment: Qt.AlignHCenter
+                                    opacity: 0.5
                                 }
-                            }
-
-                            // Delete Action Button
-                            Rectangle {
-                                width: 24
-                                height: 24
-                                radius: 6
-                                color: delArea.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.18) : "transparent"
-                                border.color: delArea.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.4) : "transparent"
-                                border.width: 1
-                                Layout.alignment: Qt.AlignVCenter
-                                visible: itemRow.isSelected || rowHover.containsMouse
-                                Behavior on color { ColorAnimation { duration: 100 } }
 
                                 Text {
-                                    anchors.centerIn: parent
-                                    text: "󰆴"
-                                    color: delArea.containsMouse ? "#ff5c50" : root.theme.textMuted
-                                    font.pixelSize: 12
-                                    font.family: root.font
-                                    renderType: Text.NativeRendering
-                                }
-
-                                MouseArea {
-                                    id: delArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.deleteItem(itemData)
-                                }
-                            }
-
-                            // Secondary: Copy Path Button for local files
-                            Rectangle {
-                                height: 20
-                                Layout.preferredWidth: copyPathText.implicitWidth + 12
-                                radius: 5
-                                color: copyPathArea.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.07)
-                                border.color: Qt.rgba(1, 1, 1, 0.12)
-                                border.width: 1
-                                visible: itemRow.isSelected && itemData.isLocalFile
-                                Layout.alignment: Qt.AlignVCenter
-
-                                Text {
-                                    id: copyPathText
-                                    anchors.centerIn: parent
-                                    text: "⇧↵ Path"
+                                    text: "No results"
                                     color: root.theme.textMuted
-                                    font.pixelSize: 10
+                                    font.pixelSize: 13
+                                    font.weight: Font.Medium
                                     font.family: root.font
+                                    Layout.alignment: Qt.AlignHCenter
                                     renderType: Text.NativeRendering
                                 }
 
-                                MouseArea {
-                                    id: copyPathArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.copyItem(itemData, "text")
-                                }
-                            }
-
-                            // Return/Copy hint pill on selected row
-                            Rectangle {
-                                height: 20
-                                Layout.preferredWidth: copyHintText.implicitWidth + 12
-                                radius: 5
-                                color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
-                                border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
-                                border.width: 1
-                                visible: itemRow.isSelected
-                                Layout.alignment: Qt.AlignVCenter
-
                                 Text {
-                                     id: copyHintText
-                                     anchors.centerIn: parent
-                                     text: itemData.isImage ? "↵ Copy PNG" : (itemData.isLocalFile ? "↵ Copy File" : "↵ Copy")
-                                     color: root.theme.accent
-                                     font.pixelSize: 10
-                                     font.weight: Font.DemiBold
-                                     font.family: root.font
-                                     renderType: Text.NativeRendering
-                                }
-
-                                MouseArea {
-                                     anchors.fill: parent
-                                     hoverEnabled: true
-                                     cursorShape: Qt.PointingHandCursor
-                                     onClicked: root.copyItem(itemData, "auto")
+                                    text: "No clips matching \"" + searchInput.text.trim() + "\""
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 11
+                                    font.family: root.font
+                                    opacity: 0.7
+                                    Layout.alignment: Qt.AlignHCenter
+                                    renderType: Text.NativeRendering
+                                    elide: Text.ElideRight
+                                    Layout.maximumWidth: 380
                                 }
                             }
                         }
 
-                        MouseArea {
-                            id: rowHover
+                        ListView {
+                            id: itemList
                             anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            z: -1
-                            onEntered: root.selectedIndex = index
-                            onClicked: root.copyItem(itemData)
+                            clip: true
+                            spacing: 3
+                            visible: root.filteredItems.length > 0
+                            boundsBehavior: Flickable.StopAtBounds
+                            model: root.filteredItems
+                            currentIndex: root.selectedIndex
+
+                            delegate: Rectangle {
+                                id: itemRow
+                                width: itemList.width
+                                height: itemData.isImage ? 52 : 42
+                                radius: 8
+
+                                readonly property bool isSelected: index === root.selectedIndex
+                                readonly property var itemData: modelData
+
+                                color: isSelected 
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)
+                                    : (rowHover.containsMouse ? (root.isCrystal ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.06)) : "transparent")
+                                border.color: isSelected 
+                                    ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.40)
+                                    : "transparent"
+                                border.width: 1
+
+                                Behavior on color { ColorAnimation { duration: 80 } }
+                                Behavior on border.color { ColorAnimation { duration: 80 } }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 10
+                                    spacing: 8
+
+                                    // Left Accent Indicator Pill (fixed space reserved)
+                                    Rectangle {
+                                        width: 3
+                                        height: itemData.isImage ? 24 : 20
+                                        radius: 1.5
+                                        color: itemRow.isSelected ? root.theme.accent : "transparent"
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    // Quick Pick Index Badge (for top 9 items)
+                                    Rectangle {
+                                        width: 20
+                                        height: 20
+                                        radius: 5
+                                        color: itemRow.isSelected ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3) : Qt.rgba(1, 1, 1, 0.05)
+                                        border.color: Qt.rgba(1, 1, 1, 0.06)
+                                        border.width: 1
+                                        visible: index < 9
+                                        Layout.alignment: Qt.AlignVCenter
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: String(index + 1)
+                                            color: itemRow.isSelected ? "#ffffff" : root.theme.textMuted
+                                            font.pixelSize: 10
+                                            font.weight: Font.DemiBold
+                                            font.family: root.font
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
+
+                                    // Type Icon Badge or Image Thumbnail
+                                    Rectangle {
+                                        width: itemData.isImage ? 36 : 26
+                                        height: itemData.isImage ? 36 : 26
+                                        radius: 6
+                                        Layout.alignment: Qt.AlignVCenter
+                                        color: {
+                                            if (itemData.isImage) return Qt.rgba(0, 0, 0, 0.35);
+                                            if (itemData.isUrl) return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.14);
+                                            if (itemData.isColor) return Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.14);
+                                            if (itemData.isCode) return Qt.rgba(root.theme.accentMauve.r, root.theme.accentMauve.g, root.theme.accentMauve.b, 0.14);
+                                            return Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12);
+                                        }
+                                        border.color: itemData.isImage ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                                        border.width: itemData.isImage ? 1 : 0
+                                        clip: true
+
+                                        // Thumbnail Image
+                                        Image {
+                                            id: thumbImg
+                                            anchors.fill: parent
+                                            source: (itemData.isImage && itemData.thumbSource) ? itemData.thumbSource : ""
+                                            fillMode: Image.PreserveAspectCrop
+                                            asynchronous: true
+                                            smooth: true
+                                            mipmap: true
+                                            cache: true
+                                            visible: itemData.isImage && status === Image.Ready
+                                        }
+
+                                        // Fallback Icon / Type Icon
+                                        Text {
+                                            anchors.centerIn: parent
+                                            visible: !itemData.isImage || thumbImg.status !== Image.Ready
+                                            text: {
+                                                if (itemData.isImage) return "󰋩";
+                                                if (itemData.isUrl) return "󰌹";
+                                                if (itemData.isColor) return "󰏘";
+                                                if (itemData.isCode) return "󰘐";
+                                                return "󰅍";
+                                            }
+                                            color: {
+                                                if (itemData.isImage) return root.theme.accentPink;
+                                                if (itemData.isUrl) return root.theme.accent;
+                                                if (itemData.isColor) return root.theme.accentYellow;
+                                                if (itemData.isCode) return root.theme.accentMauve;
+                                                return root.theme.accent;
+                                            }
+                                            font.pixelSize: itemData.isImage ? 16 : 13
+                                            font.family: root.font
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
+
+                                    // Content Preview (Title & Subtitle)
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 2
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            text: itemData.title || itemData.preview
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 12
+                                            font.weight: itemRow.isSelected ? Font.DemiBold : Font.Normal
+                                            font.family: root.font
+                                            elide: Text.ElideRight
+                                            renderType: Text.NativeRendering
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            text: itemData.subtitle || ""
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 10
+                                            font.family: root.font
+                                            elide: Text.ElideRight
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: rowHover
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onEntered: root.selectedIndex = index
+                                    onClicked: {
+                                        root.selectedIndex = index;
+                                        root.copyItem(itemData);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── VERTICAL DIVIDER ─────────────────
+                    Rectangle {
+                        Layout.preferredWidth: 1
+                        Layout.fillHeight: true
+                        color: Qt.rgba(1, 1, 1, 0.08)
+                    }
+
+                    // ── RIGHT PANE: SPOTLIGHT PREVIEW PANE (split: 344px) ──
+                    Rectangle {
+                        Layout.preferredWidth: 344
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: "transparent"
+                        clip: true
+
+                        // Muted placeholder when search matches nothing
+                        Item {
+                            anchors.fill: parent
+                            visible: root.currentItem === null
+
+                            ColumnLayout {
+                                anchors.centerIn: parent
+                                spacing: 8
+
+                                Text {
+                                    text: "󰅍"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 32
+                                    font.family: root.font
+                                    Layout.alignment: Qt.AlignHCenter
+                                    opacity: 0.35
+                                }
+
+                                Text {
+                                    text: "No entry selected"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 12
+                                    font.family: root.font
+                                    opacity: 0.6
+                                    Layout.alignment: Qt.AlignHCenter
+                                    renderType: Text.NativeRendering
+                                }
+                            }
+                        }
+
+                        // Active preview content
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            anchors.topMargin: 4
+                            anchors.bottomMargin: 4
+                            spacing: 10
+                            visible: root.currentItem !== null
+
+                            // 1. Inset Rounded Box (Text or Image)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: 8
+                                color: Qt.rgba(0, 0, 0, root.isCrystal ? 0.25 : 0.20)
+                                border.color: Qt.rgba(1, 1, 1, 0.08)
+                                border.width: 1
+                                clip: true
+
+                                // Image Preview View
+                                Item {
+                                    anchors.fill: parent
+                                    anchors.margins: 4
+                                    visible: root.currentItem ? root.currentItem.isImage : false
+
+                                    Image {
+                                        id: previewImage
+                                        anchors.fill: parent
+                                        fillMode: Image.PreserveAspectFit
+                                        asynchronous: true
+                                        smooth: true
+                                        mipmap: true
+                                        cache: true
+                                        sourceSize.width: 800
+                                        sourceSize.height: 800
+                                        source: (root.currentItem && root.currentItem.isImage) ? (root.currentItem.thumbSource || "") : ""
+                                        visible: status === Image.Ready
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: previewImage.status !== Image.Ready
+                                        text: "󰋩"
+                                        color: root.theme.textMuted
+                                        font.pixelSize: 36
+                                        font.family: root.font
+                                        opacity: 0.4
+                                    }
+                                }
+
+                                // Text Scrollable View
+                                Flickable {
+                                    id: textFlickable
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    visible: !(root.currentItem ? root.currentItem.isImage : false)
+                                    contentWidth: width
+                                    contentHeight: textContentCol.implicitHeight
+                                    clip: true
+                                    boundsBehavior: Flickable.StopAtBounds
+
+                                    Connections {
+                                        target: root
+                                        function onPreviewTextChanged() {
+                                            textFlickable.contentY = 0;
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        id: textContentCol
+                                        width: textFlickable.width
+                                        spacing: 6
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: root.previewText
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 11
+                                            font.family: root.monoFont
+                                            wrapMode: Text.WrapAnywhere
+                                            renderType: Text.NativeRendering
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            visible: root.isPreviewTruncated
+                                            text: "… truncated"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 10
+                                            font.italic: true
+                                            font.family: root.font
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Thin Divider
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 1
+                                color: Qt.rgba(1, 1, 1, 0.08)
+                            }
+
+                            // 3. Metadata Rows
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+
+                                // Row 1: Type
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text {
+                                        text: "Type:"
+                                        color: root.theme.textMuted
+                                        font.pixelSize: 10
+                                        font.family: root.font
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    Text {
+                                        text: (root.currentItem && root.currentItem.isImage)
+                                            ? ((root.currentItem.format ? root.currentItem.format + " Image" : "Image"))
+                                            : root.getItemTypeLabel(root.currentItem)
+                                        color: root.theme.textPrimary
+                                        font.pixelSize: 10
+                                        font.family: root.font
+                                        font.weight: Font.Medium
+                                    }
+                                }
+
+                                // Row 2: Characters (for text) / Dimensions (for image)
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text {
+                                        text: (root.currentItem && root.currentItem.isImage) ? "Dimensions:" : "Characters:"
+                                        color: root.theme.textMuted
+                                        font.pixelSize: 10
+                                        font.family: root.font
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    Text {
+                                        text: {
+                                            if (root.currentItem && root.currentItem.isImage) {
+                                                if (root.currentItem.dimensions) return root.currentItem.dimensions;
+                                                if (previewImage.implicitWidth > 0) return previewImage.implicitWidth + " × " + previewImage.implicitHeight;
+                                                return "—";
+                                            }
+                                            return root.previewCharCount.toLocaleString();
+                                        }
+                                        color: root.theme.textPrimary
+                                        font.pixelSize: 10
+                                        font.family: root.font
+                                        font.weight: Font.Medium
+                                    }
+                                }
+
+                                // Row 3: Lines (for text) / Size (for image)
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Text {
+                                        text: (root.currentItem && root.currentItem.isImage) ? "Size:" : "Lines:"
+                                        color: root.theme.textMuted
+                                        font.pixelSize: 10
+                                        font.family: root.font
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    Text {
+                                        text: {
+                                            if (root.currentItem && root.currentItem.isImage) {
+                                                return root.currentItem.fileSize || "—";
+                                            }
+                                            return root.previewLineCount.toLocaleString();
+                                        }
+                                        color: root.theme.textPrimary
+                                        font.pixelSize: 10
+                                        font.family: root.font
+                                        font.weight: Font.Medium
+                                    }
+                                }
+                            }
+
+                            // 4. Action Buttons (Primary Accent + Secondary Delete)
+                            RowLayout {
+                                Layout.fillWidth: true
+                                height: 32
+                                spacing: 8
+
+                                // Primary Accent Action Button
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 32
+                                    radius: 8
+                                    color: copyBtnMouse.pressed ? Qt.darker(root.theme.accent, 1.2) : (copyBtnMouse.containsMouse ? Qt.lighter(root.theme.accent, 1.1) : root.theme.accent)
+                                    scale: copyBtnMouse.pressed ? 0.98 : 1.0
+                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                    Behavior on scale { NumberAnimation { duration: 100 } }
+
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 6
+
+                                        Text {
+                                            text: (root.currentItem && root.currentItem.isImage) ? "Copy PNG" : ((root.currentItem && root.currentItem.isLocalFile) ? "Copy File" : "Copy Text")
+                                            color: "#ffffff"
+                                            font.pixelSize: 12
+                                            font.family: root.font
+                                            font.weight: Font.DemiBold
+                                            renderType: Text.NativeRendering
+                                        }
+
+                                        Text {
+                                            text: "↵"
+                                            color: Qt.rgba(1, 1, 1, 0.8)
+                                            font.pixelSize: 13
+                                            font.family: root.font
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: copyBtnMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (root.currentItem) {
+                                                root.copyItem(root.currentItem);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Secondary Delete Button
+                                Rectangle {
+                                    Layout.preferredWidth: delBtnRow.implicitWidth + 18
+                                    height: 32
+                                    radius: 8
+                                    color: delBtnMouse.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.18) : Qt.rgba(1, 1, 1, 0.06)
+                                    border.color: delBtnMouse.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.40) : Qt.rgba(1, 1, 1, 0.10)
+                                    border.width: 1
+                                    scale: delBtnMouse.pressed ? 0.98 : 1.0
+
+                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                    Behavior on border.color { ColorAnimation { duration: 100 } }
+                                    Behavior on scale { NumberAnimation { duration: 100 } }
+
+                                    RowLayout {
+                                        id: delBtnRow
+                                        anchors.centerIn: parent
+                                        spacing: 5
+
+                                        Text {
+                                            text: "󰆴"
+                                            color: delBtnMouse.containsMouse ? "#ff5c50" : root.theme.textMuted
+                                            font.pixelSize: 12
+                                            font.family: root.font
+                                            renderType: Text.NativeRendering
+                                        }
+
+                                        Text {
+                                            text: "Delete"
+                                            color: delBtnMouse.containsMouse ? "#ff5c50" : root.theme.textPrimary
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            font.weight: Font.Medium
+                                            renderType: Text.NativeRendering
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: delBtnMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (root.currentItem) {
+                                                root.deleteItem(root.currentItem);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
