@@ -76,11 +76,7 @@ Singleton {
     function getNotificationTime(id) {
         if (!id && id !== 0) return "";
         const key = String(id);
-        let t = root.timestamps[key];
-        if (!t) {
-            recordTimestamp(key, Date.now());
-            t = Date.now();
-        }
+        const t = root.timestamps[key] || Date.now();
         const notifDate = new Date(Number(t));
         const now = new Date();
         const isToday = notifDate.getDate() === now.getDate() &&

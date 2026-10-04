@@ -592,7 +592,7 @@ Scope {
                                                  width: 30
                                                  height: 30
                                                  radius: 15
-                                                 color: Services.SystemService.wifiEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                                                 color: Services.SystemService.wifiEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.09)
                                                  Behavior on color { ColorAnimation { duration: 120 } }
 
                                                  Text {
@@ -636,6 +636,8 @@ Scope {
                                              Text {
                                                  text: "›"
                                                  color: root.theme.textMuted
+                                                 opacity: wifiRowMouse.containsMouse ? 0.9 : 0.45
+                                                 Behavior on opacity { NumberAnimation { duration: 120 } }
                                                  font.pixelSize: 15
                                                  font.family: root.font
                                              }
@@ -670,7 +672,7 @@ Scope {
                                                  width: 30
                                                  height: 30
                                                  radius: 15
-                                                 color: Services.SystemService.bluetoothEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                                                 color: Services.SystemService.bluetoothEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.09)
                                                  Behavior on color { ColorAnimation { duration: 120 } }
 
                                                  Text {
@@ -721,6 +723,8 @@ Scope {
                                              Text {
                                                  text: "›"
                                                  color: root.theme.textMuted
+                                                 opacity: btRowMouse.containsMouse ? 0.9 : 0.45
+                                                 Behavior on opacity { NumberAnimation { duration: 120 } }
                                                  font.pixelSize: 15
                                                  font.family: root.font
                                              }
@@ -793,6 +797,8 @@ Scope {
                                              Text {
                                                  text: "›"
                                                  color: root.theme.textMuted
+                                                 opacity: shareRowMouse.containsMouse ? 0.9 : 0.45
+                                                 Behavior on opacity { NumberAnimation { duration: 120 } }
                                                  font.pixelSize: 15
                                                  font.family: root.font
                                              }
@@ -965,6 +971,8 @@ Scope {
                                         Text {
                                             text: "›"
                                             color: mediaCardMouse.containsMouse ? root.theme.textPrimary : root.theme.textMuted
+                                            opacity: mediaCardMouse.containsMouse ? 0.9 : 0.45
+                                            Behavior on opacity { NumberAnimation { duration: 120 } }
                                             font.pixelSize: 16
                                             font.family: root.font
                                             Layout.alignment: Qt.AlignVCenter
@@ -1114,7 +1122,7 @@ Scope {
                                         width: 30
                                         height: 30
                                         radius: 15
-                                        color: Services.NotificationService.dnd ? root.theme.accentMauve : Qt.rgba(1, 1, 1, 0.12)
+                                        color: Services.NotificationService.dnd ? root.theme.accentMauve : Qt.rgba(1, 1, 1, 0.08)
                                         Behavior on color { ColorAnimation { duration: 150 } }
 
                                         Text {
@@ -1179,7 +1187,7 @@ Scope {
                                         width: 30
                                         height: 30
                                         radius: 15
-                                        color: Services.NightLightService.active ? root.theme.accentOrange : Qt.rgba(1, 1, 1, 0.12)
+                                        color: Services.NightLightService.active ? root.theme.accentOrange : Qt.rgba(1, 1, 1, 0.08)
                                         Behavior on color { ColorAnimation { duration: 150 } }
 
                                         Text {
@@ -1244,7 +1252,7 @@ Scope {
                                         width: 30
                                         height: 30
                                         radius: 15
-                                        color: Services.SystemService.caffeineActive ? root.theme.accentYellow : (Services.SystemService.idleInhibited ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.25) : Qt.rgba(1, 1, 1, 0.12))
+                                        color: Services.SystemService.caffeineActive ? root.theme.accentYellow : (Services.SystemService.idleInhibited ? Qt.rgba(root.theme.accentYellow.r, root.theme.accentYellow.g, root.theme.accentYellow.b, 0.25) : Qt.rgba(1, 1, 1, 0.08))
                                         Behavior on color { ColorAnimation { duration: 150 } }
 
                                         Text {
@@ -1329,6 +1337,8 @@ Scope {
                                         height: 20
                                         radius: 10
                                         color: dispOpenBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                                        opacity: dispOpenBtnM.containsMouse ? 1.0 : 0.65
+                                        Behavior on opacity { NumberAnimation { duration: 120 } }
                                         Behavior on color { ColorAnimation { duration: 120 } }
 
                                         Text {
@@ -1358,7 +1368,7 @@ Scope {
                                     height: 32
                                     radius: 16
                                     color: Services.Aesthetic.sliderTrackBg
-                                    border.color: brightMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09)
+                                    border.color: brightMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.06)
                                     border.width: 1
                                     clip: true
                                     Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -1479,6 +1489,8 @@ Scope {
                                         height: 20
                                         radius: 10
                                         color: soundOpenBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                                        opacity: soundOpenBtnM.containsMouse ? 1.0 : 0.65
+                                        Behavior on opacity { NumberAnimation { duration: 120 } }
                                         Behavior on color { ColorAnimation { duration: 120 } }
 
                                         Text {
@@ -1509,7 +1521,7 @@ Scope {
                                     height: 32
                                     radius: 16
                                     color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
-                                    border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (soundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
+                                    border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (soundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.06))
                                     border.width: 1
                                     clip: true
                                     Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -1639,14 +1651,14 @@ Scope {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 6
-                                    spacing: 6
+                                    anchors.margins: card.isCompact ? 6 : 8
+                                    spacing: card.isCompact ? 6 : 8
 
                                     Rectangle {
                                         width: 30
                                         height: 30
                                         radius: 15
-                                        color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)
+                                        color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16)
 
                                         Text {
                                             anchors.centerIn: parent
@@ -1705,14 +1717,14 @@ Scope {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 8
-                                    spacing: 8
+                                    anchors.margins: card.isCompact ? 6 : 8
+                                    spacing: card.isCompact ? 6 : 8
 
                                     Rectangle {
                                         width: 30
                                         height: 30
                                         radius: 15
-                                        color: Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2)
+                                        color: Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.16)
 
                                         Text {
                                             anchors.centerIn: parent
@@ -1762,12 +1774,12 @@ Scope {
                         // ═══════════════════════════════════════════
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: card.isCompact ? 6 : 8
 
                             // Battery Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 52
+                                implicitHeight: card.isCompact ? 46 : 52
                                 radius: 14
                                 color: battTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1776,8 +1788,8 @@ Scope {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 8
-                                    spacing: 8
+                                    anchors.margins: card.isCompact ? 6 : 8
+                                    spacing: card.isCompact ? 6 : 8
 
                                     Rectangle {
                                         width: 30
@@ -1822,6 +1834,8 @@ Scope {
                                     Text {
                                         text: "›"
                                         color: root.theme.textMuted
+                                        opacity: battTileMouse.containsMouse ? 0.9 : 0.45
+                                        Behavior on opacity { NumberAnimation { duration: 120 } }
                                         font.pixelSize: 16
                                         font.family: root.font
                                         Layout.alignment: Qt.AlignVCenter
@@ -1840,7 +1854,7 @@ Scope {
                             // Displays & Monitor Management Tile (Opens Displays Subview)
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 52
+                                implicitHeight: card.isCompact ? 46 : 52
                                 radius: 14
                                 color: dispTileMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -1849,8 +1863,8 @@ Scope {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 8
-                                    spacing: 8
+                                    anchors.margins: card.isCompact ? 6 : 8
+                                    spacing: card.isCompact ? 6 : 8
 
                                     Rectangle {
                                         width: 30
@@ -1894,6 +1908,8 @@ Scope {
                                     Text {
                                         text: "›"
                                         color: root.theme.textMuted
+                                        opacity: dispTileMouse.containsMouse ? 0.9 : 0.45
+                                        Behavior on opacity { NumberAnimation { duration: 120 } }
                                         font.pixelSize: 16
                                         font.family: root.font
                                         Layout.alignment: Qt.AlignVCenter
@@ -6517,16 +6533,16 @@ Scope {
                             // DND Pill
                             Rectangle {
                                 id: dndPill
-                                implicitHeight: 26
-                                implicitWidth: dndPillRow.implicitWidth + 14
-                                radius: 13
+                                implicitHeight: 28
+                                implicitWidth: dndPillRow.implicitWidth + 20
+                                radius: 14
                                 color: Services.NotificationService.dnd ? root.theme.accent : (dndPillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
                                 Behavior on color { ColorAnimation { duration: 120 } }
 
                                 Row {
                                     id: dndPillRow
                                     anchors.centerIn: parent
-                                    spacing: 5
+                                    spacing: 6
 
                                     Text {
                                         text: Services.NotificationService.dnd ? "󰂛" : "󰂚"
@@ -6559,9 +6575,9 @@ Scope {
 
                             // Clear All Pill
                             Rectangle {
-                                implicitHeight: 26
-                                implicitWidth: clearAllText.implicitWidth + 16
-                                radius: 13
+                                implicitHeight: 28
+                                implicitWidth: clearAllText.implicitWidth + 20
+                                radius: 14
                                 color: clearAllMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
                                 visible: Services.NotificationService.unreadCount > 0 || notifRepeater.count > 0
                                 Behavior on color { ColorAnimation { duration: 100 } }
@@ -6657,7 +6673,7 @@ Scope {
                                             readonly property bool canExpand: bodyText.truncated || isExpanded
 
                                             Layout.fillWidth: true
-                                            implicitHeight: notifCardCol.implicitHeight + 20
+                                            implicitHeight: notifCardCol.implicitHeight + 22
                                             radius: 14
                                             color: Services.Aesthetic.innerCardBg
                                             border.color: Services.Aesthetic.innerCardBorder
@@ -6665,16 +6681,16 @@ Scope {
 
                                             ColumnLayout {
                                                 id: notifCardCol
-                                                width: parent.width - 20
+                                                width: parent.width - 24
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                                 anchors.top: parent.top
-                                                anchors.topMargin: 10
+                                                anchors.topMargin: 11
                                                 spacing: 6
 
                                                 // App Header, Timestamp & Dismiss Button
                                                 RowLayout {
                                                     Layout.fillWidth: true
-                                                    spacing: 6
+                                                    spacing: 8
 
                                                     Item {
                                                         width: 16
