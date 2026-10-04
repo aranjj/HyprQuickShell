@@ -25,7 +25,7 @@ Singleton {
             case "crystal": return 0.45;
             case "solid": return 0.96;
             case "frosted":
-            default: return 0.68;
+            default: return 0.72;
         }
     }
 
