@@ -1528,12 +1528,12 @@ Scope {
             id: spotlightBox
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: root.isRevealed ? (parent.height * 0.15) : (parent.height * 0.15 - 18)
+            anchors.topMargin: root.isRevealed ? (parent.height < 640 ? 44 : parent.height * 0.15) : ((parent.height < 640 ? 44 : parent.height * 0.15) - 18)
             scale: root.isRevealed ? 1.0 : 0.94
             opacity: root.isRevealed ? 1.0 : 0.0
 
-            width: 740
-            height: 520
+            width: Math.min(740, parent.width - 40)
+            height: Math.min(520, parent.height - (parent.height < 640 ? 44 : parent.height * 0.15) - 24)
             radius: Services.Aesthetic.cardRadius
             color: Services.Aesthetic.cardBg
             border.color: Services.Aesthetic.cardBorder
