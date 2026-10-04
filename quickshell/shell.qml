@@ -24,4 +24,5 @@ ShellRoot {
     ScreenshotToolbar {}
     ScreenshotPreview {}
     PolkitDialog {}
+    NotificationCenter {}
 }

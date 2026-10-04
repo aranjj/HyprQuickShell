@@ -15,3 +15,4 @@ ScreenshotToolbar 1.0 ScreenshotToolbar.qml
 ScreenshotPreview 1.0 ScreenshotPreview.qml
 EmojiPicker 1.0 EmojiPicker.qml
 PolkitDialog 1.0 PolkitDialog.qml
+NotificationCenter 1.0 NotificationCenter.qml

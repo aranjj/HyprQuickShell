@@ -15,6 +15,7 @@ Singleton {
 
     // ── Popup States ────────────────────────────────
     property bool controlCenterOpen: false
+    property bool notificationCenterOpen: false
     property bool powerMenuOpen: false
 
     property string controlCenterTab: "controls"
@@ -26,7 +27,36 @@ Singleton {
         }
     }
 
+    onNotificationCenterOpenChanged: {
+        if (notificationCenterOpen) {
+            Services.OverlayCoordinator.requestExclusiveSurface("notificationCenter");
+        } else {
+            Services.OverlayCoordinator.releaseExclusiveSurface("notificationCenter");
+        }
+    }
+
+    function openNotificationCenter() {
+        if (notificationCenterOpen) {
+            notificationCenterOpen = false;
+        } else {
+            notificationCenterOpen = true;
+        }
+    }
+
+    function toggleNotificationCenter() {
+        openNotificationCenter();
+    }
+
+    function closeNotificationCenter() {
+        notificationCenterOpen = false;
+    }
+
     function openControlCenter(tab, subview) {
+        if (tab === "notifications") {
+            controlCenterOpen = false;
+            openNotificationCenter();
+            return;
+        }
         const targetTab = tab || "controls";
         const targetSub = subview || "main";
         if (controlCenterOpen && controlCenterTab === targetTab && controlCenterSubView === targetSub) {
@@ -88,6 +118,10 @@ Singleton {
         Services.OverlayCoordinator.registerExclusiveSurface("controlCenter",
             () => { openControlCenter("controls", "main"); },
             () => { controlCenterOpen = false; }
+        );
+        Services.OverlayCoordinator.registerExclusiveSurface("notificationCenter",
+            () => { notificationCenterOpen = true; },
+            () => { notificationCenterOpen = false; }
         );
         Services.OverlayCoordinator.registerExclusiveSurface("powerMenu",
             () => { Services.OverlayCoordinator.requestExclusiveSurface("powerMenu"); powerMenuOpen = true; },

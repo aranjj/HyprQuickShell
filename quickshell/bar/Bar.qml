@@ -1006,7 +1006,7 @@ Scope {
                         implicitHeight: 28
                         implicitWidth: 28
                         radius: 14
-                        color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "controls") || ccIconMouse.containsMouse ? root.barPillHover : "transparent"
+                        color: Services.SystemService.controlCenterOpen || ccIconMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Item {
@@ -1014,7 +1014,7 @@ Scope {
                             width: 18
                             height: 14
 
-                            property color iconColor: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "controls") ? theme.accent : root.barFgPrimary
+                            property color iconColor: Services.SystemService.controlCenterOpen ? theme.accent : root.barFgPrimary
                             Behavior on iconColor { ColorAnimation { duration: 120 } }
 
                             // Top Toggle Switch (knob on right)
@@ -1065,7 +1065,7 @@ Scope {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 Services.ClockService.calendarOpen = false;
-                                Services.SystemService.openControlCenter("controls", "main");
+                                Services.SystemService.toggleControlCenter();
                             }
                         }
                     }
@@ -1075,13 +1075,13 @@ Scope {
                         implicitHeight: 28
                         implicitWidth: 28
                         radius: 14
-                        color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "notifications") || notifBellMouse.containsMouse ? root.barPillHover : "transparent"
+                        color: Services.SystemService.notificationCenterOpen || notifBellMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Text {
                             anchors.centerIn: parent
                             text: Services.NotificationService.dnd ? "󰂛" : "󰂚"
-                            color: Services.NotificationService.dnd ? theme.accentMauve : ((Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterTab === "notifications") ? theme.accent : root.barFgPrimary)
+                            color: Services.NotificationService.dnd ? theme.accentMauve : (Services.SystemService.notificationCenterOpen ? theme.accent : root.barFgPrimary)
                             font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
@@ -1108,7 +1108,7 @@ Scope {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 Services.ClockService.calendarOpen = false;
-                                Services.SystemService.openControlCenter("notifications", "main");
+                                Services.SystemService.toggleNotificationCenter();
                             }
                         }
                     }
