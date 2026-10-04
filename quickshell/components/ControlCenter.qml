@@ -342,7 +342,34 @@ Scope {
                 readonly property bool isControlsMain: root.activeView === "main"
                 readonly property bool isCompact: controlCenterWindow.screen.height < 600
                 readonly property real maxCardHeight: controlCenterWindow.screen.height - (controlCenterWindow.isOpen ? 44 : 26) - 14
-                height: Math.min(maxCardHeight, isControlsMain ? (mainContentCol.implicitHeight + 24) : Math.min(640, controlCenterWindow.screen.height - 70))
+                readonly property real subViewMaxHeight: Math.min(580, maxCardHeight)
+
+                readonly property real activeSubViewHeight: {
+                    switch (root.activeView) {
+                        case "wifi":
+                            return !Services.SystemService.wifiEnabled
+                                ? 240
+                                : Math.min(subViewMaxHeight, Math.max(280, (wifiContentCol ? wifiContentCol.implicitHeight : 0) + 88));
+                        case "bluetooth":
+                            return !Services.SystemService.bluetoothEnabled
+                                ? 240
+                                : Math.min(subViewMaxHeight, Math.max(280, (btContentCol ? btContentCol.implicitHeight : 0) + 138));
+                        case "audio":
+                            return Math.min(subViewMaxHeight, Math.max(280, (audioDetailCol ? audioDetailCol.implicitHeight : 0) + 86));
+                        case "battery":
+                            return Math.min(subViewMaxHeight, Math.max(280, (battDetailCol ? battDetailCol.implicitHeight : 0) + 86));
+                        case "displays":
+                            return Math.min(subViewMaxHeight, Math.max(280, (dispCol ? dispCol.implicitHeight : 0) + 86));
+                        case "media":
+                            return Math.min(subViewMaxHeight, Mpris.players.values.length > 0 ? (384 + Math.min(194, Mpris.players.values.length * 50)) : 358);
+                        case "wallpaper":
+                            return Math.min(subViewMaxHeight, 520);
+                        default:
+                            return mainContentCol.implicitHeight + 24;
+                    }
+                }
+
+                height: Math.min(maxCardHeight, isControlsMain ? (mainContentCol.implicitHeight + 24) : activeSubViewHeight)
                 anchors.top: parent.top
                 anchors.topMargin: controlCenterWindow.isOpen ? 44 : 26
                 anchors.right: parent.right
@@ -5668,7 +5695,7 @@ Scope {
                     Flickable {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        contentHeight: dispCol.implicitHeight + 20
+                        contentHeight: dispCol.implicitHeight
                         boundsBehavior: Flickable.StopAtBounds
                         clip: true
 
@@ -6971,6 +6998,7 @@ Scope {
                     // Media Sources List Header
                     RowLayout {
                         Layout.fillWidth: true
+                        visible: Mpris.players.values.length > 0
                         Text {
                             text: "Media Sources"
                             color: root.theme.textMuted
@@ -6991,6 +7019,7 @@ Scope {
                     ListView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        visible: Mpris.players.values.length > 0
                         clip: true
                         spacing: 6
                         model: Mpris.players.values
