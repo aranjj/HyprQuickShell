@@ -38,6 +38,12 @@ Scope {
             Services.SystemService.openControlCenter("controls", sub || "main");
         }
 
+        function promptWifi(ssid: string): void {
+            Services.SystemService.controlCenterOpen = true;
+            Services.SystemService.controlCenterSubView = "wifi";
+            root.wifiPromptSsid = ssid || "";
+        }
+
         function close(): void {
             Services.SystemService.controlCenterOpen = false;
         }
@@ -249,6 +255,30 @@ Scope {
     property string wifiOtherSsid: ""
     property string wifiOtherPassword: ""
 
+    readonly property var targetPromptNetwork: {
+        if (!root.wifiPromptSsid) return null;
+        const others = Services.SystemService.wifiOtherNetworks || [];
+        for (let i = 0; i < others.length; i++) {
+            if (others[i].ssid === root.wifiPromptSsid) return others[i];
+        }
+        const known = Services.SystemService.wifiKnownNetworks || [];
+        for (let i = 0; i < known.length; i++) {
+            if (known[i].ssid === root.wifiPromptSsid) return known[i];
+        }
+        return { ssid: root.wifiPromptSsid, signal: 70, security: "WPA/WPA2", band: "2.4 GHz", is_locked: true };
+    }
+
+    Connections {
+        target: Services.SystemService
+        function onWifiConnectedChanged() {
+            if (Services.SystemService.wifiConnected && root.wifiPromptSsid !== "") {
+                root.wifiPromptSsid = "";
+                root.wifiPasswordText = "";
+                Services.SystemService.wifiConnectError = "";
+            }
+        }
+    }
+
     property bool isUserScrubbing: false
     property int clockTick: 0
 
@@ -347,9 +377,11 @@ Scope {
                 readonly property real activeSubViewHeight: {
                     switch (root.activeView) {
                         case "wifi":
-                            return !Services.SystemService.wifiEnabled
-                                ? 240
-                                : Math.min(subViewMaxHeight, Math.max(280, (wifiContentCol ? wifiContentCol.implicitHeight : 0) + 88));
+                            if (!Services.SystemService.wifiEnabled) return 240;
+                            if (root.wifiPromptSsid !== "") {
+                                return Math.min(subViewMaxHeight, Math.max(260, (wifiPasswordView ? wifiPasswordView.implicitHeight : 0) + 76));
+                            }
+                            return Math.min(subViewMaxHeight, Math.max(280, (wifiContentCol ? wifiContentCol.implicitHeight : 0) + 88));
                         case "bluetooth":
                             return !Services.SystemService.bluetoothEnabled
                                 ? 240
@@ -1853,15 +1885,20 @@ Scope {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    root.wifiPromptSsid = "";
-                                    root.wifiShowOtherNetworkModal = false;
-                                    Services.SystemService.controlCenterSubView = "main";
+                                    if (root.wifiPromptSsid !== "") {
+                                        root.wifiPromptSsid = "";
+                                        root.wifiPasswordText = "";
+                                        Services.SystemService.wifiConnectError = "";
+                                    } else {
+                                        root.wifiShowOtherNetworkModal = false;
+                                        Services.SystemService.controlCenterSubView = "main";
+                                    }
                                 }
                             }
                         }
 
                         Text {
-                            text: "Wi-Fi"
+                            text: root.wifiPromptSsid !== "" ? "Join Network" : "Wi-Fi"
                             color: root.theme.textPrimary
                             font.pixelSize: 16
                             font.family: root.font
@@ -1876,7 +1913,7 @@ Scope {
                             height: 26
                             implicitWidth: wifiPillRow.implicitWidth + 16
                             radius: 13
-                            visible: Services.SystemService.wifiEnabled
+                            visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid === ""
                             color: Services.SystemService.wifiConnected ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.16) : Qt.rgba(1, 1, 1, 0.06)
                             border.color: Services.SystemService.wifiConnected ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.35) : Qt.rgba(1, 1, 1, 0.1)
                             border.width: 1
@@ -1909,7 +1946,7 @@ Scope {
                             width: 30
                             height: 30
                             radius: 15
-                            visible: Services.SystemService.wifiEnabled
+                            visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid === ""
                             color: rescWM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (rescWM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Qt.rgba(1, 1, 1, 0.08))
                             border.color: rescWM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1)
                             border.width: 1
@@ -1949,6 +1986,7 @@ Scope {
                             width: 44
                             height: 24
                             radius: 12
+                            visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid === ""
                             color: Services.SystemService.wifiEnabled ? (pwrWifiSwMouse.containsMouse ? Qt.lighter(root.theme.accentGreen, 1.1) : root.theme.accentGreen) : (pwrWifiSwMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.15))
                             scale: pwrWifiSwMouse.pressed ? 0.94 : 1.0
                             Behavior on color { ColorAnimation { duration: 150 } }
@@ -2056,7 +2094,7 @@ Scope {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        visible: Services.SystemService.wifiEnabled
+                        visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid === ""
                         contentWidth: width
                         contentHeight: wifiContentCol.implicitHeight
                         boundsBehavior: Flickable.StopAtBounds
@@ -2657,22 +2695,20 @@ Scope {
                                     delegate: Rectangle {
                                         required property var modelData
                                         Layout.fillWidth: true
-                                        readonly property bool isPromptOpen: root.wifiPromptSsid === modelData.ssid
                                         readonly property bool isThisConnecting: Services.SystemService.wifiConnecting && Services.SystemService.wifiConnectingSsid === modelData.ssid
-                                        implicitHeight: isPromptOpen ? (cardRow.implicitHeight + passBox.implicitHeight + 24) : 48
+                                        implicitHeight: 48
                                         radius: 10
-                                        color: isPromptOpen ? Qt.rgba(1, 1, 1, 0.07) : (otherRowM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg)
-                                        border.color: isPromptOpen ? root.theme.accent : (otherRowM.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder)
+                                        color: otherRowM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                                        border.color: otherRowM.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
                                         border.width: 1
-                                        clip: true
-                                        Behavior on implicitHeight { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                        scale: otherRowM.pressed ? 0.985 : 1.0
                                         Behavior on color { ColorAnimation { duration: 100 } }
                                         Behavior on border.color { ColorAnimation { duration: 100 } }
+                                        Behavior on scale { NumberAnimation { duration: 100 } }
 
                                         MouseArea {
                                             id: otherRowM
                                             anchors.fill: parent
-                                            visible: !isPromptOpen
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
@@ -2686,16 +2722,10 @@ Scope {
                                             }
                                         }
 
-                                        ColumnLayout {
+                                        RowLayout {
                                             anchors.fill: parent
                                             anchors.margins: 10
                                             spacing: 10
-
-                                            // Main Row
-                                            RowLayout {
-                                                id: cardRow
-                                                Layout.fillWidth: true
-                                                spacing: 10
 
                                                 Rectangle {
                                                     width: 28
@@ -2794,223 +2824,19 @@ Scope {
                                                             if (!modelData.is_locked) {
                                                                 Services.SystemService.connectWifi(modelData.ssid);
                                                             } else {
-                                                                if (root.wifiPromptSsid === modelData.ssid) {
-                                                                    root.wifiPromptSsid = "";
-                                                                } else {
-                                                                    root.wifiPromptSsid = modelData.ssid;
-                                                                    root.wifiPasswordText = "";
-                                                                    Services.SystemService.wifiConnectError = "";
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                            // Inline Password Box
-                                            ColumnLayout {
-                                                id: passBox
-                                                Layout.fillWidth: true
-                                                spacing: 8
-                                                visible: isPromptOpen
-
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    height: 1
-                                                    color: Qt.rgba(1, 1, 1, 0.08)
-                                                }
-
-                                                Text {
-                                                    text: "Enter Password for \"" + modelData.ssid + "\""
-                                                    color: root.theme.textPrimary
-                                                    font.pixelSize: 11
-                                                    font.family: root.font
-                                                    font.weight: Font.Medium
-                                                }
-
-                                                // Password Input Box
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    height: 32
-                                                    radius: 8
-                                                    color: Qt.rgba(0, 0, 0, 0.3)
-                                                    border.color: passTextInput.activeFocus ? root.theme.accent : Qt.rgba(1, 1, 1, 0.18)
-                                                    border.width: 1
-
-                                                    RowLayout {
-                                                        anchors.fill: parent
-                                                        anchors.leftMargin: 10
-                                                        anchors.rightMargin: 6
-                                                        spacing: 6
-
-                                                        TextInput {
-                                                            id: passTextInput
-                                                            Layout.fillWidth: true
-                                                            Layout.alignment: Qt.AlignVCenter
-                                                            color: "#ffffff"
-                                                            font.pixelSize: 12
-                                                            font.family: root.font
-                                                            echoMode: root.wifiShowPasswordText ? TextInput.Normal : TextInput.Password
-                                                            text: root.wifiPasswordText
-                                                            onTextChanged: root.wifiPasswordText = text
-                                                            Keys.onReturnPressed: {
-                                                                if (text.length > 0) {
-                                                                    Services.SystemService.connectWifiWithPassword(modelData.ssid, text);
-                                                                }
-                                                            }
-
-                                                            Text {
-                                                                anchors.fill: parent
-                                                                text: "Password"
-                                                                color: Qt.rgba(1, 1, 1, 0.4)
-                                                                font: parent.font
-                                                                visible: !parent.text && !parent.activeFocus
-                                                                verticalAlignment: Text.AlignVCenter
-                                                            }
-                                                        }
-
-                                                        // Eye toggle
-                                                        Rectangle {
-                                                            width: 24
-                                                            height: 24
-                                                            radius: 6
-                                                            color: eyeM.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-                                                            Text {
-                                                                anchors.centerIn: parent
-                                                                text: root.wifiShowPasswordText ? "󰈈" : "󰈉"
-                                                                color: root.wifiShowPasswordText ? root.theme.accent : root.theme.textMuted
-                                                                font.pixelSize: 14
-                                                                font.family: root.font
-                                                            }
-                                                            MouseArea {
-                                                                id: eyeM
-                                                                anchors.fill: parent
-                                                                hoverEnabled: true
-                                                                cursorShape: Qt.PointingHandCursor
-                                                                onClicked: root.wifiShowPasswordText = !root.wifiShowPasswordText
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                // Error message banner
-                                                Rectangle {
-                                                    Layout.fillWidth: true
-                                                    implicitHeight: errRow.implicitHeight + 8
-                                                    radius: 6
-                                                    color: Qt.rgba(1, 0.27, 0.23, 0.15)
-                                                    border.color: Qt.rgba(1, 0.27, 0.23, 0.3)
-                                                    border.width: 1
-                                                    visible: !!Services.SystemService.wifiConnectError
-
-                                                    RowLayout {
-                                                        id: errRow
-                                                        anchors.fill: parent
-                                                        anchors.margins: 6
-                                                        spacing: 6
-
-                                                        Text { text: "󰅚"; color: "#ff453a"; font.pixelSize: 12; font.family: root.font }
-                                                        Text {
-                                                            text: Services.SystemService.wifiConnectError
-                                                            color: "#ff453a"
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                            Layout.fillWidth: true
-                                                            wrapMode: Text.Wrap
-                                                        }
-                                                    }
-                                                }
-
-                                                // Buttons: Cancel & Join
-                                                RowLayout {
-                                                    Layout.fillWidth: true
-                                                    spacing: 8
-
-                                                    Item { Layout.fillWidth: true }
-
-                                                    Rectangle {
-                                                        width: 60
-                                                        height: 26
-                                                        radius: 13
-                                                        color: cancelPassM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
-                                                        scale: cancelPassM.pressed ? 0.94 : 1.0
-
-                                                        Text {
-                                                            anchors.centerIn: parent
-                                                            text: "Cancel"
-                                                            color: root.theme.textPrimary
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                        }
-
-                                                        MouseArea {
-                                                            id: cancelPassM
-                                                            anchors.fill: parent
-                                                            hoverEnabled: true
-                                                            cursorShape: Qt.PointingHandCursor
-                                                            onClicked: {
-                                                                root.wifiPromptSsid = "";
+                                                                root.wifiPromptSsid = modelData.ssid;
                                                                 root.wifiPasswordText = "";
+                                                                root.wifiShowPasswordText = false;
                                                                 Services.SystemService.wifiConnectError = "";
                                                             }
                                                         }
                                                     }
-
-                                                    Rectangle {
-                                                        width: 68
-                                                        height: 26
-                                                        radius: 13
-                                                        readonly property bool canConnect: root.wifiPasswordText.length > 0 && !Services.SystemService.wifiConnecting
-                                                        color: canConnect ? (joinPassM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3)
-                                                        scale: joinPassM.pressed ? 0.94 : (joinPassM.containsMouse ? 1.04 : 1.0)
-                                                        Behavior on color { ColorAnimation { duration: 100 } }
-                                                        Behavior on scale { NumberAnimation { duration: 100 } }
-
-                                                        Row {
-                                                            anchors.centerIn: parent
-                                                            spacing: 4
-                                                            Text {
-                                                                text: "󰑐"
-                                                                color: "#ffffff"
-                                                                font.pixelSize: 11
-                                                                font.family: root.font
-                                                                visible: Services.SystemService.wifiConnecting
-                                                                transformOrigin: Item.Center
-                                                                NumberAnimation on rotation {
-                                                                    running: Services.SystemService.wifiConnecting
-                                                                    loops: Animation.Infinite
-                                                                    from: 0
-                                                                    to: 360
-                                                                    duration: 800
-                                                                }
-                                                            }
-                                                            Text {
-                                                                text: Services.SystemService.wifiConnecting ? "Joining" : "Join"
-                                                                color: parent.parent.canConnect ? "#ffffff" : Qt.rgba(1, 1, 1, 0.5)
-                                                                font.pixelSize: 10
-                                                                font.family: root.font
-                                                                font.weight: Font.DemiBold
-                                                            }
-                                                        }
-
-                                                        MouseArea {
-                                                            id: joinPassM
-                                                            anchors.fill: parent
-                                                            hoverEnabled: true
-                                                            cursorShape: parent.canConnect ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                                            onClicked: {
-                                                                if (parent.canConnect) {
-                                                                    Services.SystemService.connectWifiWithPassword(modelData.ssid, root.wifiPasswordText);
-                                                                }
-                                                            }
-                                                        }
-                                                    }
                                                 }
                                             }
+
                                         }
                                     }
                                 }
-                            }
 
                             // ── JOIN OTHER NETWORK BUTTON ─────────
                             Rectangle {
@@ -3210,6 +3036,297 @@ Scope {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: root.wifiShowOtherNetworkModal = true
+                                }
+                            }
+                        }
+                    }
+
+                    // ── DEDICATED ANDROID / iOS STYLE ENTER PASSWORD SCREEN ──
+                    ColumnLayout {
+                        id: wifiPasswordView
+                        Layout.fillWidth: true
+                        visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid !== ""
+                        spacing: 14
+
+                        Timer {
+                            interval: 60
+                            running: root.activeView === "wifi" && root.wifiPromptSsid !== ""
+                            onTriggered: dedicatedWifiPassInput.forceActiveFocus()
+                        }
+
+                        // 1. Target Network Hero Card
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: promptHeroCol.implicitHeight + 22
+                            radius: 14
+                            color: Services.Aesthetic.innerCardBg
+                            border.color: Services.Aesthetic.innerCardBorder
+                            border.width: 1
+
+                            RowLayout {
+                                id: promptHeroCol
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                spacing: 12
+
+                                Rectangle {
+                                    width: 42
+                                    height: 42
+                                    radius: 12
+                                    color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16)
+                                    border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3)
+                                    border.width: 1
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: root.getWifiSignalIcon(root.targetPromptNetwork ? root.targetPromptNetwork.signal : 70)
+                                        color: root.theme.accent
+                                        font.pixelSize: 20
+                                        font.family: root.font
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 3
+
+                                    Text {
+                                        text: root.wifiPromptSsid
+                                        color: root.theme.textPrimary
+                                        font.pixelSize: 15
+                                        font.family: root.font
+                                        font.weight: Font.DemiBold
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+
+                                    RowLayout {
+                                        spacing: 6
+                                        Text {
+                                            text: "󰌾"
+                                            color: root.theme.accent
+                                            font.pixelSize: 10
+                                            font.family: root.font
+                                        }
+                                        Text {
+                                            text: (root.targetPromptNetwork?.security || "WPA/WPA2 Personal") + " • " + (root.targetPromptNetwork?.band || "2.4 GHz")
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. Password Input Field
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Text {
+                                text: "PASSWORD"
+                                color: root.theme.textMuted
+                                font.pixelSize: 10
+                                font.family: root.font
+                                font.weight: Font.DemiBold
+                                Layout.leftMargin: 2
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 42
+                                radius: 12
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: dedicatedWifiPassInput.activeFocus ? root.theme.accent : Services.Aesthetic.innerCardBorder
+                                border.width: 1
+
+                                Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 8
+                                    spacing: 8
+
+                                    Text {
+                                        text: "󰌆"
+                                        color: dedicatedWifiPassInput.activeFocus ? root.theme.accent : root.theme.textMuted
+                                        font.pixelSize: 14
+                                        font.family: root.font
+                                        Behavior on color { ColorAnimation { duration: 150 } }
+                                    }
+
+                                    TextInput {
+                                        id: dedicatedWifiPassInput
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        color: "#ffffff"
+                                        font.pixelSize: 13
+                                        font.family: root.font
+                                        echoMode: root.wifiShowPasswordText ? TextInput.Normal : TextInput.Password
+                                        text: root.wifiPasswordText
+                                        onTextChanged: root.wifiPasswordText = text
+
+                                        function submitJoin() {
+                                            if (text.length > 0 && !Services.SystemService.wifiConnecting) {
+                                                Services.SystemService.connectWifiWithPassword(root.wifiPromptSsid, text);
+                                            }
+                                        }
+
+                                        Keys.onReturnPressed: submitJoin()
+
+                                        Text {
+                                            anchors.fill: parent
+                                            text: "Enter Password"
+                                            color: Qt.rgba(1, 1, 1, 0.35)
+                                            font: parent.font
+                                            visible: !parent.text && !parent.activeFocus
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+
+                                    // Eye toggle
+                                    Rectangle {
+                                        width: 28
+                                        height: 28
+                                        radius: 7
+                                        color: eyeDedicatedM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: root.wifiShowPasswordText ? "󰈈" : "󰈉"
+                                            color: root.wifiShowPasswordText ? root.theme.accent : root.theme.textMuted
+                                            font.pixelSize: 15
+                                            font.family: root.font
+                                        }
+                                        MouseArea {
+                                            id: eyeDedicatedM
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.wifiShowPasswordText = !root.wifiShowPasswordText
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. Error Banner
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: errDedicatedRow.implicitHeight + 12
+                            radius: 10
+                            color: Qt.rgba(1, 0.27, 0.23, 0.15)
+                            border.color: Qt.rgba(1, 0.27, 0.23, 0.35)
+                            border.width: 1
+                            visible: !!Services.SystemService.wifiConnectError
+
+                            RowLayout {
+                                id: errDedicatedRow
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 8
+
+                                Text { text: "󰅚"; color: "#ff453a"; font.pixelSize: 14; font.family: root.font }
+                                Text {
+                                    text: Services.SystemService.wifiConnectError
+                                    color: "#ff453a"
+                                    font.pixelSize: 11
+                                    font.family: root.font
+                                    Layout.fillWidth: true
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                        }
+
+                        // 4. Action Buttons (Cancel & Join)
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 38
+                                radius: 12
+                                color: cancelDedicatedM.pressed ? Qt.rgba(1, 1, 1, 0.16) : (cancelDedicatedM.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                border.color: cancelDedicatedM.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.08)
+                                border.width: 1
+                                scale: cancelDedicatedM.pressed ? 0.96 : 1.0
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Behavior on scale { NumberAnimation { duration: 120 } }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Cancel"
+                                    color: root.theme.textPrimary
+                                    font.pixelSize: 12
+                                    font.family: root.font
+                                    font.weight: Font.Medium
+                                }
+
+                                MouseArea {
+                                    id: cancelDedicatedM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.wifiPromptSsid = "";
+                                        root.wifiPasswordText = "";
+                                        Services.SystemService.wifiConnectError = "";
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                id: joinDedicatedBtn
+                                Layout.fillWidth: true
+                                height: 38
+                                radius: 12
+                                readonly property bool canJoin: root.wifiPasswordText.length > 0 && !Services.SystemService.wifiConnecting
+                                color: canJoin ? (joinDedicatedM.pressed ? Qt.darker(root.theme.accent, 1.15) : (joinDedicatedM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3)
+                                scale: canJoin && joinDedicatedM.pressed ? 0.96 : (canJoin && joinDedicatedM.containsMouse ? 1.02 : 1.0)
+                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Behavior on scale { NumberAnimation { duration: 120 } }
+
+                                RowLayout {
+                                    anchors.centerIn: parent
+                                    spacing: 6
+
+                                    Text {
+                                        text: "󰑐"
+                                        color: "#ffffff"
+                                        font.pixelSize: 13
+                                        font.family: root.font
+                                        visible: Services.SystemService.wifiConnecting
+                                        transformOrigin: Item.Center
+                                        NumberAnimation on rotation {
+                                            running: Services.SystemService.wifiConnecting
+                                            loops: Animation.Infinite
+                                            from: 0
+                                            to: 360
+                                            duration: 800
+                                        }
+                                    }
+
+                                    Text {
+                                        text: Services.SystemService.wifiConnecting ? "Joining..." : "Join"
+                                        color: parent.parent.canJoin || Services.SystemService.wifiConnecting ? "#ffffff" : Qt.rgba(1, 1, 1, 0.45)
+                                        font.pixelSize: 12
+                                        font.family: root.font
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: joinDedicatedM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: parent.canJoin ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    onClicked: {
+                                        if (parent.canJoin) {
+                                            Services.SystemService.connectWifiWithPassword(root.wifiPromptSsid, root.wifiPasswordText);
+                                        }
+                                    }
                                 }
                             }
                         }
