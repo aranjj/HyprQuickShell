@@ -1308,87 +1308,26 @@ Scope {
                                 }
 
                                 // Modern macOS Tahoe Capsule Slider Track
-                                Rectangle {
+                                MacSlider {
                                     id: brightBar
                                     Layout.fillWidth: true
-                                    height: 32
-                                    radius: 16
-                                    color: Services.Aesthetic.sliderTrackBg
-                                    border.color: brightMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.06)
-                                    border.width: 1
-                                    clip: true
-                                    Behavior on border.color { ColorAnimation { duration: 120 } }
-
-                                    // Background Unfilled Glyph (visible when fill is behind it)
-                                    Text {
-                                        x: 10
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: Services.SystemService.brightness <= 33 ? "󰃞" : (Services.SystemService.brightness <= 66 ? "󰃟" : "󰃠")
-                                        color: Qt.rgba(1, 1, 1, 0.45)
-                                        font.pixelSize: 15
-                                        font.family: root.font
+                                    size: "large"
+                                    value: Services.SystemService.brightness
+                                    from: 0
+                                    to: 100
+                                    icon: Services.SystemService.brightness <= 33 ? "󰃞" : (Services.SystemService.brightness <= 66 ? "󰃟" : "󰃠")
+                                    accentColor: root.theme.accent
+                                    onMoved: (val) => {
+                                        Services.SystemService.isBrightnessDragging = true;
+                                        Services.SystemService.setBrightnessPercent(val);
                                     }
-
-                                    // Dynamic Filled Capsule (with dual-layer clipped dark glyph)
-                                    Rectangle {
-                                        id: brightFill
-                                        width: Services.SystemService.brightness <= 0 ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.brightness / 100)))
-                                        height: parent.height
-                                        radius: 16
-                                        color: root.theme.accent
-                                        clip: true
-                                        Behavior on width {
-                                            enabled: !brightMouse.pressed
-                                            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                        }
-
-                                        // Foreground Dark Glyph (uncovered smoothly as fill expands)
-                                        Text {
-                                            x: 10
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: Services.SystemService.brightness <= 33 ? "󰃞" : (Services.SystemService.brightness <= 66 ? "󰃟" : "󰃠")
-                                            color: root.theme.onPrimary
-                                            font.pixelSize: 15
-                                            font.family: root.font
-                                        }
+                                    onCommitted: (val) => {
+                                        Services.SystemService.setBrightnessPercent(val);
+                                        Services.SystemService.flushBrightness();
+                                        Services.SystemService.isBrightnessDragging = false;
                                     }
-
-                                    MouseArea {
-                                        id: brightMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-
-                                        function applyBrightness(mouseX) {
-                                            const rawPct = (mouseX / brightBar.width) * 100;
-                                            const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
-                                            Services.SystemService.setBrightnessPercent(pct);
-                                        }
-
-                                        onPressed: (mouse) => {
-                                            Services.SystemService.isBrightnessDragging = true;
-                                            applyBrightness(mouse.x);
-                                        }
-                                        onPositionChanged: (mouse) => {
-                                            if (pressed) {
-                                                Services.SystemService.isBrightnessDragging = true;
-                                                applyBrightness(mouse.x);
-                                            }
-                                        }
-                                        onReleased: (mouse) => {
-                                            applyBrightness(mouse.x);
-                                            Services.SystemService.flushBrightness();
-                                            Services.SystemService.isBrightnessDragging = false;
-                                        }
-                                        onCanceled: {
-                                            Services.SystemService.flushBrightness();
-                                            Services.SystemService.isBrightnessDragging = false;
-                                        }
-                                        onWheel: (wheel) => {
-                                            wheel.accepted = true;
-                                            const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                            Services.SystemService.adjustBrightness(delta);
-                                        }
+                                    onWheeled: (val) => {
+                                        Services.OsdService.showBrightness(Math.round(val));
                                     }
                                 }
                             }
@@ -1461,118 +1400,29 @@ Scope {
                                 }
 
                                 // Modern macOS Tahoe Capsule Sound Slider Track
-                                Rectangle {
+                                MacSlider {
                                     id: soundBar
                                     Layout.fillWidth: true
-                                    height: 32
-                                    radius: 16
-                                    color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
-                                    border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (soundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.06))
-                                    border.width: 1
-                                    clip: true
-                                    Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                    Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
-                                    // Background Unfilled Glyph
-                                    Text {
-                                        x: 10
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: Services.SystemService.volumeIcon
-                                        color: Services.SystemService.volumeMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
-                                        font.pixelSize: 15
-                                        font.family: root.font
+                                    size: "large"
+                                    value: Services.SystemService.volume
+                                    from: 0
+                                    to: 100
+                                    muted: Services.SystemService.volumeMuted
+                                    icon: Services.SystemService.volumeIcon
+                                    accentColor: root.theme.accent
+                                    iconClickable: true
+                                    onIconClicked: Services.SystemService.toggleMute()
+                                    onMoved: (val) => {
+                                        Services.SystemService.isVolumeDragging = true;
+                                        Services.SystemService.setVolumePercent(val);
                                     }
-
-                                    // Dynamic Filled Capsule (with dual-layer clipped dark glyph)
-                                    Rectangle {
-                                        id: soundFill
-                                        width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
-                                        height: parent.height
-                                        radius: 16
-                                        color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.accent
-                                        clip: true
-                                        Behavior on width {
-                                            enabled: !soundMouse.pressed
-                                            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                        }
-
-                                        // Foreground Glyph
-                                        Text {
-                                            x: 10
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: Services.SystemService.volumeIcon
-                                            color: Services.SystemService.volumeMuted ? "#ffffff" : root.theme.onPrimary
-                                            font.pixelSize: 15
-                                            font.family: root.font
-                                        }
+                                    onCommitted: (val) => {
+                                        Services.SystemService.setVolumePercent(val);
+                                        Services.SystemService.flushVolume();
+                                        Services.SystemService.isVolumeDragging = false;
                                     }
-
-                                    MouseArea {
-                                        id: soundMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        property real startX: 0
-                                        property real startY: 0
-                                        property bool isDragging: false
-                                        property bool startedInIcon: false
-
-                                        function applyVolume(mouseX) {
-                                            const rawPct = (mouseX / soundBar.width) * 100;
-                                            const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
-                                            Services.SystemService.setVolumePercent(pct);
-                                        }
-
-                                        onPressed: (mouse) => {
-                                            startX = mouse.x;
-                                            startY = mouse.y;
-                                            isDragging = false;
-                                            startedInIcon = (mouse.x <= 36);
-                                            if (!startedInIcon) {
-                                                isDragging = true;
-                                                Services.SystemService.isVolumeDragging = true;
-                                                applyVolume(mouse.x);
-                                            }
-                                        }
-
-                                        onPositionChanged: (mouse) => {
-                                            if (pressed) {
-                                                const dx = Math.abs(mouse.x - startX);
-                                                if (!isDragging && (dx > 4 || mouse.x > 36)) {
-                                                    isDragging = true;
-                                                    startedInIcon = false;
-                                                    Services.SystemService.isVolumeDragging = true;
-                                                }
-                                                if (isDragging) {
-                                                    applyVolume(mouse.x);
-                                                }
-                                            }
-                                        }
-
-                                        onReleased: (mouse) => {
-                                            if (isDragging) {
-                                                applyVolume(mouse.x);
-                                                Services.SystemService.flushVolume();
-                                                Services.SystemService.isVolumeDragging = false;
-                                                isDragging = false;
-                                            } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
-                                                Services.SystemService.toggleMute();
-                                            }
-                                            startedInIcon = false;
-                                        }
-
-                                        onCanceled: {
-                                            isDragging = false;
-                                            startedInIcon = false;
-                                            Services.SystemService.flushVolume();
-                                            Services.SystemService.isVolumeDragging = false;
-                                        }
-
-                                        onWheel: (wheel) => {
-                                            wheel.accepted = true;
-                                            const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                            Services.SystemService.adjustVolume(delta);
-                                        }
+                                    onWheeled: (val) => {
+                                        Services.OsdService.showVolume(Math.round(val), Services.SystemService.volumeMuted);
                                     }
                                 }
                             }
@@ -4540,115 +4390,29 @@ Scope {
                                     }
 
                                     // Sound Slider Capsule
-                                    Rectangle {
+                                    MacSlider {
                                         id: subSoundBar
                                         Layout.fillWidth: true
-                                        height: 32
-                                        radius: 16
-                                        color: Services.SystemService.volumeMuted ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.25) : Services.Aesthetic.sliderTrackBg
-                                        border.color: Services.SystemService.volumeMuted ? root.theme.accentRed : (subSoundMouse.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.18) : Services.Aesthetic.innerCardBorder)
-                                        border.width: 1
-                                        clip: true
-                                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                        Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
-                                        Text {
-                                            x: 10
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: Services.SystemService.volumeIcon
-                                            color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.textMuted
-                                            font.pixelSize: 15
-                                            font.family: root.font
+                                        size: "large"
+                                        value: Services.SystemService.volume
+                                        from: 0
+                                        to: 100
+                                        muted: Services.SystemService.volumeMuted
+                                        icon: Services.SystemService.volumeIcon
+                                        accentColor: root.theme.accent
+                                        iconClickable: true
+                                        onIconClicked: Services.SystemService.toggleMute()
+                                        onMoved: (val) => {
+                                            Services.SystemService.isVolumeDragging = true;
+                                            Services.SystemService.setVolumePercent(val);
                                         }
-
-                                        Rectangle {
-                                            id: subSoundFill
-                                            width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.volume) / 100)))
-                                            height: parent.height
-                                            radius: 16
-                                            color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.accent
-                                            clip: true
-                                            Behavior on width {
-                                                enabled: !subSoundMouse.pressed
-                                                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                            }
-
-                                            Text {
-                                                x: 10
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                text: Services.SystemService.volumeIcon
-                                                color: root.theme.onPrimary
-                                                font.pixelSize: 15
-                                                font.family: root.font
-                                            }
+                                        onCommitted: (val) => {
+                                            Services.SystemService.setVolumePercent(val);
+                                            Services.SystemService.flushVolume();
+                                            Services.SystemService.isVolumeDragging = false;
                                         }
-
-                                        MouseArea {
-                                            id: subSoundMouse
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            property real startX: 0
-                                            property real startY: 0
-                                            property bool isDragging: false
-                                            property bool startedInIcon: false
-
-                                            function applyVolume(mouseX) {
-                                                const rawPct = (mouseX / subSoundBar.width) * 100;
-                                                const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
-                                                Services.SystemService.setVolumePercent(pct);
-                                            }
-
-                                            onPressed: (mouse) => {
-                                                startX = mouse.x;
-                                                startY = mouse.y;
-                                                isDragging = false;
-                                                startedInIcon = (mouse.x <= 36);
-                                                if (!startedInIcon) {
-                                                    isDragging = true;
-                                                    Services.SystemService.isVolumeDragging = true;
-                                                    applyVolume(mouse.x);
-                                                }
-                                            }
-
-                                            onPositionChanged: (mouse) => {
-                                                if (pressed) {
-                                                    const dx = Math.abs(mouse.x - startX);
-                                                    if (!isDragging && (dx > 4 || mouse.x > 36)) {
-                                                        isDragging = true;
-                                                        startedInIcon = false;
-                                                        Services.SystemService.isVolumeDragging = true;
-                                                    }
-                                                    if (isDragging) {
-                                                        applyVolume(mouse.x);
-                                                    }
-                                                }
-                                            }
-
-                                            onReleased: (mouse) => {
-                                                if (isDragging) {
-                                                    applyVolume(mouse.x);
-                                                    Services.SystemService.flushVolume();
-                                                    Services.SystemService.isVolumeDragging = false;
-                                                    isDragging = false;
-                                                } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
-                                                    Services.SystemService.toggleMute();
-                                                }
-                                                startedInIcon = false;
-                                            }
-
-                                            onCanceled: {
-                                                isDragging = false;
-                                                startedInIcon = false;
-                                                Services.SystemService.flushVolume();
-                                                Services.SystemService.isVolumeDragging = false;
-                                            }
-
-                                            onWheel: (wheel) => {
-                                                wheel.accepted = true;
-                                                const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                                Services.SystemService.adjustVolume(delta);
-                                            }
+                                        onWheeled: (val) => {
+                                            Services.OsdService.showVolume(Math.round(val), Services.SystemService.volumeMuted);
                                         }
                                     }
 
@@ -5029,131 +4793,35 @@ Scope {
                                                 }
 
                                                 // App Volume Slider Capsule
-                                                Rectangle {
+                                                MacSlider {
                                                     id: appVolBar
                                                     Layout.fillWidth: true
-                                                    height: 30
-                                                    radius: 15
-                                                    color: streamRow.currentMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
-                                                    border.color: streamRow.currentMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (appVolMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
-                                                    border.width: 1
-                                                    clip: true
-                                                    Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                                    Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
-                                                    // Unfilled Track Icon
-                                                    Text {
-                                                        x: 10
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        text: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
-                                                        color: streamRow.currentMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
-                                                        font.pixelSize: 13
-                                                        font.family: root.font
+                                                    size: "medium"
+                                                    value: streamRow.currentVol
+                                                    from: 0
+                                                    to: 100
+                                                    muted: streamRow.currentMuted
+                                                    icon: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
+                                                    accentColor: root.theme.accent
+                                                    iconClickable: true
+                                                    onIconClicked: {
+                                                        streamRow.currentMuted = !streamRow.currentMuted;
+                                                        Services.SystemService.toggleAppStreamMute(modelData.id);
                                                     }
-
-                                                    // Filled Slider Track
-                                                    Rectangle {
-                                                        id: appVolFill
-                                                        width: (streamRow.currentMuted || streamRow.currentVol <= 0) ? 0 : Math.max(0, Math.min(appVolBar.width, appVolBar.width * (Math.min(100, streamRow.currentVol) / 100)))
-                                                        height: parent.height
-                                                        radius: 15
-                                                        color: streamRow.currentMuted ? root.theme.accentRed : root.theme.accent
-                                                        clip: true
-                                                        Behavior on width {
-                                                            enabled: !appVolMouse.pressed
-                                                            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                                        }
-
-                                                        // Filled Track Icon
-                                                        Text {
-                                                            x: 10
-                                                            anchors.verticalCenter: parent.verticalCenter
-                                                            text: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
-                                                            color: streamRow.currentMuted ? "#ffffff" : root.theme.onPrimary
-                                                            font.pixelSize: 13
-                                                            font.family: root.font
-                                                        }
+                                                    onMoved: (val) => {
+                                                        streamRow.isLocalDragging = true;
+                                                        Services.SystemService.isAppVolumeDragging = true;
+                                                        streamRow.currentVol = val;
+                                                        streamRow.currentMuted = (val === 0);
+                                                        Services.SystemService.setAppStreamVolume(modelData.id, val);
                                                     }
-
-                                                    MouseArea {
-                                                        id: appVolMouse
-                                                        anchors.fill: parent
-                                                        hoverEnabled: true
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        property real startX: 0
-                                                        property real startY: 0
-                                                        property bool isDragging: false
-                                                        property bool startedInIcon: false
-
-                                                        function applyVolume(mouseX) {
-                                                            const rawPct = (mouseX / appVolBar.width) * 100;
-                                                            const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
-                                                            streamRow.currentVol = pct;
-                                                            streamRow.currentMuted = (pct === 0);
-                                                            Services.SystemService.setAppStreamVolume(modelData.id, pct);
-                                                        }
-
-                                                        onPressed: (mouse) => {
-                                                            startX = mouse.x;
-                                                            startY = mouse.y;
-                                                            isDragging = false;
-                                                            startedInIcon = (mouse.x <= 34);
-                                                            if (!startedInIcon) {
-                                                                isDragging = true;
-                                                                streamRow.isLocalDragging = true;
-                                                                Services.SystemService.isAppVolumeDragging = true;
-                                                                applyVolume(mouse.x);
-                                                            }
-                                                        }
-
-                                                        onPositionChanged: (mouse) => {
-                                                            if (pressed) {
-                                                                const dx = Math.abs(mouse.x - startX);
-                                                                if (!isDragging && (dx > 4 || mouse.x > 34)) {
-                                                                    isDragging = true;
-                                                                    startedInIcon = false;
-                                                                    streamRow.isLocalDragging = true;
-                                                                    Services.SystemService.isAppVolumeDragging = true;
-                                                                }
-                                                                if (isDragging) {
-                                                                    applyVolume(mouse.x);
-                                                                }
-                                                            }
-                                                        }
-
-                                                        onReleased: (mouse) => {
-                                                            if (isDragging) {
-                                                                applyVolume(mouse.x);
-                                                                Services.SystemService.flushAppStreamVolume();
-                                                                Services.SystemService.isAppVolumeDragging = false;
-                                                                streamRow.isLocalDragging = false;
-                                                                isDragging = false;
-                                                            } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
-                                                                streamRow.currentMuted = !streamRow.currentMuted;
-                                                                Services.SystemService.toggleAppStreamMute(modelData.id);
-                                                            }
-                                                            startedInIcon = false;
-                                                            streamRow.isLocalDragging = false;
-                                                            Services.SystemService.isAppVolumeDragging = false;
-                                                        }
-
-                                                        onCanceled: {
-                                                            isDragging = false;
-                                                            startedInIcon = false;
-                                                            streamRow.isLocalDragging = false;
-                                                            Services.SystemService.isAppVolumeDragging = false;
-                                                            Services.SystemService.flushAppStreamVolume();
-                                                        }
-
-                                                        onWheel: (wheel) => {
-                                                            wheel.accepted = true;
-                                                            const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                                            const newVol = Math.max(0, Math.min(100, streamRow.currentVol + delta));
-                                                            streamRow.currentVol = newVol;
-                                                            streamRow.currentMuted = (newVol === 0);
-                                                            Services.SystemService.setAppStreamVolume(modelData.id, newVol);
-                                                            Services.SystemService.flushAppStreamVolume();
-                                                        }
+                                                    onCommitted: (val) => {
+                                                        streamRow.currentVol = val;
+                                                        streamRow.currentMuted = (val === 0);
+                                                        Services.SystemService.setAppStreamVolume(modelData.id, val);
+                                                        Services.SystemService.flushAppStreamVolume();
+                                                        Services.SystemService.isAppVolumeDragging = false;
+                                                        streamRow.isLocalDragging = false;
                                                     }
                                                 }
                                             }
@@ -5211,116 +4879,29 @@ Scope {
                                     }
 
                                     // Input (Mic) Slider Capsule (always visible, same height and style as Output slider)
-                                    Rectangle {
+                                    MacSlider {
                                         id: subMicBar
                                         Layout.fillWidth: true
-                                        height: 32
-                                        radius: 16
-                                        color: Services.SystemService.micMuted ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.25) : Services.Aesthetic.sliderTrackBg
-                                        border.color: Services.SystemService.micMuted ? root.theme.accentRed : (subMicMouse.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.18) : Services.Aesthetic.innerCardBorder)
-                                        border.width: 1
-                                        clip: true
-                                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                        Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
-                                        Text {
-                                            x: 10
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
-                                            color: Services.SystemService.micMuted ? root.theme.accentRed : root.theme.textMuted
-                                            font.pixelSize: 15
-                                            font.family: root.font
+                                        size: "large"
+                                        value: Services.SystemService.micVolume
+                                        from: 0
+                                        to: 100
+                                        muted: Services.SystemService.micMuted
+                                        icon: Services.SystemService.micMuted ? "󰍭" : "󰍬"
+                                        accentColor: Services.SystemService.micInUse ? root.theme.accentOrange : root.theme.accent
+                                        iconClickable: true
+                                        onIconClicked: Services.SystemService.toggleMicMute()
+                                        onMoved: (val) => {
+                                            Services.SystemService.isMicDragging = true;
+                                            Services.SystemService.setMicVolumePercent(val);
                                         }
-
-                                        Rectangle {
-                                            id: subMicFill
-                                            width: (Services.SystemService.micMuted || Services.SystemService.micVolume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.micVolume) / 100)))
-                                            height: parent.height
-                                            radius: 16
-                                            color: Services.SystemService.micMuted ? root.theme.accentRed : (Services.SystemService.micInUse ? root.theme.accentOrange : root.theme.accent)
-                                            clip: true
-                                            Behavior on width {
-                                                enabled: !subMicMouse.pressed
-                                                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                            }
-                                            Behavior on color { ColorAnimation { duration: 140 } }
-
-                                            Text {
-                                                x: 10
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
-                                                color: (Services.SystemService.micMuted || Services.SystemService.micInUse) ? root.theme.textPrimary : root.theme.onPrimary
-                                                font.pixelSize: 15
-                                                font.family: root.font
-                                            }
+                                        onCommitted: (val) => {
+                                            Services.SystemService.setMicVolumePercent(val);
+                                            Services.SystemService.flushMicVolume();
+                                            Services.SystemService.isMicDragging = false;
                                         }
-
-                                        MouseArea {
-                                            id: subMicMouse
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            property real startX: 0
-                                            property real startY: 0
-                                            property bool isDragging: false
-                                            property bool startedInIcon: false
-
-                                            function applyMicVolume(mouseX) {
-                                                const rawPct = (mouseX / subMicBar.width) * 100;
-                                                const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
-                                                Services.SystemService.setMicVolumePercent(pct);
-                                            }
-
-                                            onPressed: (mouse) => {
-                                                startX = mouse.x;
-                                                startY = mouse.y;
-                                                isDragging = false;
-                                                startedInIcon = (mouse.x <= 36);
-                                                if (!startedInIcon) {
-                                                    isDragging = true;
-                                                    Services.SystemService.isMicDragging = true;
-                                                    applyMicVolume(mouse.x);
-                                                }
-                                            }
-
-                                            onPositionChanged: (mouse) => {
-                                                if (pressed) {
-                                                    const dx = Math.abs(mouse.x - startX);
-                                                    if (!isDragging && (dx > 4 || mouse.x > 36)) {
-                                                        isDragging = true;
-                                                        startedInIcon = false;
-                                                        Services.SystemService.isMicDragging = true;
-                                                    }
-                                                    if (isDragging) {
-                                                        applyMicVolume(mouse.x);
-                                                    }
-                                                }
-                                            }
-
-                                            onReleased: (mouse) => {
-                                                if (isDragging) {
-                                                    applyMicVolume(mouse.x);
-                                                    Services.SystemService.flushMicVolume();
-                                                    Services.SystemService.isMicDragging = false;
-                                                    isDragging = false;
-                                                } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
-                                                    Services.SystemService.toggleMicMute();
-                                                }
-                                                startedInIcon = false;
-                                            }
-
-                                            onCanceled: {
-                                                isDragging = false;
-                                                startedInIcon = false;
-                                                Services.SystemService.flushMicVolume();
-                                                Services.SystemService.isMicDragging = false;
-                                            }
-
-                                            onWheel: (wheel) => {
-                                                wheel.accepted = true;
-                                                const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                                Services.SystemService.adjustMicVolume(delta);
-                                            }
+                                        onWheeled: (val) => {
+                                            Services.OsdService.showMic(Math.round(val), Services.SystemService.micMuted);
                                         }
                                     }
 
@@ -7110,110 +6691,35 @@ Scope {
                                 Layout.fillWidth: true
                                 spacing: 8
 
-                                property real scrubPos: -1
+                                readonly property real totalLen: root.activePlayer?.length ?? 0
                                 readonly property real livePos: {
                                     const _ = root.clockTick;
                                     return root.activePlayer?.position ?? 0;
                                 }
-                                readonly property real displayPos: scrubPos >= 0 ? scrubPos : livePos
-                                readonly property real totalLen: root.activePlayer?.length ?? 0
-                                readonly property real progressRatio: totalLen > 0 ? Math.max(0, Math.min(1.0, displayPos / totalLen)) : 0
 
                                 Text {
-                                    text: root.formatTime(ccTimelineRow.displayPos)
-                                    color: ccTimelineRow.scrubPos >= 0 ? root.playerAccent : root.theme.textMuted
+                                    text: root.formatTime(mediaSeekSlider.displayValue)
+                                    color: mediaSeekSlider.isDragging ? (root.playerAccent || root.theme.accent) : root.theme.textMuted
                                     font.pixelSize: 10
                                     font.family: root.font
-                                    font.weight: ccTimelineRow.scrubPos >= 0 ? Font.Bold : Font.Normal
+                                    font.weight: mediaSeekSlider.isDragging ? Font.Bold : Font.Normal
                                 }
 
-                                Item {
-                                    id: ccTrackBarContainer
+                                MacSlider {
+                                    id: mediaSeekSlider
                                     Layout.fillWidth: true
-                                    height: 18
-
-                                    // Track background bar
-                                    Rectangle {
-                                        id: ccTrackBg
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        height: ccScrubArea.containsMouse || ccScrubArea.pressed ? 6 : 4
-                                        radius: height / 2
-                                        color: Services.Aesthetic.sliderTrackBg
-                                        Behavior on height { NumberAnimation { duration: 100 } }
-
-                                        // Filled progress bar
-                                        Rectangle {
-                                            anchors.left: parent.left
-                                            anchors.top: parent.top
-                                            anchors.bottom: parent.bottom
-                                            radius: parent.radius
-                                            color: ccScrubArea.pressed ? Qt.darker(root.playerAccent, 1.2) : (ccScrubArea.containsMouse ? Qt.lighter(root.playerAccent, 1.15) : root.playerAccent)
-                                            width: parent.width * ccTimelineRow.progressRatio
-
-                                            Behavior on width {
-                                                enabled: !ccScrubArea.pressed
-                                                NumberAnimation { duration: 200; easing.type: Easing.Linear }
-                                            }
-                                            Behavior on color { ColorAnimation { duration: 120 } }
-                                        }
-
-                                        // Circular scrubber thumb handle
-                                        Rectangle {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            x: Math.max(0, Math.min(parent.width - width, (parent.width * ccTimelineRow.progressRatio) - (width / 2)))
-                                            width: ccScrubArea.containsMouse || ccScrubArea.pressed ? 12 : 0
-                                            height: width
-                                            radius: width / 2
-                                            color: "#ffffff"
-                                            border.color: root.playerAccent
-                                            border.width: 2
-                                            visible: width > 0
-
-                                            Behavior on x {
-                                                enabled: !ccScrubArea.pressed
-                                                NumberAnimation { duration: 200; easing.type: Easing.Linear }
-                                            }
-                                            Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-                                        }
+                                    size: "thin"
+                                    enabled: !!root.activePlayer && ccTimelineRow.totalLen > 0
+                                    value: ccTimelineRow.livePos
+                                    from: 0
+                                    to: Math.max(1, ccTimelineRow.totalLen)
+                                    accentColor: root.playerAccent || root.theme.accent
+                                    onMoved: {
+                                        root.isUserScrubbing = true;
                                     }
-
-                                    MouseArea {
-                                        id: ccScrubArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-
-                                        function updateFromMouse(mouseX) {
-                                            const ratio = Math.max(0, Math.min(1.0, mouseX / width));
-                                            ccTimelineRow.scrubPos = ratio * ccTimelineRow.totalLen;
-                                        }
-
-                                        onPressed: (mouse) => {
-                                            root.isUserScrubbing = true;
-                                            updateFromMouse(mouse.x);
-                                        }
-
-                                        onPositionChanged: (mouse) => {
-                                            if (pressed) {
-                                                updateFromMouse(mouse.x);
-                                            }
-                                        }
-
-                                        onReleased: (mouse) => {
-                                            root.isUserScrubbing = false;
-                                            if (ccTimelineRow.scrubPos >= 0) {
-                                                root.seekTo(ccTimelineRow.scrubPos);
-                                                ccTimelineRow.scrubPos = -1;
-                                            }
-                                        }
-
-                                        onWheel: (wheel) => {
-                                            wheel.accepted = true;
-                                            const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                            root.seekRelative(delta);
-                                        }
+                                    onCommitted: (val) => {
+                                        root.isUserScrubbing = false;
+                                        root.seekTo(val);
                                     }
                                 }
 
@@ -7350,120 +6856,24 @@ Scope {
                             }
 
                             // Interactive Volume Slider Bar
-                            Rectangle {
+                            MacSlider {
                                 id: ccMediaVolBar
                                 Layout.fillWidth: true
-                                height: 32
-                                radius: 16
-                                color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
-                                border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (ccVolMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBorder)
-                                border.width: 1
-                                clip: true
-                                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
-                                // Background glyph
-                                Text {
-                                    x: 10
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: Services.SystemService.volumeIcon
-                                    color: Services.SystemService.volumeMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
-                                    font.pixelSize: 15
-                                    font.family: root.font
+                                size: "large"
+                                value: Services.SystemService.volume
+                                from: 0
+                                to: 100
+                                muted: Services.SystemService.volumeMuted
+                                icon: Services.SystemService.volumeIcon
+                                accentColor: root.playerAccent || root.theme.accent
+                                iconClickable: true
+                                onIconClicked: Services.SystemService.toggleMute()
+                                onMoved: (val) => {
+                                    Services.SystemService.setVolumePercent(val);
                                 }
-
-                                // Dynamic fill capsule
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.top: parent.top
-                                    anchors.bottom: parent.bottom
-                                    radius: parent.radius
-                                    color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.playerAccent
-                                    width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
-                                    clip: true
-
-                                    Behavior on width {
-                                        enabled: !ccVolMouse.pressed
-                                        NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                    }
-
-                                    // Foreground dark glyph
-                                    Text {
-                                        x: 10
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: Services.SystemService.volumeIcon
-                                        color: "#ffffff"
-                                        font.pixelSize: 15
-                                        font.family: root.font
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: ccVolMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    property real startX: 0
-                                    property real startY: 0
-                                    property bool isDragging: false
-                                    property bool startedInIcon: false
-
-                                    function applyVolume(mouseX) {
-                                        const rawPct = (mouseX / width) * 100;
-                                        const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
-                                        Services.SystemService.setVolumePercent(pct);
-                                    }
-
-                                    onPressed: (mouse) => {
-                                        startX = mouse.x;
-                                        startY = mouse.y;
-                                        isDragging = false;
-                                        startedInIcon = (mouse.x <= 36);
-                                        if (!startedInIcon) {
-                                            isDragging = true;
-                                            Services.SystemService.isVolumeDragging = true;
-                                            applyVolume(mouse.x);
-                                        }
-                                    }
-
-                                    onPositionChanged: (mouse) => {
-                                        if (pressed) {
-                                            const dx = Math.abs(mouse.x - startX);
-                                            if (!isDragging && (dx > 4 || mouse.x > 36)) {
-                                                isDragging = true;
-                                                startedInIcon = false;
-                                                Services.SystemService.isVolumeDragging = true;
-                                            }
-                                            if (isDragging) {
-                                                applyVolume(mouse.x);
-                                            }
-                                        }
-                                    }
-
-                                    onReleased: (mouse) => {
-                                        if (isDragging) {
-                                            applyVolume(mouse.x);
-                                            Services.SystemService.flushVolume();
-                                            Services.SystemService.isVolumeDragging = false;
-                                            isDragging = false;
-                                        } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
-                                            Services.SystemService.toggleMute();
-                                        }
-                                        startedInIcon = false;
-                                    }
-
-                                    onCanceled: {
-                                        isDragging = false;
-                                        startedInIcon = false;
-                                        Services.SystemService.flushVolume();
-                                        Services.SystemService.isVolumeDragging = false;
-                                    }
-
-                                    onWheel: (wheel) => {
-                                        wheel.accepted = true;
-                                        const delta = wheel.angleDelta.y > 0 ? 5 : -5;
-                                        Services.SystemService.adjustVolume(delta);
-                                    }
+                                onCommitted: (val) => {
+                                    Services.SystemService.setVolumePercent(val);
+                                    Services.SystemService.flushVolume();
                                 }
                             }
                         }
