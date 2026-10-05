@@ -65,18 +65,6 @@ Scope {
                         border.width: Services.Aesthetic.borderWidth
                         clip: true
 
-                        // Top specular highlight line (macOS glass edge)
-                        Rectangle {
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.leftMargin: Services.Aesthetic.cardRadius
-                            anchors.rightMargin: Services.Aesthetic.cardRadius
-                            height: 1
-                            color: Qt.rgba(1, 1, 1, Services.Aesthetic.preset === "oled" ? 0.06 : (Services.Aesthetic.preset === "crystal" ? 0.20 : 0.12))
-                            visible: Services.Aesthetic.preset !== "solid"
-                        }
-
                         // Slide & Fade entrance
                         opacity: 1
                         Behavior on opacity { NumberAnimation { duration: 180 } }

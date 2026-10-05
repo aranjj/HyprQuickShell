@@ -16,36 +16,36 @@ Scope {
     property Bar.Theme theme: Bar.Theme {}
     readonly property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
-    // Sub-view toggle: "main", "wifi", "bluetooth", "audio", "battery", "media", "wallpaper"
+    // Sub-view toggle: "main", "wifi", "bluetooth", "audio", "battery", "media"
     readonly property string activeView: Services.SystemService.controlCenterSubView
 
     IpcHandler {
         target: "controlcenter"
 
-        function toggle(): void {
+        function toggle() {
             Services.SystemService.toggleControlCenter();
         }
 
-        function open(): void {
+        function open() {
             Services.SystemService.openControlCenter("controls", "main");
         }
 
-        function openNotifications(): void {
+        function openNotifications() {
             Services.SystemService.openNotificationCenter();
         }
 
-        function openSub(sub: string): void {
+        function openSub(sub: string) {
             Services.SystemService.openControlCenter("controls", sub || "main");
         }
 
-        function promptWifi(ssid: string): void {
+        function promptWifi(ssid: string) {
             Services.SystemService.controlCenterOpen = true;
             Services.SystemService.controlCenterSubView = "wifi";
             root.wifiJoinOtherMode = false;
             root.wifiPromptSsid = ssid || "";
         }
 
-        function promptJoinOther(): void {
+        function promptJoinOther() {
             Services.SystemService.controlCenterOpen = true;
             Services.SystemService.controlCenterSubView = "wifi";
             root.wifiPromptSsid = "";
@@ -56,15 +56,15 @@ Scope {
             Services.SystemService.wifiConnectError = "";
         }
 
-        function close(): void {
+        function close() {
             Services.SystemService.controlCenterOpen = false;
         }
 
-        function setProfile(profile: string): void {
+        function setProfile(profile: string) {
             Services.SystemService.setPowerProfile(profile);
         }
 
-        function cycleProfile(): void {
+        function cycleProfile() {
             Services.SystemService.cyclePowerProfile();
         }
     }
@@ -309,6 +309,20 @@ Scope {
         function onWifiSsidChanged() {
             checkAutoDismiss();
         }
+
+        function onControlCenterSubViewChanged() {
+            if (Services.SystemService.controlCenterSubView === "audio") {
+                root.soundOutputsOpen = false;
+                root.soundInputsOpen = false;
+            }
+        }
+
+        function onControlCenterOpenChanged() {
+            if (!Services.SystemService.controlCenterOpen) {
+                root.soundOutputsOpen = false;
+                root.soundInputsOpen = false;
+            }
+        }
     }
 
     property bool isUserScrubbing: false
@@ -422,15 +436,13 @@ Scope {
                                 ? 240
                                 : Math.min(subViewMaxHeight, Math.max(280, (btContentCol ? btContentCol.implicitHeight : 0) + 138));
                         case "audio":
-                            return Math.min(subViewMaxHeight, Math.max(280, (audioDetailCol ? audioDetailCol.implicitHeight : 0) + 86));
+                            return Math.min(maxCardHeight, Math.max(280, (audioDetailCol ? audioDetailCol.implicitHeight : 0) + 86));
                         case "battery":
                             return Math.min(subViewMaxHeight, Math.max(280, (battDetailCol ? battDetailCol.implicitHeight : 0) + 86));
                         case "displays":
                             return Math.min(subViewMaxHeight, Math.max(280, (dispCol ? dispCol.implicitHeight : 0) + 86));
                         case "media":
                             return Math.min(subViewMaxHeight, Mpris.players.values.length > 0 ? (384 + Math.min(194, Mpris.players.values.length * 50)) : 358);
-                        case "wallpaper":
-                            return Math.min(subViewMaxHeight, 520);
                         default:
                             return mainContentCol.implicitHeight + 24;
                     }
@@ -455,18 +467,6 @@ Scope {
                 Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
                 Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-
-                // Top specular glass highlight
-                Rectangle {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: Services.Aesthetic.cardRadius
-                    anchors.rightMargin: Services.Aesthetic.cardRadius
-                    height: 1
-                    color: Qt.rgba(1, 1, 1, 0.12)
-                    z: 10
-                }
 
                 // Prevent click dismissal
                 MouseArea {
@@ -1897,8 +1897,8 @@ Scope {
                             width: 32
                             height: 32
                             radius: 16
-                            color: backWM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (backWM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
-                            border.color: backWM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1)
+                            color: backWM.pressed ? Services.Aesthetic.innerCardHover : (backWM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg)
+                            border.color: backWM.containsMouse ? root.theme.outline : Services.Aesthetic.innerCardBorder
                             border.width: 1
                             scale: backWM.pressed ? 0.92 : (backWM.containsMouse ? 1.06 : 1.0)
                             Behavior on color { ColorAnimation { duration: 120 } }
@@ -1908,7 +1908,7 @@ Scope {
                             Text {
                                 anchors.centerIn: parent
                                 text: "‹"
-                                color: backWM.containsMouse ? "#ffffff" : root.theme.textPrimary
+                                color: backWM.containsMouse ? root.theme.textPrimary : root.theme.textSecondary
                                 font.pixelSize: 18
                                 font.family: root.font
                                 renderType: Text.NativeRendering
@@ -1948,47 +1948,15 @@ Scope {
 
                         Item { Layout.fillWidth: true }
 
-                        // Status pill badge
-                        Rectangle {
-                            height: 26
-                            implicitWidth: wifiPillRow.implicitWidth + 16
-                            radius: 13
-                            visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid === "" && !root.wifiJoinOtherMode
-                            color: Services.SystemService.wifiConnected ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.16) : Qt.rgba(1, 1, 1, 0.06)
-                            border.color: Services.SystemService.wifiConnected ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.35) : Qt.rgba(1, 1, 1, 0.1)
-                            border.width: 1
-
-                            Row {
-                                id: wifiPillRow
-                                anchors.centerIn: parent
-                                spacing: 5
-                                Rectangle {
-                                    width: 6
-                                    height: 6
-                                    radius: 3
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    color: Services.SystemService.wifiConnected ? root.theme.accentGreen : (Services.SystemService.wifiConnecting ? root.theme.accent : root.theme.textMuted)
-                                }
-                                Text {
-                                    text: Services.SystemService.wifiConnecting ? "Connecting" : (Services.SystemService.wifiConnected ? (Services.SystemService.wifiActiveNetwork?.band || "Connected") : "Disconnected")
-                                    color: Services.SystemService.wifiConnected ? root.theme.accentGreen : root.theme.textMuted
-                                    font.pixelSize: 10
-                                    font.family: root.font
-                                    font.weight: Font.Medium
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    renderType: Text.NativeRendering
-                                }
-                            }
-                        }
-
                         // Rescan button with rotation & scale
                         Rectangle {
+                            id: rescBtn
                             width: 30
                             height: 30
                             radius: 15
                             visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid === "" && !root.wifiJoinOtherMode
-                            color: rescWM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (rescWM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Qt.rgba(1, 1, 1, 0.08))
-                            border.color: rescWM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1)
+                            color: rescWM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (rescWM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.15) : Services.Aesthetic.innerCardBg)
+                            border.color: rescWM.containsMouse ? root.theme.accent : Services.Aesthetic.innerCardBorder
                             border.width: 1
                             scale: rescWM.pressed ? 0.90 : (rescWM.containsMouse ? 1.08 : 1.0)
                             Behavior on color { ColorAnimation { duration: 120 } }
@@ -1998,7 +1966,7 @@ Scope {
                             Text {
                                 anchors.centerIn: parent
                                 text: "󰑐"
-                                color: Services.SystemService.wifiScanning ? root.theme.accentGreen : (rescWM.containsMouse ? "#ffffff" : root.theme.accent)
+                                color: Services.SystemService.wifiScanning ? root.theme.accent : (rescWM.containsMouse ? root.theme.textPrimary : root.theme.accent)
                                 font.pixelSize: 13
                                 font.family: root.font
                                 transformOrigin: Item.Center
@@ -2011,6 +1979,11 @@ Scope {
                                     duration: 900
                                 }
                             }
+
+                            ToolTip.visible: rescWM.containsMouse
+                            ToolTip.text: "Scan for Networks"
+                            ToolTip.delay: 400
+
                             MouseArea {
                                 id: rescWM
                                 anchors.fill: parent
@@ -2027,7 +2000,9 @@ Scope {
                             height: 24
                             radius: 12
                             visible: Services.SystemService.wifiEnabled && root.wifiPromptSsid === "" && !root.wifiJoinOtherMode
-                            color: Services.SystemService.wifiEnabled ? (pwrWifiSwMouse.containsMouse ? Qt.lighter(root.theme.accentGreen, 1.1) : root.theme.accentGreen) : (pwrWifiSwMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.15))
+                            color: Services.SystemService.wifiEnabled ? (pwrWifiSwMouse.containsMouse ? Qt.lighter(root.theme.accent, 1.1) : root.theme.accent) : (pwrWifiSwMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg)
+                            border.color: Services.SystemService.wifiEnabled ? root.theme.accent : Services.Aesthetic.innerCardBorder
+                            border.width: 1
                             scale: pwrWifiSwMouse.pressed ? 0.94 : 1.0
                             Behavior on color { ColorAnimation { duration: 150 } }
                             Behavior on scale { NumberAnimation { duration: 120 } }
@@ -2036,7 +2011,7 @@ Scope {
                                 width: 20
                                 height: 20
                                 radius: 10
-                                color: "#ffffff"
+                                color: Services.SystemService.wifiEnabled ? root.theme.onPrimary : root.theme.textPrimary
                                 anchors.verticalCenter: parent.verticalCenter
                                 x: Services.SystemService.wifiEnabled ? 22 : 2
                                 Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
@@ -2068,8 +2043,8 @@ Scope {
                                 width: 56
                                 height: 56
                                 radius: 28
-                                color: Qt.rgba(1, 1, 1, 0.06)
-                                border.color: Qt.rgba(1, 1, 1, 0.1)
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Text {
                                     anchors.centerIn: parent
@@ -2082,7 +2057,7 @@ Scope {
 
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: "Wi-Fi is Turned Off"
+                                text: "Wi-Fi is Off"
                                 color: root.theme.textPrimary
                                 font.pixelSize: 14
                                 font.family: root.font
@@ -2103,7 +2078,7 @@ Scope {
                                 width: 96
                                 height: 32
                                 radius: 16
-                                color: turnOnWifiM.pressed ? Qt.darker(root.theme.accentGreen, 1.15) : (turnOnWifiM.containsMouse ? Qt.lighter(root.theme.accentGreen, 1.15) : root.theme.accentGreen)
+                                color: turnOnWifiM.pressed ? Qt.darker(root.theme.accent, 1.15) : (turnOnWifiM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)
                                 scale: turnOnWifiM.pressed ? 0.94 : (turnOnWifiM.containsMouse ? 1.06 : 1.0)
                                 Behavior on color { ColorAnimation { duration: 120 } }
                                 Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
@@ -2111,7 +2086,7 @@ Scope {
                                 Text {
                                     anchors.centerIn: parent
                                     text: "Turn On"
-                                    color: "#ffffff"
+                                    color: root.theme.onPrimary
                                     font.pixelSize: 11
                                     font.family: root.font
                                     font.weight: Font.DemiBold
@@ -2145,335 +2120,231 @@ Scope {
                             Layout.fillWidth: true
                             Layout.preferredWidth: parent.width
                             Layout.maximumWidth: parent.width
-                            spacing: 12
+                            spacing: 14
 
-                            // ── CONNECTED HERO CARD ───────────────
-                            ColumnLayout {
+                            // ── CONNECTED CARD (ACCENT-TINTED) ───────────────
+                            Rectangle {
                                 Layout.fillWidth: true
-                                Layout.preferredWidth: wifiContentCol.width
-                                Layout.maximumWidth: wifiContentCol.width
                                 width: wifiContentCol.width
-                                spacing: 6
+                                implicitHeight: activeNetCol.implicitHeight + 20
+                                radius: 14
+                                clip: true
                                 visible: Services.SystemService.wifiConnected && Services.SystemService.wifiActiveNetwork !== null
+                                color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12)
+                                border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.28)
+                                border.width: 1
 
-                                Text {
-                                    text: "CONNECTED NETWORK"
-                                    color: root.theme.textMuted
-                                    font.pixelSize: 10
-                                    font.family: root.font
-                                    font.weight: Font.DemiBold
-                                    Layout.leftMargin: 2
-                                }
+                                ColumnLayout {
+                                    id: activeNetCol
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    spacing: 10
 
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredWidth: wifiContentCol.width
-                                    Layout.maximumWidth: wifiContentCol.width
-                                    width: wifiContentCol.width
-                                    implicitHeight: activeNetCol.implicitHeight + 20
-                                    radius: 12
-                                    clip: true
-                                    color: Services.Aesthetic.innerCardBg
-                                    border.color: Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.35)
-                                    border.width: 1
-
-                                    ColumnLayout {
-                                        id: activeNetCol
-                                        anchors.fill: parent
-                                        anchors.margins: 12
+                                    // Top Section: Icon + Network Info + Disconnect Button
+                                    RowLayout {
+                                        Layout.fillWidth: true
                                         spacing: 10
 
-                                        // Top Section: Icon + Network Info + Disconnect Button
-                                        Item {
-                                            Layout.fillWidth: true
-                                            implicitHeight: Math.max(actIconRect.height, actNetInfoCol.implicitHeight)
-
-                                            // Network Icon (left)
-                                            Rectangle {
-                                                id: actIconRect
-                                                anchors.left: parent.left
-                                                anchors.top: parent.top
-                                                width: 36
-                                                height: 36
-                                                radius: 10
-                                                color: Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.18)
-
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: ""
-                                                    color: root.theme.accentGreen
-                                                    font.pixelSize: 18
-                                                    font.family: root.font
-                                                }
-                                            }
-
-                                            // Disconnect Pill Button (pinned to right edge - NEVER shifts or clips!)
-                                            Rectangle {
-                                                id: actDisconBtn
-                                                anchors.right: parent.right
-                                                anchors.top: parent.top
-                                                anchors.topMargin: 2
-                                                width: 68
-                                                height: 24
-                                                radius: 12
-                                                color: disconWM.pressed ? Qt.darker("#ff453a", 1.2) : (disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.15))
-                                                border.color: disconWM.containsMouse ? "#ff453a" : Qt.rgba(1, 0.27, 0.23, 0.3)
-                                                border.width: 1
-                                                scale: disconWM.pressed ? 0.94 : (disconWM.containsMouse ? 1.04 : 1.0)
-                                                Behavior on color { ColorAnimation { duration: 120 } }
-                                                Behavior on border.color { ColorAnimation { duration: 120 } }
-                                                Behavior on scale { NumberAnimation { duration: 120 } }
-
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "Disconnect"
-                                                    color: disconWM.containsMouse ? "#ffffff" : "#ff453a"
-                                                    font.pixelSize: 10
-                                                    font.family: root.font
-                                                    font.weight: Font.Medium
-                                                }
-
-                                                MouseArea {
-                                                    id: disconWM
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: Services.SystemService.disconnectWifi()
-                                                }
-                                            }
-
-                                            // Center info column (rigidly bounded between icon and disconnect)
-                                            Column {
-                                                id: actNetInfoCol
-                                                anchors.left: actIconRect.right
-                                                anchors.leftMargin: 10
-                                                anchors.right: actDisconBtn.left
-                                                anchors.rightMargin: 8
-                                                spacing: 3
-
-                                                // Row 1: SSID + Badges
-                                                RowLayout {
-                                                    width: parent.width
-                                                    spacing: 6
-
-                                                    Text {
-                                                        text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.ssid || Services.SystemService.wifiSsid) : Services.SystemService.wifiSsid
-                                                        color: root.theme.textPrimary
-                                                        font.pixelSize: 13
-                                                        font.family: root.font
-                                                        font.weight: Font.DemiBold
-                                                        elide: Text.ElideRight
-                                                        Layout.fillWidth: true
-                                                    }
-
-                                                    // Band badge (5 GHz / 2.4 GHz)
-                                                    Rectangle {
-                                                        visible: !!(Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.band)
-                                                        height: 16
-                                                        implicitWidth: actBandTxt.implicitWidth + 8
-                                                        radius: 4
-                                                        color: Qt.rgba(1, 1, 1, 0.08)
-
-                                                        Text {
-                                                            id: actBandTxt
-                                                            anchors.centerIn: parent
-                                                            text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.band || "") : ""
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 9
-                                                            font.family: root.font
-                                                            font.weight: Font.Medium
-                                                        }
-                                                    }
-
-                                                    // Security badge
-                                                    Rectangle {
-                                                        visible: !!(Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.security)
-                                                        height: 16
-                                                        implicitWidth: actSecTxt.implicitWidth + 8
-                                                        radius: 4
-                                                        color: Qt.rgba(1, 1, 1, 0.08)
-
-                                                        Text {
-                                                            id: actSecTxt
-                                                            anchors.centerIn: parent
-                                                            text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.security || "") : ""
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 9
-                                                            font.family: root.font
-                                                            font.weight: Font.Medium
-                                                        }
-                                                    }
-                                                }
-
-                                                // Row 2: Status & Signal subtitle
-                                                Row {
-                                                    spacing: 5
-
-                                                    Text {
-                                                        text: "Connected"
-                                                        color: root.theme.accentGreen
-                                                        font.pixelSize: 10
-                                                        font.family: root.font
-                                                        font.weight: Font.Medium
-                                                    }
-                                                    Text {
-                                                        text: "•"
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 8
-                                                        font.family: root.font
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                    }
-                                                    Text {
-                                                        text: Services.SystemService.wifiActiveNetwork ? ((Services.SystemService.wifiActiveNetwork.signal || 50) + "% Signal") : ""
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 10
-                                                        font.family: root.font
-                                                    }
-                                                }
-
-                                                // Row 3: Live Speeds (rigid fixed width per stream, zero shifting!)
-                                                Row {
-                                                    spacing: 10
-
-                                                    Row {
-                                                        spacing: 3
-                                                        Text {
-                                                            text: "↓"
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                        }
-                                                        Text {
-                                                            text: Services.SystemService.wifiRxFormatted
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                            font.features: { "tnum": 1 }
-                                                            width: 54
-                                                        }
-                                                    }
-
-                                                    Text {
-                                                        text: "•"
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 8
-                                                        font.family: root.font
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                    }
-
-                                                    Row {
-                                                        spacing: 3
-                                                        Text {
-                                                            text: "↑"
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                        }
-                                                        Text {
-                                                            text: Services.SystemService.wifiTxFormatted
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                            font.features: { "tnum": 1 }
-                                                            width: 54
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // Divider line
+                                        // Network Icon (left)
                                         Rectangle {
-                                            Layout.fillWidth: true
-                                            height: 1
-                                            color: Qt.rgba(1, 1, 1, 0.06)
-                                        }
-
-                                        // Technical metrics row: IP + Disclosure toggle (pinned to edges!)
-                                        Item {
-                                            Layout.fillWidth: true
-                                            implicitHeight: 20
+                                            width: 36
+                                            height: 36
+                                            radius: 18
+                                            color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
 
                                             Text {
-                                                anchors.left: parent.left
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                text: "IP: " + (Services.SystemService.wifiActiveNetwork ? Services.SystemService.wifiActiveNetwork.ip : "Connected")
+                                                anchors.centerIn: parent
+                                                text: ""
+                                                color: root.theme.accent
+                                                font.pixelSize: 16
+                                                font.family: root.font
+                                            }
+                                        }
+
+                                        // Center info column
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+
+                                            Text {
+                                                text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.ssid || Services.SystemService.wifiSsid) : Services.SystemService.wifiSsid
+                                                color: root.theme.textPrimary
+                                                font.pixelSize: 13
+                                                font.family: root.font
+                                                font.weight: Font.DemiBold
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                            }
+
+                                            Text {
+                                                text: "Connected"
+                                                    + (Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.band ? (" · " + Services.SystemService.wifiActiveNetwork.band) : "")
+                                                    + (Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.security ? (" · " + Services.SystemService.wifiActiveNetwork.security) : "")
                                                 color: root.theme.textMuted
                                                 font.pixelSize: 10
                                                 font.family: root.font
-                                            }
-
-                                            // Details toggle button (pinned to right edge!)
-                                            Rectangle {
-                                                anchors.right: parent.right
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                height: 20
-                                                width: dtRow.implicitWidth + 12
-                                                radius: 6
-                                                color: dtMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-                                                Behavior on color { ColorAnimation { duration: 100 } }
-
-                                                Row {
-                                                    id: dtRow
-                                                    anchors.centerIn: parent
-                                                    spacing: 4
-                                                    Text {
-                                                        text: root.wifiShowActiveDetails ? "Hide" : "Details"
-                                                        color: dtMouse.containsMouse ? "#ffffff" : root.theme.textMuted
-                                                        font.pixelSize: 9
-                                                        font.family: root.font
-                                                        font.weight: Font.Medium
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                    }
-                                                    Text {
-                                                        text: root.wifiShowActiveDetails ? "▲" : "▼"
-                                                        color: dtMouse.containsMouse ? "#ffffff" : root.theme.textMuted
-                                                        font.pixelSize: 7
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                    }
-                                                }
-
-                                                MouseArea {
-                                                    id: dtMouse
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: root.wifiShowActiveDetails = !root.wifiShowActiveDetails
-                                                }
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
                                             }
                                         }
 
-                                        // Expandable Details
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 6
-                                            visible: root.wifiShowActiveDetails
+                                        // Disconnect Pill Button
+                                        Rectangle {
+                                            id: actDisconBtn
+                                            width: disconTxt.implicitWidth + 16
+                                            height: 24
+                                            radius: 12
+                                            color: disconWM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.18) : Services.Aesthetic.innerCardBg
+                                            border.color: disconWM.containsMouse ? root.theme.accentRed : Services.Aesthetic.innerCardBorder
+                                            border.width: 1
+                                            scale: disconWM.pressed ? 0.94 : (disconWM.containsMouse ? 1.04 : 1.0)
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+                                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                                            Behavior on scale { NumberAnimation { duration: 120 } }
 
-                                            Rectangle {
+                                            Text {
+                                                id: disconTxt
+                                                anchors.centerIn: parent
+                                                text: "Disconnect"
+                                                color: disconWM.containsMouse ? root.theme.accentRed : root.theme.textMuted
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                            }
+
+                                            MouseArea {
+                                                id: disconWM
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: Services.SystemService.disconnectWifi()
+                                            }
+                                        }
+                                    }
+
+                                    // Divider line
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 1
+                                        color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.15)
+                                    }
+
+                                    // Details toggle header
+                                    Item {
+                                        Layout.fillWidth: true
+                                        implicitHeight: 20
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            spacing: 6
+
+                                            Text {
+                                                text: "Details"
+                                                color: dtMouse.containsMouse ? root.theme.textPrimary : root.theme.textMuted
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                            }
+
+                                            Item { Layout.fillWidth: true }
+
+                                            Text {
+                                                text: "⌄"
+                                                color: dtMouse.containsMouse ? root.theme.textPrimary : root.theme.textMuted
+                                                font.pixelSize: 12
+                                                font.family: root.font
+                                                rotation: root.wifiShowActiveDetails ? 180 : 0
+                                                transformOrigin: Item.Center
+                                                Behavior on rotation { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: dtMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.wifiShowActiveDetails = !root.wifiShowActiveDetails
+                                        }
+                                    }
+
+                                    // Expandable Animated Details Section
+                                    Item {
+                                        Layout.fillWidth: true
+                                        clip: true
+                                        Layout.preferredHeight: root.wifiShowActiveDetails ? actDetailsCol.implicitHeight : 0
+                                        implicitHeight: Layout.preferredHeight
+                                        visible: root.wifiShowActiveDetails || Layout.preferredHeight > 0
+                                        opacity: root.wifiShowActiveDetails ? 1.0 : 0.0
+                                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                                        Behavior on Layout.preferredHeight { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                                        ColumnLayout {
+                                            id: actDetailsCol
+                                            width: parent.width
+                                            spacing: 6
+
+                                            RowLayout {
                                                 Layout.fillWidth: true
-                                                height: 1
-                                                color: Qt.rgba(1, 1, 1, 0.04)
+                                                Text { text: "Signal:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                                Item { Layout.fillWidth: true }
+                                                Text { text: (Services.SystemService.wifiActiveNetwork ? Services.SystemService.wifiActiveNetwork.signal : 0) + "%"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                            }
+
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Text { text: "Speed:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                                Item { Layout.fillWidth: true }
+                                                Row {
+                                                    spacing: 6
+                                                    Text {
+                                                        text: "↓ " + Services.SystemService.wifiRxFormatted
+                                                        color: root.theme.textPrimary
+                                                        font.pixelSize: 10
+                                                        font.family: root.font
+                                                        font.features: { "tnum": 1 }
+                                                        width: 64
+                                                        horizontalAlignment: Text.AlignRight
+                                                    }
+                                                    Text { text: "·"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                                    Text {
+                                                        text: "↑ " + Services.SystemService.wifiTxFormatted
+                                                        color: root.theme.textPrimary
+                                                        font.pixelSize: 10
+                                                        font.family: root.font
+                                                        font.features: { "tnum": 1 }
+                                                        width: 64
+                                                        horizontalAlignment: Text.AlignRight
+                                                    }
+                                                }
+                                            }
+
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Text { text: "IP Address:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
+                                                Item { Layout.fillWidth: true }
+                                                Text { text: Services.SystemService.wifiActiveNetwork ? Services.SystemService.wifiActiveNetwork.ip : "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
                                             }
 
                                             RowLayout {
                                                 Layout.fillWidth: true
                                                 Text { text: "Gateway:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
                                                 Item { Layout.fillWidth: true }
-                                                Text { text: Services.SystemService.wifiActiveNetwork?.gateway || "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                                Text { text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.gateway || "--") : "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
                                             }
 
                                             RowLayout {
                                                 Layout.fillWidth: true
                                                 Text { text: "DNS:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
                                                 Item { Layout.fillWidth: true }
-                                                Text { text: Services.SystemService.wifiActiveNetwork?.dns || "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font; elide: Text.ElideLeft; Layout.maximumWidth: 180 }
+                                                Text { text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.dns || "--") : "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font; elide: Text.ElideLeft; Layout.maximumWidth: 160 }
                                             }
 
                                             RowLayout {
                                                 Layout.fillWidth: true
                                                 Text { text: "BSSID (MAC):"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
                                                 Item { Layout.fillWidth: true }
-                                                Text { text: Services.SystemService.wifiActiveNetwork?.bssid || "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                                Text { text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.bssid || "--") : "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
                                             }
 
                                             RowLayout {
@@ -2481,24 +2352,24 @@ Scope {
                                                 visible: !!(Services.SystemService.wifiActiveNetwork && Services.SystemService.wifiActiveNetwork.rate)
                                                 Text { text: "Link Speed:"; color: root.theme.textMuted; font.pixelSize: 10; font.family: root.font }
                                                 Item { Layout.fillWidth: true }
-                                                Text { text: Services.SystemService.wifiActiveNetwork?.rate || "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
+                                                Text { text: Services.SystemService.wifiActiveNetwork ? (Services.SystemService.wifiActiveNetwork.rate || "--") : "--"; color: root.theme.textPrimary; font.pixelSize: 10; font.family: root.font }
                                             }
 
                                             // Forget this network button
                                             Rectangle {
                                                 Layout.fillWidth: true
                                                 height: 28
-                                                radius: 6
-                                                color: fgtActiveM.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.15) : Qt.rgba(1, 1, 1, 0.04)
-                                                border.color: fgtActiveM.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.3) : Qt.rgba(1, 1, 1, 0.06)
+                                                radius: 8
+                                                color: fgtActiveM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.15) : Services.Aesthetic.innerCardBg
+                                                border.color: fgtActiveM.containsMouse ? root.theme.accentRed : Services.Aesthetic.innerCardBorder
                                                 border.width: 1
                                                 Behavior on color { ColorAnimation { duration: 100 } }
 
                                                 Row {
                                                     anchors.centerIn: parent
                                                     spacing: 6
-                                                    Text { text: "󰆴"; color: "#ff453a"; font.pixelSize: 11; font.family: root.font; anchors.verticalCenter: parent.verticalCenter }
-                                                    Text { text: "Forget This Network"; color: "#ff453a"; font.pixelSize: 10; font.family: root.font; font.weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter }
+                                                    Text { text: "󰆴"; color: root.theme.accentRed; font.pixelSize: 11; font.family: root.font; anchors.verticalCenter: parent.verticalCenter }
+                                                    Text { text: "Forget This Network"; color: root.theme.accentRed; font.pixelSize: 10; font.family: root.font; font.weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter }
                                                 }
 
                                                 MouseArea {
@@ -2533,163 +2404,180 @@ Scope {
                                     Layout.leftMargin: 2
                                 }
 
-                                Repeater {
-                                    model: Services.SystemService.wifiKnownNetworks
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: knownCol.implicitHeight
+                                    radius: 12
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+                                    clip: true
 
-                                    delegate: Rectangle {
-                                        required property var modelData
-                                        Layout.fillWidth: true
-                                        implicitHeight: 48
-                                        radius: 10
-                                        color: knownItemM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                        border.color: knownItemM.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
-                                        border.width: 1
-                                        scale: knownItemM.pressed ? 0.985 : 1.0
-                                        Behavior on color { ColorAnimation { duration: 100 } }
-                                        Behavior on border.color { ColorAnimation { duration: 100 } }
-                                        Behavior on scale { NumberAnimation { duration: 100 } }
+                                    ColumnLayout {
+                                        id: knownCol
+                                        width: parent.width
+                                        spacing: 0
 
-                                        MouseArea {
-                                            id: knownItemM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: Services.SystemService.connectWifi(modelData.ssid)
-                                        }
+                                        Repeater {
+                                            model: Services.SystemService.wifiKnownNetworks
 
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 10
-                                            spacing: 10
-
-                                            // Signal icon
-                                            Rectangle {
-                                                width: 28
-                                                height: 28
-                                                radius: 7
-                                                color: Qt.rgba(1, 1, 1, 0.08)
-
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: root.getWifiSignalIcon(modelData.signal)
-                                                    color: root.theme.accent
-                                                    font.pixelSize: 14
-                                                    font.family: root.font
-                                                }
-                                            }
-
-                                            ColumnLayout {
+                                            delegate: ColumnLayout {
+                                                required property var modelData
+                                                required property int index
                                                 Layout.fillWidth: true
-                                                spacing: 2
+                                                spacing: 0
 
-                                                RowLayout {
-                                                    spacing: 5
-                                                    Text {
-                                                        text: modelData.ssid
-                                                        color: root.theme.textPrimary
-                                                        font.pixelSize: 12
-                                                        font.family: root.font
-                                                        font.weight: Font.Medium
-                                                        elide: Text.ElideRight
-                                                        Layout.maximumWidth: 150
-                                                    }
-                                                    Text {
-                                                        text: "★"
-                                                        color: root.theme.accentYellow || "#f39c12"
-                                                        font.pixelSize: 9
-                                                    }
+                                                // Hairline divider
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    height: 1
+                                                    color: Services.Aesthetic.innerCardBorder
+                                                    visible: index > 0
                                                 }
 
-                                                RowLayout {
-                                                    spacing: 4
-                                                    Text {
-                                                        text: "󰌾"
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 9
-                                                        font.family: root.font
-                                                        visible: modelData.is_locked
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    height: 44
+                                                    color: knownRowM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
+                                                    Behavior on color { ColorAnimation { duration: 100 } }
+
+                                                    MouseArea {
+                                                        id: knownRowM
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: Services.SystemService.connectWifi(modelData.ssid)
                                                     }
-                                                    Text {
-                                                        text: (modelData.security || "Secured") + " • " + (modelData.band || "2.4 GHz")
-                                                        color: root.theme.textMuted
-                                                        font.pixelSize: 10
-                                                        font.family: root.font
-                                                    }
-                                                }
-                                            }
 
-                                            Item { Layout.fillWidth: true }
+                                                    RowLayout {
+                                                        anchors.fill: parent
+                                                        anchors.leftMargin: 10
+                                                        anchors.rightMargin: 10
+                                                        spacing: 10
 
-                                            // Connect button
-                                            Rectangle {
-                                                id: connBtnKnown
-                                                width: isThisConnecting ? 80 : 64
-                                                height: 26
-                                                radius: 13
-                                                readonly property bool isThisConnecting: Services.SystemService.wifiConnecting && Services.SystemService.wifiConnectingSsid === modelData.ssid
-                                                color: isThisConnecting ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (connKnownM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)
-                                                scale: connKnownM.pressed ? 0.94 : (connKnownM.containsMouse ? 1.04 : 1.0)
-                                                Behavior on color { ColorAnimation { duration: 120 } }
-                                                Behavior on scale { NumberAnimation { duration: 120 } }
+                                                        // Neutral Circle Icon
+                                                        Rectangle {
+                                                            width: 28
+                                                            height: 28
+                                                            radius: 14
+                                                            color: Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.08)
 
-                                                Row {
-                                                    anchors.centerIn: parent
-                                                    spacing: 4
-                                                    Text {
-                                                        text: "󰑐"
-                                                        color: "#ffffff"
-                                                        font.pixelSize: 11
-                                                        font.family: root.font
-                                                        visible: connBtnKnown.isThisConnecting
-                                                        transformOrigin: Item.Center
-                                                        NumberAnimation on rotation {
-                                                            running: connBtnKnown.isThisConnecting
-                                                            loops: Animation.Infinite
-                                                            from: 0
-                                                            to: 360
-                                                            duration: 800
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: ""
+                                                                color: root.theme.textMuted
+                                                                font.pixelSize: 12
+                                                                font.family: root.font
+                                                            }
+                                                        }
+
+                                                        ColumnLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: 2
+
+                                                            Text {
+                                                                text: modelData.ssid
+                                                                color: root.theme.textPrimary
+                                                                font.pixelSize: 12
+                                                                font.family: root.font
+                                                                font.weight: Font.Medium
+                                                                elide: Text.ElideRight
+                                                                Layout.fillWidth: true
+                                                            }
+
+                                                            Text {
+                                                                text: (modelData.is_locked ? "󰌾 " : "") + (modelData.security || "Secured") + (modelData.band ? (" · " + modelData.band) : "")
+                                                                color: root.theme.textMuted
+                                                                font.pixelSize: 10
+                                                                font.family: root.font
+                                                            }
+                                                        }
+
+                                                        // Forget icon button (visible on hover)
+                                                        Rectangle {
+                                                            width: 24
+                                                            height: 24
+                                                            radius: 6
+                                                            visible: knownRowM.containsMouse || fgtKnownM.containsMouse
+                                                            color: fgtKnownM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.15) : "transparent"
+                                                            Behavior on color { ColorAnimation { duration: 100 } }
+
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: "󰆴"
+                                                                color: fgtKnownM.containsMouse ? root.theme.accentRed : root.theme.textMuted
+                                                                font.pixelSize: 12
+                                                                font.family: root.font
+                                                            }
+
+                                                            MouseArea {
+                                                                id: fgtKnownM
+                                                                anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: Services.SystemService.forgetWifi(modelData.ssid)
+                                                            }
+                                                        }
+
+                                                        // Tonal Accent Connect pill
+                                                        Rectangle {
+                                                            id: connBtnKnown
+                                                            height: 24
+                                                            implicitWidth: isThisConnecting ? 76 : (connKnownTxt.implicitWidth + 16)
+                                                            radius: 12
+                                                            readonly property bool isThisConnecting: Services.SystemService.wifiConnecting && Services.SystemService.wifiConnectingSsid === modelData.ssid
+                                                            color: isThisConnecting ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.28) : (connKnownM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12))
+                                                            border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                                            border.width: 1
+                                                            scale: connKnownM.pressed ? 0.94 : (connKnownM.containsMouse ? 1.04 : 1.0)
+                                                            Behavior on color { ColorAnimation { duration: 120 } }
+                                                            Behavior on scale { NumberAnimation { duration: 120 } }
+
+                                                            Row {
+                                                                anchors.centerIn: parent
+                                                                spacing: 4
+                                                                Text {
+                                                                    text: "󰑐"
+                                                                    color: root.theme.accent
+                                                                    font.pixelSize: 10
+                                                                    font.family: root.font
+                                                                    visible: connBtnKnown.isThisConnecting
+                                                                    transformOrigin: Item.Center
+                                                                    NumberAnimation on rotation {
+                                                                        running: connBtnKnown.isThisConnecting
+                                                                        loops: Animation.Infinite
+                                                                        from: 0
+                                                                        to: 360
+                                                                        duration: 800
+                                                                    }
+                                                                }
+                                                                Text {
+                                                                    id: connKnownTxt
+                                                                    text: connBtnKnown.isThisConnecting ? "Joining…" : "Connect"
+                                                                    color: root.theme.accent
+                                                                    font.pixelSize: 10
+                                                                    font.family: root.font
+                                                                    font.weight: Font.Medium
+                                                                }
+                                                            }
+
+                                                            MouseArea {
+                                                                id: connKnownM
+                                                                anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: Services.SystemService.connectWifi(modelData.ssid)
+                                                            }
+                                                        }
+
+                                                        // Signal icon
+                                                        Text {
+                                                            text: root.getWifiSignalIcon(modelData.signal)
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 13
+                                                            font.family: root.font
                                                         }
                                                     }
-                                                    Text {
-                                                        text: parent.parent.isThisConnecting ? "Joining" : "Connect"
-                                                        color: "#ffffff"
-                                                        font.pixelSize: 10
-                                                        font.family: root.font
-                                                        font.weight: Font.Medium
-                                                    }
-                                                }
-
-                                                MouseArea {
-                                                    id: connKnownM
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: Services.SystemService.connectWifi(modelData.ssid)
-                                                }
-                                            }
-
-                                            // Forget icon button
-                                            Rectangle {
-                                                width: 26
-                                                height: 26
-                                                radius: 6
-                                                color: fgtKnownM.containsMouse ? Qt.rgba(1, 0.27, 0.23, 0.2) : "transparent"
-                                                Behavior on color { ColorAnimation { duration: 100 } }
-
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "󰆴"
-                                                    color: fgtKnownM.containsMouse ? "#ff453a" : root.theme.textMuted
-                                                    font.pixelSize: 12
-                                                    font.family: root.font
-                                                }
-
-                                                MouseArea {
-                                                    id: fgtKnownM
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: Services.SystemService.forgetWifi(modelData.ssid)
                                                 }
                                             }
                                         }
@@ -2711,153 +2599,62 @@ Scope {
                                     Layout.leftMargin: 2
                                 }
 
-                                // Empty Placeholder
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    implicitHeight: 44
-                                    radius: 10
-                                    visible: Services.SystemService.wifiOtherNetworks.length === 0
-                                    color: Qt.rgba(1, 1, 1, 0.03)
-                                    border.color: Qt.rgba(1, 1, 1, 0.06)
+                                    implicitHeight: otherCol.implicitHeight
+                                    radius: 12
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
                                     border.width: 1
+                                    clip: true
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: Services.SystemService.wifiScanning ? "Scanning for networks..." : "No other networks found"
-                                        color: root.theme.textMuted
-                                        font.pixelSize: 11
-                                        font.family: root.font
-                                    }
-                                }
+                                    ColumnLayout {
+                                        id: otherCol
+                                        width: parent.width
+                                        spacing: 0
 
-                                Repeater {
-                                    model: Services.SystemService.wifiOtherNetworks
+                                        // Empty Placeholder (single muted line)
+                                        Item {
+                                            Layout.fillWidth: true
+                                            height: 38
+                                            visible: Services.SystemService.wifiOtherNetworks.length === 0
 
-                                    delegate: Rectangle {
-                                        required property var modelData
-                                        Layout.fillWidth: true
-                                        readonly property bool isThisConnecting: Services.SystemService.wifiConnecting && Services.SystemService.wifiConnectingSsid === modelData.ssid
-                                        implicitHeight: 48
-                                        radius: 10
-                                        color: otherRowM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                        border.color: otherRowM.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
-                                        border.width: 1
-                                        scale: otherRowM.pressed ? 0.985 : 1.0
-                                        Behavior on color { ColorAnimation { duration: 100 } }
-                                        Behavior on border.color { ColorAnimation { duration: 100 } }
-                                        Behavior on scale { NumberAnimation { duration: 100 } }
-
-                                        MouseArea {
-                                            id: otherRowM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                if (!modelData.is_locked) {
-                                                    Services.SystemService.connectWifi(modelData.ssid);
-                                                } else {
-                                                    root.wifiPromptSsid = modelData.ssid;
-                                                    root.wifiPasswordText = "";
-                                                    Services.SystemService.wifiConnectError = "";
-                                                }
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: Services.SystemService.wifiScanning ? "Scanning for networks…" : "No other networks found"
+                                                color: root.theme.textMuted
+                                                font.pixelSize: 11
+                                                font.family: root.font
                                             }
                                         }
 
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 10
-                                            spacing: 10
+                                        Repeater {
+                                            model: Services.SystemService.wifiOtherNetworks
 
+                                            delegate: ColumnLayout {
+                                                required property var modelData
+                                                required property int index
+                                                Layout.fillWidth: true
+                                                spacing: 0
+
+                                                readonly property bool isThisConnecting: Services.SystemService.wifiConnecting && Services.SystemService.wifiConnectingSsid === modelData.ssid
+
+                                                // Hairline divider between rows
                                                 Rectangle {
-                                                    width: 28
-                                                    height: 28
-                                                    radius: 7
-                                                    color: Qt.rgba(1, 1, 1, 0.08)
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: root.getWifiSignalIcon(modelData.signal)
-                                                        color: root.theme.accent
-                                                        font.pixelSize: 14
-                                                        font.family: root.font
-                                                    }
-                                                }
-
-                                                ColumnLayout {
                                                     Layout.fillWidth: true
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: modelData.ssid
-                                                        color: root.theme.textPrimary
-                                                        font.pixelSize: 12
-                                                        font.family: root.font
-                                                        font.weight: Font.Medium
-                                                        elide: Text.ElideRight
-                                                        Layout.maximumWidth: 150
-                                                    }
-
-                                                    RowLayout {
-                                                        spacing: 4
-                                                        Text {
-                                                            text: "󰌾"
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 9
-                                                            font.family: root.font
-                                                            visible: modelData.is_locked
-                                                        }
-                                                        Text {
-                                                            text: (modelData.security || "Open") + " • " + (modelData.band || "2.4 GHz")
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                        }
-                                                    }
+                                                    height: 1
+                                                    color: Services.Aesthetic.innerCardBorder
+                                                    visible: index > 0
                                                 }
 
-                                                Item { Layout.fillWidth: true }
-
-                                                // Connect or Lock indicator pill
                                                 Rectangle {
-                                                    width: isThisConnecting ? 80 : 64
-                                                    height: 26
-                                                    radius: 13
-                                                    color: isThisConnecting ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (otherConnM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : Qt.rgba(1, 1, 1, 0.1))
-                                                    border.color: isThisConnecting ? root.theme.accent : (otherConnM.containsMouse ? root.theme.accent : Qt.rgba(1, 1, 1, 0.15))
-                                                    border.width: 1
-                                                    scale: otherConnM.pressed ? 0.94 : (otherConnM.containsMouse ? 1.04 : 1.0)
-                                                    Behavior on color { ColorAnimation { duration: 120 } }
-                                                    Behavior on scale { NumberAnimation { duration: 120 } }
-
-                                                    Row {
-                                                        anchors.centerIn: parent
-                                                        spacing: 4
-                                                        Text {
-                                                            text: "󰑐"
-                                                            color: "#ffffff"
-                                                            font.pixelSize: 11
-                                                            font.family: root.font
-                                                            visible: isThisConnecting
-                                                            transformOrigin: Item.Center
-                                                            NumberAnimation on rotation {
-                                                                running: isThisConnecting
-                                                                loops: Animation.Infinite
-                                                                from: 0
-                                                                to: 360
-                                                                duration: 800
-                                                            }
-                                                        }
-                                                        Text {
-                                                            text: isThisConnecting ? "Joining" : (modelData.is_locked ? "Connect" : "Join")
-                                                            color: "#ffffff"
-                                                            font.pixelSize: 10
-                                                            font.family: root.font
-                                                            font.weight: Font.Medium
-                                                        }
-                                                    }
+                                                    Layout.fillWidth: true
+                                                    height: 44
+                                                    color: otherRowM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
+                                                    Behavior on color { ColorAnimation { duration: 100 } }
 
                                                     MouseArea {
-                                                        id: otherConnM
+                                                        id: otherRowM
                                                         anchors.fill: parent
                                                         hoverEnabled: true
                                                         cursorShape: Qt.PointingHandCursor
@@ -2872,81 +2669,172 @@ Scope {
                                                             }
                                                         }
                                                     }
+
+                                                    RowLayout {
+                                                        anchors.fill: parent
+                                                        anchors.leftMargin: 10
+                                                        anchors.rightMargin: 10
+                                                        spacing: 10
+
+                                                        // Neutral Circle Icon
+                                                        Rectangle {
+                                                            width: 28
+                                                            height: 28
+                                                            radius: 14
+                                                            color: Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.08)
+
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: ""
+                                                                color: root.theme.textMuted
+                                                                font.pixelSize: 12
+                                                                font.family: root.font
+                                                            }
+                                                        }
+
+                                                        ColumnLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: 2
+
+                                                            Text {
+                                                                text: modelData.ssid
+                                                                color: root.theme.textPrimary
+                                                                font.pixelSize: 12
+                                                                font.family: root.font
+                                                                font.weight: Font.Medium
+                                                                elide: Text.ElideRight
+                                                                Layout.fillWidth: true
+                                                            }
+
+                                                            Text {
+                                                                text: (modelData.is_locked ? "󰌾 " : "") + (modelData.security || "Open") + (modelData.band ? (" · " + modelData.band) : "")
+                                                                color: root.theme.textMuted
+                                                                font.pixelSize: 10
+                                                                font.family: root.font
+                                                            }
+                                                        }
+
+                                                        // Connecting Pill Indicator
+                                                        Rectangle {
+                                                            height: 24
+                                                            implicitWidth: 76
+                                                            radius: 12
+                                                            visible: isThisConnecting
+                                                            color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.28)
+                                                            border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                                            border.width: 1
+
+                                                            Row {
+                                                                anchors.centerIn: parent
+                                                                spacing: 4
+                                                                Text {
+                                                                    text: "󰑐"
+                                                                    color: root.theme.accent
+                                                                    font.pixelSize: 10
+                                                                    font.family: root.font
+                                                                    transformOrigin: Item.Center
+                                                                    NumberAnimation on rotation {
+                                                                        running: isThisConnecting
+                                                                        loops: Animation.Infinite
+                                                                        from: 0
+                                                                        to: 360
+                                                                        duration: 800
+                                                                    }
+                                                                }
+                                                                Text {
+                                                                    text: "Joining…"
+                                                                    color: root.theme.accent
+                                                                    font.pixelSize: 10
+                                                                    font.family: root.font
+                                                                    font.weight: Font.Medium
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Signal icon
+                                                        Text {
+                                                            text: root.getWifiSignalIcon(modelData.signal)
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 13
+                                                            font.family: root.font
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Hairline divider before Join Other Network
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 1
+                                            color: Services.Aesthetic.innerCardBorder
+                                        }
+
+                                        // ── JOIN OTHER NETWORK (LAST ROW IN GROUP) ──
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 44
+                                            color: joinOtherM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
+                                            Behavior on color { ColorAnimation { duration: 100 } }
+
+                                            MouseArea {
+                                                id: joinOtherM
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    root.wifiJoinOtherMode = true;
+                                                    root.wifiOtherSsid = "";
+                                                    root.wifiOtherPassword = "";
+                                                    root.wifiShowPasswordText = false;
+                                                    Services.SystemService.wifiConnectError = "";
                                                 }
                                             }
 
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 10
+                                                anchors.rightMargin: 10
+                                                spacing: 10
+
+                                                Rectangle {
+                                                    width: 28
+                                                    height: 28
+                                                    radius: 14
+                                                    color: Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.08)
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "󱛄"
+                                                        color: root.theme.textMuted
+                                                        font.pixelSize: 13
+                                                        font.family: root.font
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: "Join Other Network…"
+                                                    color: root.theme.textPrimary
+                                                    font.pixelSize: 12
+                                                    font.family: root.font
+                                                    font.weight: Font.Medium
+                                                }
+
+                                                Item { Layout.fillWidth: true }
+
+                                                Text {
+                                                    text: "›"
+                                                    color: root.theme.textMuted
+                                                    font.pixelSize: 16
+                                                    font.family: root.font
+                                                }
+                                            }
                                         }
-                                    }
-                                }
-
-                            // ── JOIN OTHER NETWORK BUTTON ─────────
-                            Rectangle {
-                                Layout.fillWidth: true
-                                implicitHeight: 44
-                                radius: 10
-                                color: joinOtherM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                border.color: joinOtherM.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
-                                border.width: 1
-                                scale: joinOtherM.pressed ? 0.985 : 1.0
-                                Behavior on color { ColorAnimation { duration: 100 } }
-                                Behavior on border.color { ColorAnimation { duration: 100 } }
-                                Behavior on scale { NumberAnimation { duration: 100 } }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 10
-                                    spacing: 10
-
-                                    Rectangle {
-                                        width: 28
-                                        height: 28
-                                        radius: 7
-                                        color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.15)
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "󱛄"
-                                            color: root.theme.accent
-                                            font.pixelSize: 14
-                                            font.family: root.font
-                                        }
-                                    }
-
-                                    Text {
-                                        text: "Join Other Network..."
-                                        color: root.theme.textPrimary
-                                        font.pixelSize: 12
-                                        font.family: root.font
-                                        font.weight: Font.Medium
-                                    }
-
-                                    Item { Layout.fillWidth: true }
-
-                                    Text {
-                                        text: "›"
-                                        color: joinOtherM.containsMouse ? "#ffffff" : root.theme.textMuted
-                                        font.pixelSize: 16
-                                        font.family: root.font
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: joinOtherM
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        root.wifiJoinOtherMode = true;
-                                        root.wifiOtherSsid = "";
-                                        root.wifiOtherPassword = "";
-                                        root.wifiShowPasswordText = false;
-                                        Services.SystemService.wifiConnectError = "";
                                     }
                                 }
                             }
                         }
                     }
-
                     // ── DEDICATED ANDROID / iOS STYLE ENTER PASSWORD SCREEN ──
                     ColumnLayout {
                         id: wifiPasswordView
@@ -3586,7 +3474,7 @@ Scope {
                 }
 
                 // ═══════════════════════════════════════════
-                // VIEW 3: macOS STYLE BLUETOOTH DETAILS
+                // VIEW 3: BLUETOOTH DETAILS
                 // ═══════════════════════════════════════════
                 ColumnLayout {
                     id: btDetailsView
@@ -3594,6 +3482,9 @@ Scope {
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 12
+
+                    readonly property var connectedBtDevices: (Services.SystemService.bluetoothDevices || []).filter(d => d.connected)
+                    readonly property var pairedBtDevices: (Services.SystemService.bluetoothDevices || []).filter(d => !d.connected)
 
                     // Back & Title Header
                     RowLayout {
@@ -3605,8 +3496,8 @@ Scope {
                             width: 32
                             height: 32
                             radius: 16
-                            color: backBM.pressed ? Qt.rgba(1, 1, 1, 0.22) : (backBM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
-                            border.color: backBM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1)
+                            color: backBM.pressed ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.18) : (backBM.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.12) : Services.Aesthetic.innerCardBg)
+                            border.color: backBM.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.25) : Services.Aesthetic.innerCardBorder
                             border.width: 1
                             scale: backBM.pressed ? 0.92 : (backBM.containsMouse ? 1.06 : 1.0)
                             Behavior on color { ColorAnimation { duration: 120 } }
@@ -3616,7 +3507,7 @@ Scope {
                             Text {
                                 anchors.centerIn: parent
                                 text: "‹"
-                                color: backBM.containsMouse ? "#ffffff" : root.theme.textPrimary
+                                color: root.theme.textPrimary
                                 font.pixelSize: 18
                                 font.family: root.font
                             }
@@ -3640,59 +3531,14 @@ Scope {
 
                         Item { Layout.fillWidth: true }
 
-                        // Discoverable pill toggle with hover & press
-                        Rectangle {
-                            height: 28
-                            implicitWidth: discRow.implicitWidth + 20
-                            radius: 14
-                            visible: Services.SystemService.bluetoothEnabled
-                            color: discHeaderMouse.pressed ? (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35) : Qt.rgba(1, 1, 1, 0.16)) : (discHeaderMouse.containsMouse ? (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.28) : Qt.rgba(1, 1, 1, 0.12)) : (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18) : Qt.rgba(1, 1, 1, 0.06)))
-                            border.color: discHeaderMouse.containsMouse ? (Services.SystemService.bluetoothDiscoverable ? root.theme.accent : Qt.rgba(1, 1, 1, 0.25)) : (Services.SystemService.bluetoothDiscoverable ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1))
-                            border.width: 1
-                            scale: discHeaderMouse.pressed ? 0.94 : (discHeaderMouse.containsMouse ? 1.04 : 1.0)
-                            Behavior on color { ColorAnimation { duration: 120 } }
-                            Behavior on border.color { ColorAnimation { duration: 120 } }
-                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-
-                            Row {
-                                id: discRow
-                                anchors.centerIn: parent
-                                spacing: 6
-                                Text {
-                                    text: Services.SystemService.bluetoothDiscoverable ? "󰂰" : "󰂲"
-                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : (discHeaderMouse.containsMouse ? "#ffffff" : root.theme.textMuted)
-                                    font.pixelSize: 12
-                                    font.family: root.font
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: Services.SystemService.bluetoothDiscoverable ? "Visible" : "Hidden"
-                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.textPrimary : (discHeaderMouse.containsMouse ? "#ffffff" : root.theme.textMuted)
-                                    font.pixelSize: 10
-                                    font.family: root.font
-                                    font.weight: Font.Medium
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            MouseArea {
-                                id: discHeaderMouse
-                                anchors.fill: parent
-                                anchors.margins: -3
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: Services.SystemService.toggleBluetoothDiscoverable()
-                            }
-                        }
-
                         // Rescan button with rotation & hover/press scale
                         Rectangle {
                             width: 30
                             height: 30
                             radius: 15
                             visible: Services.SystemService.bluetoothEnabled
-                            color: rescBM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (rescBM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Qt.rgba(1, 1, 1, 0.08))
-                            border.color: rescBM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1)
+                            color: rescBM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (rescBM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Services.Aesthetic.innerCardBg)
+                            border.color: rescBM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Services.Aesthetic.innerCardBorder
                             border.width: 1
                             scale: rescBM.pressed ? 0.90 : (rescBM.containsMouse ? 1.08 : 1.0)
                             Behavior on color { ColorAnimation { duration: 120 } }
@@ -3703,7 +3549,7 @@ Scope {
                                 id: scanIcon
                                 anchors.centerIn: parent
                                 text: "󰑐"
-                                color: Services.SystemService.bluetoothDiscovering ? root.theme.accentGreen : (rescBM.containsMouse ? "#ffffff" : root.theme.accent)
+                                color: Services.SystemService.bluetoothDiscovering ? root.theme.accent : (rescBM.containsMouse ? root.theme.textPrimary : root.theme.accent)
                                 font.pixelSize: 13
                                 font.family: root.font
                                 transformOrigin: Item.Center
@@ -3716,6 +3562,11 @@ Scope {
                                     duration: 900
                                 }
                             }
+
+                            ToolTip.visible: rescBM.containsMouse
+                            ToolTip.text: "Scan for Devices"
+                            ToolTip.delay: 400
+
                             MouseArea {
                                 id: rescBM
                                 anchors.fill: parent
@@ -3731,7 +3582,10 @@ Scope {
                             width: 44
                             height: 24
                             radius: 12
-                            color: Services.SystemService.bluetoothEnabled ? (pwrSwMouse.containsMouse ? Qt.lighter(root.theme.accent, 1.1) : root.theme.accent) : (pwrSwMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.15))
+                            visible: Services.SystemService.bluetoothEnabled
+                            color: Services.SystemService.bluetoothEnabled ? (pwrSwMouse.containsMouse ? Qt.lighter(root.theme.accent, 1.1) : root.theme.accent) : (pwrSwMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg)
+                            border.color: Services.SystemService.bluetoothEnabled ? root.theme.accent : Services.Aesthetic.innerCardBorder
+                            border.width: 1
                             scale: pwrSwMouse.pressed ? 0.94 : 1.0
                             Behavior on color { ColorAnimation { duration: 150 } }
                             Behavior on scale { NumberAnimation { duration: 120 } }
@@ -3740,7 +3594,7 @@ Scope {
                                 width: 20
                                 height: 20
                                 radius: 10
-                                color: "#ffffff"
+                                color: Services.SystemService.bluetoothEnabled ? root.theme.onPrimary : root.theme.textPrimary
                                 anchors.verticalCenter: parent.verticalCenter
                                 x: Services.SystemService.bluetoothEnabled ? 22 : 2
                                 Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
@@ -3772,8 +3626,8 @@ Scope {
                                 width: 56
                                 height: 56
                                 radius: 28
-                                color: Qt.rgba(1, 1, 1, 0.06)
-                                border.color: Qt.rgba(1, 1, 1, 0.1)
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 Text {
                                     anchors.centerIn: parent
@@ -3786,7 +3640,7 @@ Scope {
 
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: "Bluetooth is Turned Off"
+                                text: "Bluetooth is Off"
                                 color: root.theme.textPrimary
                                 font.pixelSize: 14
                                 font.family: root.font
@@ -3807,22 +3661,22 @@ Scope {
                                 width: 96
                                 height: 32
                                 radius: 16
-                                color: turnOnM.pressed ? Qt.darker(root.theme.accent, 1.15) : (turnOnM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)
-                                scale: turnOnM.pressed ? 0.94 : (turnOnM.containsMouse ? 1.06 : 1.0)
+                                color: turnOnBtM.pressed ? Qt.darker(root.theme.accent, 1.15) : (turnOnBtM.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)
+                                scale: turnOnBtM.pressed ? 0.94 : (turnOnBtM.containsMouse ? 1.06 : 1.0)
                                 Behavior on color { ColorAnimation { duration: 120 } }
                                 Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                                 Text {
                                     anchors.centerIn: parent
                                     text: "Turn On"
-                                    color: "#ffffff"
+                                    color: root.theme.onPrimary
                                     font.pixelSize: 11
                                     font.family: root.font
                                     font.weight: Font.DemiBold
                                 }
 
                                 MouseArea {
-                                    id: turnOnM
+                                    id: turnOnBtM
                                     anchors.fill: parent
                                     anchors.margins: -3
                                     hoverEnabled: true
@@ -3846,88 +3700,53 @@ Scope {
                         ColumnLayout {
                             id: btContentCol
                             width: parent.width
-                            spacing: 12
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: parent.width
+                            Layout.maximumWidth: parent.width
+                            spacing: 14
 
-                            // ── MY DEVICES SECTION ────────────────
-                            Text {
-                                text: "MY DEVICES"
-                                color: root.theme.textMuted
-                                font.pixelSize: 10
-                                font.family: root.font
-                                font.weight: Font.DemiBold
-                                Layout.leftMargin: 2
-                            }
-
-                            // Empty Paired Placeholder
-                            Rectangle {
-                                Layout.fillWidth: true
-                                implicitHeight: 44
-                                radius: 10
-                                visible: Services.SystemService.bluetoothDevices.length === 0
-                                color: Qt.rgba(1, 1, 1, 0.03)
-                                border.color: Qt.rgba(1, 1, 1, 0.06)
-                                border.width: 1
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "No paired devices"
-                                    color: root.theme.textMuted
-                                    font.pixelSize: 11
-                                    font.family: root.font
-                                }
-                            }
-
-                            // Paired Devices List
+                            // ── CONNECTED DEVICES (ACCENT-TINTED) ───────────
                             Repeater {
-                                model: Services.SystemService.bluetoothDevices
+                                model: btDetailsView.connectedBtDevices
 
                                 delegate: Rectangle {
                                     required property var modelData
                                     Layout.fillWidth: true
                                     implicitHeight: 52
-                                    radius: 10
-                                    color: pDevMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                    border.color: pDevMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
+                                    radius: 12
+                                    color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12)
+                                    border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.28)
                                     border.width: 1
-                                    scale: pDevMouse.pressed ? 0.985 : 1.0
-                                    Behavior on color { ColorAnimation { duration: 100 } }
-                                    Behavior on border.color { ColorAnimation { duration: 100 } }
-                                    Behavior on scale { NumberAnimation { duration: 100 } }
 
-                                    // Whole row is clickable to connect / disconnect
                                     MouseArea {
-                                        id: pDevMouse
+                                        id: connRowM
                                         anchors.fill: parent
                                         hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (modelData.connected) Services.SystemService.disconnectBluetooth(modelData.mac);
-                                            else Services.SystemService.connectBluetooth(modelData.mac);
-                                        }
                                     }
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        anchors.margins: 10
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
                                         spacing: 10
 
-                                        // Icon Container
+                                        // Accent Circle with Device Glyph
                                         Rectangle {
                                             width: 32
                                             height: 32
-                                            radius: 8
-                                            color: modelData.connected ? Qt.rgba(root.theme.accentGreen.r, root.theme.accentGreen.g, root.theme.accentGreen.b, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                            radius: 16
+                                            color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: root.getBtIcon(modelData.icon)
-                                                color: modelData.connected ? root.theme.accentGreen : root.theme.accent
+                                                color: root.theme.accent
                                                 font.pixelSize: 15
                                                 font.family: root.font
                                             }
                                         }
 
-                                        // Name & Details
+                                        // Name & ONE muted line: "Connected · 80%"
                                         ColumnLayout {
                                             Layout.fillWidth: true
                                             spacing: 2
@@ -3937,109 +3756,259 @@ Scope {
                                                 color: root.theme.textPrimary
                                                 font.pixelSize: 12
                                                 font.family: root.font
-                                                font.weight: modelData.connected ? Font.DemiBold : Font.Normal
+                                                font.weight: Font.DemiBold
                                                 elide: Text.ElideRight
                                                 Layout.fillWidth: true
                                             }
 
-                                            RowLayout {
-                                                spacing: 6
-
-                                                Text {
-                                                    text: modelData.connected ? "Connected" : "Paired"
-                                                    color: modelData.connected ? root.theme.accentGreen : root.theme.textMuted
-                                                    font.pixelSize: 10
-                                                    font.family: root.font
-                                                }
-
-                                                // Battery badge if available
-                                                Rectangle {
-                                                    visible: modelData.battery !== null && modelData.battery !== undefined
-                                                    height: 16
-                                                    implicitWidth: battTxt.implicitWidth + 8
-                                                    radius: 4
-                                                    color: Qt.rgba(1, 1, 1, 0.08)
-
-                                                    Text {
-                                                        id: battTxt
-                                                        anchors.centerIn: parent
-                                                        text: "󰁹 " + (modelData.battery || 0) + "%"
-                                                        color: root.theme.textPrimary
-                                                        font.pixelSize: 9
-                                                        font.family: root.font
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // Connect / Disconnect button with tactile hover & scale
-                                        Rectangle {
-                                            height: 28
-                                            implicitWidth: Math.max(76, connTxt.implicitWidth + 18)
-                                            radius: 8
-                                            color: modelData.connected ? (connBtnMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2) : Qt.rgba(1, 1, 1, 0.08)) : (connBtnMouse.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent)
-                                            border.color: modelData.connected ? (connBtnMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.45) : Qt.rgba(1, 1, 1, 0.15)) : (connBtnMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.35) : "transparent")
-                                            border.width: 1
-                                            scale: connBtnMouse.pressed ? 0.93 : (connBtnMouse.containsMouse ? 1.05 : 1.0)
-                                            Behavior on color { ColorAnimation { duration: 120 } }
-                                            Behavior on border.color { ColorAnimation { duration: 120 } }
-                                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-
                                             Text {
-                                                id: connTxt
-                                                anchors.centerIn: parent
-                                                text: modelData.connected ? (connBtnMouse.containsMouse ? "Disconnect" : "Connected") : "Connect"
-                                                color: modelData.connected ? (connBtnMouse.containsMouse ? root.theme.accentRed : root.theme.textPrimary) : "#ffffff"
+                                                text: "Connected" + (modelData.battery !== null && modelData.battery !== undefined ? (" · " + modelData.battery + "%") : "")
+                                                color: root.theme.textMuted
                                                 font.pixelSize: 10
                                                 font.family: root.font
-                                                font.weight: Font.DemiBold
-                                            }
-
-                                            MouseArea {
-                                                id: connBtnMouse
-                                                anchors.fill: parent
-                                                anchors.margins: -2
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    if (modelData.connected) Services.SystemService.disconnectBluetooth(modelData.mac);
-                                                    else Services.SystemService.connectBluetooth(modelData.mac);
-                                                }
                                             }
                                         }
 
-                                        // Forget / Remove Device button with generous hit target & hover scale
+                                        // Forget / Remove icon button (visible on hover)
                                         Rectangle {
-                                            width: 30
-                                            height: 30
-                                            radius: 15
-                                            color: forgetMouse.pressed ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.35) : (forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.22) : Qt.rgba(1, 1, 1, 0.06))
-                                            border.color: forgetMouse.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.5) : Qt.rgba(1, 1, 1, 0.08)
-                                            border.width: 1
-                                            scale: forgetMouse.pressed ? 0.88 : (forgetMouse.containsMouse ? 1.1 : 1.0)
-                                            Behavior on color { ColorAnimation { duration: 120 } }
-                                            Behavior on border.color { ColorAnimation { duration: 120 } }
-                                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                                            width: 24
+                                            height: 24
+                                            radius: 6
+                                            visible: connRowM.containsMouse || fgtConnM.containsMouse
+                                            color: fgtConnM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.15) : "transparent"
+                                            Behavior on color { ColorAnimation { duration: 100 } }
 
                                             Text {
                                                 anchors.centerIn: parent
-                                                text: "󰩹"
-                                                color: forgetMouse.containsMouse ? root.theme.accentRed : root.theme.textMuted
-                                                font.pixelSize: 13
+                                                text: "󰆴"
+                                                color: fgtConnM.containsMouse ? root.theme.accentRed : root.theme.textMuted
+                                                font.pixelSize: 12
                                                 font.family: root.font
                                             }
 
                                             MouseArea {
-                                                id: forgetMouse
+                                                id: fgtConnM
                                                 anchors.fill: parent
-                                                anchors.margins: -4
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: Services.SystemService.removeBluetooth(modelData.mac)
                                             }
                                         }
+
+                                        // Quiet neutral Disconnect button that turns error-colored on hover
+                                        Rectangle {
+                                            id: disconBtBtn
+                                            height: 24
+                                            implicitWidth: disconBtTxt.implicitWidth + 16
+                                            radius: 12
+                                            color: disconBtM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.18) : Services.Aesthetic.innerCardBg
+                                            border.color: disconBtM.containsMouse ? root.theme.accentRed : Services.Aesthetic.innerCardBorder
+                                            border.width: 1
+                                            scale: disconBtM.pressed ? 0.94 : (disconBtM.containsMouse ? 1.04 : 1.0)
+                                            Behavior on color { ColorAnimation { duration: 120 } }
+                                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                                            Behavior on scale { NumberAnimation { duration: 120 } }
+
+                                            Text {
+                                                id: disconBtTxt
+                                                anchors.centerIn: parent
+                                                text: "Disconnect"
+                                                color: disconBtM.containsMouse ? root.theme.accentRed : root.theme.textMuted
+                                                font.pixelSize: 10
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                            }
+
+                                            MouseArea {
+                                                id: disconBtM
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: Services.SystemService.disconnectBluetooth(modelData.mac)
+                                            }
+                                        }
                                     }
                                 }
+                            }
+
+                            // ── PAIRED DEVICES SECTION ────────────
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                visible: btDetailsView.pairedBtDevices.length > 0
+
+                                Text {
+                                    text: "PAIRED DEVICES"
+                                    color: root.theme.textMuted
+                                    font.pixelSize: 10
+                                    font.family: root.font
+                                    font.weight: Font.DemiBold
+                                    Layout.leftMargin: 2
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: pairedCol.implicitHeight
+                                    radius: 12
+                                    color: Services.Aesthetic.innerCardBg
+                                    border.color: Services.Aesthetic.innerCardBorder
+                                    border.width: 1
+                                    clip: true
+
+                                    ColumnLayout {
+                                        id: pairedCol
+                                        width: parent.width
+                                        spacing: 0
+
+                                        Repeater {
+                                            model: btDetailsView.pairedBtDevices
+                                            delegate: ColumnLayout {
+                                                required property var modelData
+                                                required property int index
+                                                Layout.fillWidth: true
+                                                spacing: 0
+
+                                                // Hairline divider
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    height: 1
+                                                    color: Services.Aesthetic.innerCardBorder
+                                                    visible: index > 0
+                                                }
+
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    height: 48
+                                                    color: pairedRowM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
+                                                    Behavior on color { ColorAnimation { duration: 100 } }
+
+                                                    MouseArea {
+                                                        id: pairedRowM
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: Services.SystemService.connectBluetooth(modelData.mac)
+                                                    }
+
+                                                    RowLayout {
+                                                        anchors.fill: parent
+                                                        anchors.leftMargin: 10
+                                                        anchors.rightMargin: 10
+                                                        spacing: 10
+
+                                                        // Neutral circle icon
+                                                        Rectangle {
+                                                            width: 28
+                                                            height: 28
+                                                            radius: 14
+                                                            color: Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.08)
+
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: root.getBtIcon(modelData.icon)
+                                                                color: root.theme.textMuted
+                                                                font.pixelSize: 13
+                                                                font.family: root.font
+                                                            }
+                                                        }
+
+                                                        // Name & details
+                                                        ColumnLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: 1
+
+                                                            Text {
+                                                                text: modelData.name || modelData.mac
+                                                                color: root.theme.textPrimary
+                                                                font.pixelSize: 12
+                                                                font.family: root.font
+                                                                font.weight: Font.Medium
+                                                                elide: Text.ElideRight
+                                                                Layout.fillWidth: true
+                                                            }
+
+                                                            Text {
+                                                                text: "Paired" + (modelData.battery !== null && modelData.battery !== undefined ? (" · " + modelData.battery + "%") : "")
+                                                                color: root.theme.textMuted
+                                                                font.pixelSize: 10
+                                                                font.family: root.font
+                                                            }
+                                                        }
+
+                                                        // Forget / Remove icon button (visible on hover)
+                                                        Rectangle {
+                                                            width: 24
+                                                            height: 24
+                                                            radius: 6
+                                                            visible: pairedRowM.containsMouse || fgtPairedM.containsMouse
+                                                            color: fgtPairedM.containsMouse ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.15) : "transparent"
+                                                            Behavior on color { ColorAnimation { duration: 100 } }
+
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: "󰆴"
+                                                                color: fgtPairedM.containsMouse ? root.theme.accentRed : root.theme.textMuted
+                                                                font.pixelSize: 12
+                                                                font.family: root.font
+                                                            }
+
+                                                            MouseArea {
+                                                                id: fgtPairedM
+                                                                anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: Services.SystemService.removeBluetooth(modelData.mac)
+                                                            }
+                                                        }
+
+                                                        // Tonal accent Connect pill
+                                                        Rectangle {
+                                                            id: connPairedBtn
+                                                            height: 24
+                                                            implicitWidth: connPairedTxt.implicitWidth + 16
+                                                            radius: 12
+                                                            color: connPairedM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12)
+                                                            border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                                            border.width: 1
+                                                            scale: connPairedM.pressed ? 0.94 : (connPairedM.containsMouse ? 1.04 : 1.0)
+                                                            Behavior on color { ColorAnimation { duration: 120 } }
+                                                            Behavior on scale { NumberAnimation { duration: 120 } }
+
+                                                            Text {
+                                                                id: connPairedTxt
+                                                                anchors.centerIn: parent
+                                                                text: "Connect"
+                                                                color: root.theme.accent
+                                                                font.pixelSize: 10
+                                                                font.family: root.font
+                                                                font.weight: Font.Medium
+                                                            }
+
+                                                            MouseArea {
+                                                                id: connPairedM
+                                                                anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: Services.SystemService.connectBluetooth(modelData.mac)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Empty Paired state (single muted line if no devices paired at all)
+                            Text {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: 2
+                                visible: (Services.SystemService.bluetoothDevices || []).length === 0
+                                text: "No paired devices"
+                                color: root.theme.textMuted
+                                font.pixelSize: 11
+                                font.family: root.font
                             }
 
                             // ── NEARBY DEVICES SECTION ────────────
@@ -4064,102 +4033,12 @@ Scope {
                                     visible: Services.SystemService.bluetoothDiscovering
 
                                     Text {
-                                        text: "Searching..."
-                                        color: root.theme.accent
-                                        font.pixelSize: 10
-                                        font.family: root.font
-                                    }
-                                }
-
-                                // Dedicated Scan Button Pill
-                                Rectangle {
-                                    visible: !Services.SystemService.bluetoothDiscovering
-                                    height: 24
-                                    implicitWidth: scanBtnTxt.implicitWidth + 20
-                                    radius: 7
-                                    color: scanBtnM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3) : (scanBtnM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2) : Qt.rgba(1, 1, 1, 0.08))
-                                    border.color: scanBtnM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Qt.rgba(1, 1, 1, 0.1)
-                                    border.width: 1
-                                    scale: scanBtnM.pressed ? 0.93 : (scanBtnM.containsMouse ? 1.05 : 1.0)
-                                    Behavior on color { ColorAnimation { duration: 120 } }
-                                    Behavior on border.color { ColorAnimation { duration: 120 } }
-                                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-
-                                    Row {
-                                        anchors.centerIn: parent
-                                        spacing: 5
-                                        Text {
-                                            text: "󰑐"
-                                            color: scanBtnM.containsMouse ? "#ffffff" : root.theme.accent
-                                            font.pixelSize: 11
-                                            font.family: root.font
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                        Text {
-                                            id: scanBtnTxt
-                                            text: "Scan"
-                                            color: scanBtnM.containsMouse ? "#ffffff" : root.theme.accent
-                                            font.pixelSize: 10
-                                            font.family: root.font
-                                            font.weight: Font.DemiBold
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: scanBtnM
-                                        anchors.fill: parent
-                                        anchors.margins: -3
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: Services.SystemService.startBluetoothScan()
-                                    }
-                                }
-                            }
-
-                            // Empty Available Placeholder
-                            Rectangle {
-                                Layout.fillWidth: true
-                                implicitHeight: Services.SystemService.bluetoothDiscovering ? 46 : 54
-                                radius: 10
-                                visible: Services.SystemService.bluetoothAvailableDevices.length === 0
-                                color: Qt.rgba(1, 1, 1, 0.03)
-                                border.color: Qt.rgba(1, 1, 1, 0.06)
-                                border.width: 1
-
-                                ColumnLayout {
-                                    anchors.centerIn: parent
-                                    spacing: 4
-                                    visible: !Services.SystemService.bluetoothDiscovering
-
-                                    Text {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        text: "No nearby devices found"
-                                        color: root.theme.textMuted
-                                        font.pixelSize: 11
-                                        font.family: root.font
-                                    }
-
-                                    Text {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        text: "Tap Scan above to search for nearby accessories."
-                                        color: Qt.rgba(1, 1, 1, 0.35)
-                                        font.pixelSize: 9
-                                        font.family: root.font
-                                    }
-                                }
-
-                                Row {
-                                    anchors.centerIn: parent
-                                    spacing: 8
-                                    visible: Services.SystemService.bluetoothDiscovering
-
-                                    Text {
                                         text: "󰑐"
                                         color: root.theme.accent
-                                        font.pixelSize: 12
+                                        font.pixelSize: 11
                                         font.family: root.font
                                         anchors.verticalCenter: parent.verticalCenter
+                                        transformOrigin: Item.Center
                                         NumberAnimation on rotation {
                                             running: Services.SystemService.bluetoothDiscovering
                                             loops: Animation.Infinite
@@ -4170,112 +4049,149 @@ Scope {
                                     }
 
                                     Text {
-                                        text: "Searching for nearby devices..."
-                                        color: root.theme.textMuted
-                                        font.pixelSize: 11
+                                        text: "Searching…"
+                                        color: root.theme.accent
+                                        font.pixelSize: 10
                                         font.family: root.font
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
                                 }
                             }
 
+                            // Empty Available state (single muted line)
+                            Text {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: 2
+                                visible: (Services.SystemService.bluetoothAvailableDevices || []).length === 0
+                                text: Services.SystemService.bluetoothDiscovering ? "Searching for nearby devices…" : "No nearby devices found"
+                                color: root.theme.textMuted
+                                font.pixelSize: 11
+                                font.family: root.font
+                            }
+
                             // Discovered Available Devices List
-                            Repeater {
-                                model: Services.SystemService.bluetoothAvailableDevices
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: nearbyCol.implicitHeight
+                                radius: 12
+                                visible: (Services.SystemService.bluetoothAvailableDevices || []).length > 0
+                                color: Services.Aesthetic.innerCardBg
+                                border.color: Services.Aesthetic.innerCardBorder
+                                border.width: 1
+                                clip: true
 
-                                delegate: Rectangle {
-                                    required property var modelData
-                                    Layout.fillWidth: true
-                                    implicitHeight: 48
-                                    radius: 10
-                                    color: aDevMouse.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
-                                    border.color: aDevMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Services.Aesthetic.innerCardBorder
-                                    border.width: 1
-                                    scale: aDevMouse.pressed ? 0.985 : 1.0
-                                    Behavior on color { ColorAnimation { duration: 100 } }
-                                    Behavior on border.color { ColorAnimation { duration: 100 } }
-                                    Behavior on scale { NumberAnimation { duration: 100 } }
+                                ColumnLayout {
+                                    id: nearbyCol
+                                    width: parent.width
+                                    spacing: 0
 
-                                    // Whole row is clickable to pair
-                                    MouseArea {
-                                        id: aDevMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: Services.SystemService.pairBluetooth(modelData.mac)
-                                    }
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 10
-                                        spacing: 10
-
-                                        Rectangle {
-                                            width: 28
-                                            height: 28
-                                            radius: 7
-                                            color: Qt.rgba(1, 1, 1, 0.08)
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: root.getBtIcon(modelData.icon)
-                                                color: root.theme.accent
-                                                font.pixelSize: 13
-                                                font.family: root.font
-                                            }
-                                        }
-
-                                        ColumnLayout {
+                                    Repeater {
+                                        model: Services.SystemService.bluetoothAvailableDevices
+                                        delegate: ColumnLayout {
+                                            required property var modelData
+                                            required property int index
                                             Layout.fillWidth: true
-                                            spacing: 1
+                                            spacing: 0
 
-                                            Text {
-                                                text: modelData.name || modelData.mac
-                                                color: root.theme.textPrimary
-                                                font.pixelSize: 12
-                                                font.family: root.font
-                                                elide: Text.ElideRight
+                                            // Hairline divider
+                                            Rectangle {
                                                 Layout.fillWidth: true
+                                                height: 1
+                                                color: Services.Aesthetic.innerCardBorder
+                                                visible: index > 0
                                             }
 
-                                            Text {
-                                                text: modelData.mac
-                                                color: root.theme.textMuted
-                                                font.pixelSize: 9
-                                                font.family: root.font
-                                            }
-                                        }
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                height: 48
+                                                color: nearbyRowM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent"
+                                                Behavior on color { ColorAnimation { duration: 100 } }
 
-                                        // Pair button with tactile hover & scale
-                                        Rectangle {
-                                            height: 28
-                                            implicitWidth: Math.max(68, pairTxt.implicitWidth + 18)
-                                            radius: 8
-                                            color: pairBtnMouse.pressed ? Qt.darker(root.theme.accent, 1.15) : (pairBtnMouse.containsMouse ? root.theme.accent : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2))
-                                            border.color: pairBtnMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.4) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4)
-                                            border.width: 1
-                                            scale: pairBtnMouse.pressed ? 0.93 : (pairBtnMouse.containsMouse ? 1.05 : 1.0)
-                                            Behavior on color { ColorAnimation { duration: 120 } }
-                                            Behavior on border.color { ColorAnimation { duration: 120 } }
-                                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                                                MouseArea {
+                                                    id: nearbyRowM
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: Services.SystemService.pairBluetooth(modelData.mac)
+                                                }
 
-                                            Text {
-                                                id: pairTxt
-                                                anchors.centerIn: parent
-                                                text: "Pair"
-                                                color: pairBtnMouse.containsMouse ? "#ffffff" : root.theme.accent
-                                                font.pixelSize: 10
-                                                font.family: root.font
-                                                font.weight: Font.DemiBold
-                                            }
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 10
+                                                    anchors.rightMargin: 10
+                                                    spacing: 10
 
-                                            MouseArea {
-                                                id: pairBtnMouse
-                                                anchors.fill: parent
-                                                anchors.margins: -2
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: Services.SystemService.pairBluetooth(modelData.mac)
+                                                    // Neutral circle icon
+                                                    Rectangle {
+                                                        width: 28
+                                                        height: 28
+                                                        radius: 14
+                                                        color: Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.08)
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: root.getBtIcon(modelData.icon)
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 13
+                                                            font.family: root.font
+                                                        }
+                                                    }
+
+                                                    // Name & MAC
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 1
+
+                                                        Text {
+                                                            text: modelData.name || modelData.mac
+                                                            color: root.theme.textPrimary
+                                                            font.pixelSize: 12
+                                                            font.family: root.font
+                                                            font.weight: Font.Medium
+                                                            elide: Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Text {
+                                                            text: modelData.mac
+                                                            color: root.theme.textMuted
+                                                            font.pixelSize: 9
+                                                            font.family: root.font
+                                                        }
+                                                    }
+
+                                                    // Tonal accent Pair pill
+                                                    Rectangle {
+                                                        id: pairBtn
+                                                        height: 24
+                                                        implicitWidth: pairTxt.implicitWidth + 16
+                                                        radius: 12
+                                                        color: pairBtnM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.12)
+                                                        border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35)
+                                                        border.width: 1
+                                                        scale: pairBtnM.pressed ? 0.94 : (pairBtnM.containsMouse ? 1.04 : 1.0)
+                                                        Behavior on color { ColorAnimation { duration: 120 } }
+                                                        Behavior on scale { NumberAnimation { duration: 120 } }
+
+                                                        Text {
+                                                            id: pairTxt
+                                                            anchors.centerIn: parent
+                                                            text: "Pair"
+                                                            color: root.theme.accent
+                                                            font.pixelSize: 10
+                                                            font.family: root.font
+                                                            font.weight: Font.Medium
+                                                        }
+
+                                                        MouseArea {
+                                                            id: pairBtnM
+                                                            anchors.fill: parent
+                                                            hoverEnabled: true
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: Services.SystemService.pairBluetooth(modelData.mac)
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -4284,14 +4200,14 @@ Scope {
                         }
                     }
 
-                    // ── NATIVE FOOTER: ADAPTER DISCOVERABILITY ─────────
+                    // ── FOOTER: ADAPTER DISCOVERABILITY ─────────
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: 40
-                        radius: 10
+                        radius: 12
                         visible: Services.SystemService.bluetoothEnabled
-                        color: footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.04)
-                        border.color: footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                        color: footerCardM.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBg
+                        border.color: footerCardM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.35) : Services.Aesthetic.innerCardBorder
                         border.width: 1
                         Behavior on color { ColorAnimation { duration: 120 } }
                         Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -4329,10 +4245,10 @@ Scope {
 
                             Rectangle {
                                 height: 24
-                                implicitWidth: footerDiscTxt.implicitWidth + 14
+                                implicitWidth: footerDiscTxt.implicitWidth + 16
                                 radius: 12
-                                color: Services.SystemService.bluetoothDiscoverable ? (footerCardM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.2)) : (footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
-                                border.color: Services.SystemService.bluetoothDiscoverable ? (footerCardM.containsMouse ? root.theme.accent : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.4)) : (footerCardM.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.1))
+                                color: Services.SystemService.bluetoothDiscoverable ? (footerCardM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.28) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.18)) : (footerCardM.containsMouse ? Services.Aesthetic.innerCardHover : "transparent")
+                                border.color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : Services.Aesthetic.innerCardBorder
                                 border.width: 1
                                 scale: footerCardM.pressed ? 0.94 : 1.0
                                 Behavior on color { ColorAnimation { duration: 120 } }
@@ -4343,7 +4259,7 @@ Scope {
                                     id: footerDiscTxt
                                     anchors.centerIn: parent
                                     text: Services.SystemService.bluetoothDiscoverable ? "Visible" : "Hidden"
-                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : (footerCardM.containsMouse ? "#ffffff" : root.theme.textMuted)
+                                    color: Services.SystemService.bluetoothDiscoverable ? root.theme.accent : root.theme.textMuted
                                     font.pixelSize: 9
                                     font.family: root.font
                                     font.weight: Font.Medium
@@ -4358,21 +4274,142 @@ Scope {
                 // VIEW: macOS STYLE NATIVE AUDIO & SOUND DETAILS
                 // ═══════════════════════════════════════════
                 ColumnLayout {
+                    id: audioDetailsView
                     visible: root.activeView === "audio"
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 12
 
+                    readonly property var activeSink: {
+                        const sinks = Services.SystemService.audioSinks || [];
+                        for (let i = 0; i < sinks.length; i++) {
+                            if (sinks[i].active) return sinks[i];
+                        }
+                        return sinks.length > 0 ? sinks[0] : null;
+                    }
+                    readonly property int sinkCount: (Services.SystemService.audioSinks || []).length
+                    readonly property bool canToggleSinks: sinkCount > 1
+
+                    readonly property var sortedSinks: {
+                        const raw = Services.SystemService.audioSinks || [];
+                        const list = raw.slice();
+                        list.sort((a, b) => {
+                            const nameA = (a && a.name) ? a.name : "";
+                            const nameB = (b && b.name) ? b.name : "";
+                            const isHdmiA = /hdmi|displayport/i.test(nameA);
+                            const isHdmiB = /hdmi|displayport/i.test(nameB);
+                            if (isHdmiA !== isHdmiB) return isHdmiA ? 1 : -1;
+                            return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+                        });
+                        return list;
+                    }
+
+                    readonly property var activeSource: {
+                        const srcs = Services.SystemService.audioSources || [];
+                        for (let i = 0; i < srcs.length; i++) {
+                            if (srcs[i].active) return srcs[i];
+                        }
+                        return srcs.length > 0 ? srcs[0] : null;
+                    }
+                    readonly property int sourceCount: (Services.SystemService.audioSources || []).length
+                    readonly property bool canToggleSources: sourceCount > 1
+
+                    readonly property var sortedSources: {
+                        const raw = Services.SystemService.audioSources || [];
+                        const list = raw.slice();
+                        list.sort((a, b) => {
+                            const nameA = (a && a.name) ? a.name : "";
+                            const nameB = (b && b.name) ? b.name : "";
+                            const isHdmiA = /hdmi|displayport/i.test(nameA);
+                            const isHdmiB = /hdmi|displayport/i.test(nameB);
+                            if (isHdmiA !== isHdmiB) return isHdmiA ? 1 : -1;
+                            return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+                        });
+                        return list;
+                    }
+
+                    function getSinkIcon(sinkName) {
+                        if (!sinkName) return "󰓃";
+                        const nm = sinkName.toLowerCase();
+                        if (nm.includes("hdmi")) return "󰡁";
+                        if (nm.includes("headphone") || nm.includes("headset") || nm.includes("airpod") || nm.includes("buds") || nm.includes("earphone") || nm.includes("bluez")) return "󰋋";
+                        return "󰓃";
+                    }
+
+                    function formatSinkName(rawName) {
+                        if (!rawName) return "";
+                        let s = ("" + rawName).trim();
+                        s = s.replace("Alder Lake PCH-P High Definition Audio Controller ", "");
+                        if (s.endsWith(" (Stereo)")) {
+                            s = s.slice(0, -9).trim();
+                        }
+                        return s;
+                    }
+
+                    function getMicIcon(sourceName) {
+                        if (!sourceName) return "󰍬";
+                        const nm = sourceName.toLowerCase();
+                        if (nm.includes("headset") || nm.includes("headphone") || nm.includes("airpod") || nm.includes("buds") || nm.includes("earphone") || nm.includes("bluez")) return "󰋎";
+                        return "󰍬";
+                    }
+
+                    function formatSourceName(rawName) {
+                        if (!rawName) return "";
+                        let s = ("" + rawName).trim();
+                        s = s.replace("Alder Lake PCH-P High Definition Audio Controller ", "");
+                        if (s.endsWith(" (Stereo)")) {
+                            s = s.slice(0, -9).trim();
+                        }
+                        return s;
+                    }
+
+                    function toggleOutputs() {
+                        if (!canToggleSinks) return;
+                        const opening = !root.soundOutputsOpen;
+                        if (opening) {
+                            root.soundInputsOpen = false;
+                            Services.SystemService.rescanAudioSinks();
+                        }
+                        root.soundOutputsOpen = opening;
+                    }
+
+                    function toggleInputs() {
+                        if (!canToggleSources) return;
+                        const opening = !root.soundInputsOpen;
+                        if (opening) {
+                            root.soundOutputsOpen = false;
+                            Services.SystemService.rescanAudioSources();
+                        }
+                        root.soundInputsOpen = opening;
+                    }
+
+                    onVisibleChanged: {
+                        if (!visible) {
+                            root.soundOutputsOpen = false;
+                            root.soundInputsOpen = false;
+                        }
+                    }
+                    Component.onCompleted: {
+                        root.soundOutputsOpen = false;
+                        root.soundInputsOpen = false;
+                    }
+
                     // Back & Title Header
                     RowLayout {
                         Layout.fillWidth: true
+                        spacing: 10
 
                         Rectangle {
-                            width: 30
-                            height: 30
-                            radius: 15
-                            color: backAudioM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: backAudioM.pressed ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.18) : (backAudioM.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.12) : Services.Aesthetic.innerCardBg)
+                            border.color: backAudioM.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.25) : Services.Aesthetic.innerCardBorder
+                            border.width: 1
+                            scale: backAudioM.pressed ? 0.92 : (backAudioM.containsMouse ? 1.06 : 1.0)
                             Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                             Text {
                                 anchors.centerIn: parent
@@ -4384,6 +4421,7 @@ Scope {
                             MouseArea {
                                 id: backAudioM
                                 anchors.fill: parent
+                                anchors.margins: -4
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: Services.SystemService.controlCenterSubView = "main"
@@ -4405,8 +4443,13 @@ Scope {
                             width: 30
                             height: 30
                             radius: 15
-                            color: rescAudioM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
+                            color: rescAudioM.pressed ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.25) : (rescAudioM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Services.Aesthetic.innerCardBg)
+                            border.color: rescAudioM.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.45) : Services.Aesthetic.innerCardBorder
+                            border.width: 1
+                            scale: rescAudioM.pressed ? 0.90 : (rescAudioM.containsMouse ? 1.08 : 1.0)
                             Behavior on color { ColorAnimation { duration: 120 } }
+                            Behavior on border.color { ColorAnimation { duration: 120 } }
+                            Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                             Text {
                                 anchors.centerIn: parent
@@ -4415,9 +4458,15 @@ Scope {
                                 font.pixelSize: 13
                                 font.family: root.font
                             }
+
+                            ToolTip.visible: rescAudioM.containsMouse
+                            ToolTip.text: "Rescan Audio Devices"
+                            ToolTip.delay: 400
+
                             MouseArea {
                                 id: rescAudioM
                                 anchors.fill: parent
+                                anchors.margins: -3
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
@@ -4433,7 +4482,7 @@ Scope {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         contentWidth: width
-                        contentHeight: audioDetailCol.implicitHeight
+                        contentHeight: audioDetailCol.implicitHeight + 8
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
@@ -4445,6 +4494,7 @@ Scope {
                             // ── OUTPUT CARD ──
                             Rectangle {
                                 Layout.fillWidth: true
+                                Layout.topMargin: 4
                                 implicitHeight: outputCol.implicitHeight + 24
                                 radius: 16
                                 color: Services.Aesthetic.innerCardBg
@@ -4470,10 +4520,22 @@ Scope {
                                         Item { Layout.fillWidth: true }
                                         Text {
                                             text: Services.SystemService.volumeMuted ? "Muted" : Services.SystemService.volume + "%"
-                                            color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.textMuted
+                                            color: Services.SystemService.volumeMuted
+                                                ? root.theme.accentRed
+                                                : (Services.SystemService.volume > 100 ? root.theme.accentOrange : root.theme.textMuted)
                                             font.pixelSize: 11
                                             font.family: root.font
-                                            font.weight: Services.SystemService.volumeMuted ? Font.DemiBold : Font.Normal
+                                            font.weight: (Services.SystemService.volumeMuted || Services.SystemService.volume > 100) ? Font.DemiBold : Font.Normal
+
+                                            ToolTip.visible: volLabelMouse.containsMouse && Services.SystemService.volume > 100
+                                            ToolTip.text: "Above 100% may distort"
+                                            ToolTip.delay: 300
+
+                                            MouseArea {
+                                                id: volLabelMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: Services.SystemService.volume > 100
+                                            }
                                         }
                                     }
 
@@ -4483,8 +4545,8 @@ Scope {
                                         Layout.fillWidth: true
                                         height: 32
                                         radius: 16
-                                        color: Services.SystemService.volumeMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
-                                        border.color: Services.SystemService.volumeMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (subSoundMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
+                                        color: Services.SystemService.volumeMuted ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.25) : Services.Aesthetic.sliderTrackBg
+                                        border.color: Services.SystemService.volumeMuted ? root.theme.accentRed : (subSoundMouse.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.18) : Services.Aesthetic.innerCardBorder)
                                         border.width: 1
                                         clip: true
                                         Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -4494,14 +4556,14 @@ Scope {
                                             x: 10
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: Services.SystemService.volumeIcon
-                                            color: Services.SystemService.volumeMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
+                                            color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.textMuted
                                             font.pixelSize: 15
                                             font.family: root.font
                                         }
 
                                         Rectangle {
                                             id: subSoundFill
-                                            width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Services.SystemService.volume / 100)))
+                                            width: (Services.SystemService.volumeMuted || Services.SystemService.volume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.volume) / 100)))
                                             height: parent.height
                                             radius: 16
                                             color: Services.SystemService.volumeMuted ? root.theme.accentRed : root.theme.accent
@@ -4515,7 +4577,7 @@ Scope {
                                                 x: 10
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 text: Services.SystemService.volumeIcon
-                                                color: Services.SystemService.volumeMuted ? "#ffffff" : root.theme.onPrimary
+                                                color: root.theme.onPrimary
                                                 font.pixelSize: 15
                                                 font.family: root.font
                                             }
@@ -4590,70 +4652,196 @@ Scope {
                                         }
                                     }
 
-                                    // Sinks List
-                                    ColumnLayout {
+                                    // Compact Device Row (Default View)
+                                    Rectangle {
+                                        id: compactDeviceRow
                                         Layout.fillWidth: true
-                                        spacing: 4
+                                        height: 36
+                                        radius: 10
+                                        color: compactRowMouse.pressed ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.12) : ((compactRowMouse.containsMouse || compactDeviceRow.activeFocus) ? Services.Aesthetic.innerCardHover : "transparent")
+                                        Behavior on color { ColorAnimation { duration: 120 } }
+                                        focus: audioDetailsView.canToggleSinks
+                                        activeFocusOnTab: audioDetailsView.canToggleSinks
+                                        Keys.onReturnPressed: if (audioDetailsView.canToggleSinks) audioDetailsView.toggleOutputs()
+                                        Keys.onSpacePressed: if (audioDetailsView.canToggleSinks) audioDetailsView.toggleOutputs()
 
-                                        Rectangle {
-                                            Layout.fillWidth: true
-                                            height: 1
-                                            color: Qt.rgba(1, 1, 1, 0.08)
+                                        MouseArea {
+                                            id: compactRowMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: audioDetailsView.canToggleSinks
+                                            cursorShape: audioDetailsView.canToggleSinks ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                            onClicked: {
+                                                if (audioDetailsView.canToggleSinks) {
+                                                    audioDetailsView.toggleOutputs();
+                                                }
+                                            }
                                         }
 
-                                        Repeater {
-                                            model: Services.SystemService.audioSinks
-                                            Rectangle {
-                                                required property var modelData
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 8
+                                            anchors.rightMargin: 8
+                                            spacing: 8
+
+                                            Text {
+                                                text: audioDetailsView.getSinkIcon(audioDetailsView.activeSink ? audioDetailsView.activeSink.name : "")
+                                                color: root.theme.accent
+                                                font.pixelSize: 14
+                                                font.family: root.font
+                                            }
+
+                                            Text {
+                                                text: audioDetailsView.formatSinkName(audioDetailsView.activeSink ? audioDetailsView.activeSink.name : "Default Output")
+                                                color: root.theme.textPrimary
+                                                font.pixelSize: 11
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                                elide: Text.ElideRight
                                                 Layout.fillWidth: true
-                                                implicitHeight: 32
-                                                radius: 8
-                                                color: modelData.active ? Qt.rgba(0, 0.48, 1, 0.25) : (sinkRowSubM.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
-                                                Behavior on color { ColorAnimation { duration: 100 } }
+                                            }
 
-                                                RowLayout {
-                                                    anchors.fill: parent
-                                                    anchors.leftMargin: 8
-                                                    anchors.rightMargin: 8
-                                                    spacing: 8
+                                            Text {
+                                                text: "⌄"
+                                                color: root.soundOutputsOpen ? root.theme.accent : root.theme.textMuted
+                                                font.pixelSize: 13
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                                visible: audioDetailsView.canToggleSinks
+                                                rotation: root.soundOutputsOpen ? 180 : 0
+                                                transformOrigin: Item.Center
+                                                Behavior on rotation { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                                Behavior on color { ColorAnimation { duration: 120 } }
+                                            }
+                                        }
 
-                                                    Text {
-                                                        text: {
-                                                            const nm = modelData.name.toLowerCase();
-                                                            if (nm.includes("hdmi")) return "󰡁";
-                                                            if (nm.includes("headphone") || nm.includes("headset") || nm.includes("airpod") || nm.includes("buds") || nm.includes("earphone") || nm.includes("bluez")) return "󰋋";
-                                                            return "󰓃";
-                                                        }
-                                                        color: modelData.active ? root.theme.accent : root.theme.textPrimary
-                                                        font.pixelSize: 14
-                                                        font.family: root.font
-                                                    }
+                                        ToolTip.visible: compactRowMouse.containsMouse && Boolean(audioDetailsView.activeSink) && Boolean(audioDetailsView.activeSink.name)
+                                        ToolTip.text: audioDetailsView.activeSink ? audioDetailsView.activeSink.name : ""
+                                        ToolTip.delay: 400
+                                    }
 
-                                                    Text {
-                                                        text: modelData.name.replace("Alder Lake PCH-P High Definition Audio Controller ", "")
-                                                        color: modelData.active ? "#ffffff" : root.theme.textPrimary
-                                                        font.pixelSize: 11
-                                                        font.family: root.font
-                                                        font.weight: modelData.active ? Font.DemiBold : Font.Normal
-                                                        elide: Text.ElideRight
+                                    // Hairline divider before expanded list
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 1
+                                        color: Services.Aesthetic.innerCardBorder
+                                        visible: root.soundOutputsOpen || sinksExpandItem.Layout.preferredHeight > 0
+                                        opacity: root.soundOutputsOpen ? 1.0 : 0.0
+                                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                                    }
+
+                                    // Expandable Animated Device List
+                                    Item {
+                                        id: sinksExpandItem
+                                        Layout.fillWidth: true
+                                        clip: true
+                                        Layout.preferredHeight: root.soundOutputsOpen ? Math.min(170, sinksInnerCol.implicitHeight) : 0
+                                        implicitHeight: Layout.preferredHeight
+                                        visible: root.soundOutputsOpen || Layout.preferredHeight > 0
+                                        opacity: root.soundOutputsOpen ? 1.0 : 0.0
+                                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                                        Behavior on Layout.preferredHeight { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                                        Flickable {
+                                            anchors.fill: parent
+                                            contentWidth: width
+                                            contentHeight: sinksInnerCol.implicitHeight
+                                            clip: true
+                                            boundsBehavior: Flickable.StopAtBounds
+
+                                            ColumnLayout {
+                                                id: sinksInnerCol
+                                                width: parent.width
+                                                spacing: 0
+
+                                                Repeater {
+                                                    model: audioDetailsView.sortedSinks
+                                                    delegate: ColumnLayout {
+                                                        required property var modelData
+                                                        required property int index
                                                         Layout.fillWidth: true
-                                                    }
+                                                        spacing: 0
 
-                                                    Text {
-                                                        text: "✓"
-                                                        color: root.theme.accent
-                                                        font.pixelSize: 12
-                                                        font.weight: Font.Bold
-                                                        visible: modelData.active
-                                                    }
-                                                }
+                                                        Rectangle {
+                                                            Layout.fillWidth: true
+                                                            height: 1
+                                                            color: Services.Aesthetic.innerCardBorder
+                                                            visible: index > 0
+                                                        }
 
-                                                MouseArea {
-                                                    id: sinkRowSubM
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: Services.SystemService.setAudioSink(modelData.id)
+                                                        Rectangle {
+                                                            id: sinkRowItem
+                                                            Layout.fillWidth: true
+                                                            height: 34
+                                                            radius: 8
+                                                            focus: true
+                                                            activeFocusOnTab: true
+                                                            Keys.onReturnPressed: {
+                                                                if (!modelData.active) {
+                                                                    Services.SystemService.setAudioSink(modelData.id);
+                                                                }
+                                                                root.soundOutputsOpen = false;
+                                                            }
+                                                            Keys.onSpacePressed: {
+                                                                if (!modelData.active) {
+                                                                    Services.SystemService.setAudioSink(modelData.id);
+                                                                }
+                                                                root.soundOutputsOpen = false;
+                                                            }
+                                                            color: modelData.active
+                                                                ? (sinkRowMouse.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.09))
+                                                                : ((sinkRowMouse.containsMouse || sinkRowItem.activeFocus) ? Services.Aesthetic.innerCardHover : "transparent")
+                                                            Behavior on color { ColorAnimation { duration: 100 } }
+
+                                                            RowLayout {
+                                                                anchors.fill: parent
+                                                                anchors.leftMargin: 8
+                                                                anchors.rightMargin: 8
+                                                                spacing: 8
+
+                                                                Text {
+                                                                    text: audioDetailsView.getSinkIcon(modelData.name)
+                                                                    color: modelData.active ? root.theme.accent : root.theme.textMuted
+                                                                    font.pixelSize: 13
+                                                                    font.family: root.font
+                                                                }
+
+                                                                Text {
+                                                                    text: audioDetailsView.formatSinkName(modelData.name)
+                                                                    color: root.theme.textPrimary
+                                                                    font.pixelSize: 11
+                                                                    font.family: root.font
+                                                                    font.weight: modelData.active ? Font.DemiBold : Font.Normal
+                                                                    elide: Text.ElideRight
+                                                                    Layout.fillWidth: true
+                                                                }
+
+                                                                Text {
+                                                                    text: "✓"
+                                                                    color: root.theme.accent
+                                                                    font.pixelSize: 12
+                                                                    font.weight: Font.Bold
+                                                                    visible: modelData.active
+                                                                }
+                                                            }
+
+                                                            ToolTip.visible: sinkRowMouse.containsMouse && Boolean(modelData.name)
+                                                            ToolTip.text: modelData.name || ""
+                                                            ToolTip.delay: 400
+
+                                                            MouseArea {
+                                                                id: sinkRowMouse
+                                                                anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: {
+                                                                    if (!modelData.active) {
+                                                                        Services.SystemService.setAudioSink(modelData.id);
+                                                                    }
+                                                                    root.soundOutputsOpen = false;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -4689,9 +4877,8 @@ Scope {
                                         }
                                         Item { Layout.fillWidth: true }
                                         Text {
-                                            text: Services.SystemService.appAudioStreams.length > 0 
-                                                ? (Services.SystemService.appAudioStreams.length + " active")
-                                                : "None"
+                                            visible: Services.SystemService.appAudioStreams.length > 0
+                                            text: Services.SystemService.appAudioStreams.length + " active"
                                             color: root.theme.textMuted
                                             font.pixelSize: 10
                                             font.family: root.font
@@ -4699,31 +4886,31 @@ Scope {
                                     }
 
                                     // Empty State
-                                    Rectangle {
+                                    RowLayout {
                                         visible: Services.SystemService.appAudioStreams.length === 0
                                         Layout.fillWidth: true
-                                        height: 38
-                                        radius: 10
-                                        color: Qt.rgba(1, 1, 1, 0.03)
+                                        Layout.alignment: Qt.AlignHCenter
+                                        Layout.topMargin: 2
+                                        Layout.bottomMargin: 4
+                                        spacing: 6
 
-                                        RowLayout {
-                                            anchors.centerIn: parent
-                                            spacing: 8
+                                        Item { Layout.fillWidth: true }
 
-                                            Text {
-                                                text: "󰝚"
-                                                color: Qt.rgba(1, 1, 1, 0.3)
-                                                font.pixelSize: 13
-                                                font.family: root.font
-                                            }
-
-                                            Text {
-                                                text: "No applications currently playing audio"
-                                                color: root.theme.textMuted
-                                                font.pixelSize: 10
-                                                font.family: root.font
-                                            }
+                                        Text {
+                                            text: "󰝚"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 12
+                                            font.family: root.font
                                         }
+
+                                        Text {
+                                            text: "No applications playing audio"
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                        }
+
+                                        Item { Layout.fillWidth: true }
                                     }
 
                                     // Active Streams List
@@ -4975,283 +5162,357 @@ Scope {
                                 }
                             }
 
-                            // ── INPUT (MICROPHONE) CARD: CLICK TO EXPAND & CHANGE VOL ──
+                            // ── INPUT (MICROPHONE) CARD ──
                             Rectangle {
                                 id: micCard
                                 Layout.fillWidth: true
-                                implicitHeight: micCardCol.implicitHeight + 20
+                                implicitHeight: inputCol.implicitHeight + 24
                                 radius: 16
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
                                 border.width: 1
-                                clip: true
-                                Behavior on implicitHeight { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                                 ColumnLayout {
-                                    id: micCardCol
+                                    id: inputCol
                                     anchors.fill: parent
-                                    anchors.margins: 10
-                                    spacing: 8
+                                    anchors.margins: 12
+                                    spacing: 10
 
-                                    // Expandable Header Button (Entire row clickable to expand/collapse)
-                                    Rectangle {
+                                    // Header: "Input" on left, percentage on right
+                                    RowLayout {
                                         Layout.fillWidth: true
-                                        height: 36
-                                        radius: 10
-                                        color: micExpBtnM.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-                                        Behavior on color { ColorAnimation { duration: 120 } }
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 6
-                                            anchors.rightMargin: 8
-                                            spacing: 8
-
-                                            Rectangle {
-                                                width: 24
-                                                height: 24
-                                                radius: 12
-                                                color: Services.SystemService.micMuted
-                                                    ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.2)
-                                                    : (Services.SystemService.micInUse ? Qt.rgba(root.theme.accentOrange.r, root.theme.accentOrange.g, root.theme.accentOrange.b, 0.25) : Qt.rgba(1, 1, 1, 0.10))
-
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
-                                                    color: Services.SystemService.micMuted ? root.theme.accentRed : (Services.SystemService.micInUse ? root.theme.accentOrange : "#ffffff")
-                                                    font.pixelSize: 12
-                                                    font.family: root.font
-                                                }
-                                            }
-
-                                            Text {
-                                                text: "Microphone"
-                                                color: root.theme.textPrimary
-                                                font.pixelSize: 12
-                                                font.family: root.font
-                                                font.weight: Font.DemiBold
-                                            }
-
-                                            Item { Layout.fillWidth: true }
-
-                                            Text {
-                                                text: Services.SystemService.micMuted ? "Muted" : Services.SystemService.micVolume + "%"
-                                                color: Services.SystemService.micMuted ? root.theme.accentRed : root.theme.textMuted
-                                                font.pixelSize: 11
-                                                font.family: root.font
-                                                font.weight: Services.SystemService.micMuted ? Font.DemiBold : Font.Normal
-                                            }
-
-                                            Text {
-                                                text: "›"
-                                                color: root.soundInputsOpen ? root.theme.accent : root.theme.textMuted
-                                                font.pixelSize: 15
-                                                font.family: root.font
-                                                rotation: root.soundInputsOpen ? 90 : 0
-                                                Behavior on rotation { NumberAnimation { duration: 140 } }
-                                            }
+                                        Text {
+                                            text: "Input"
+                                            color: root.theme.textPrimary
+                                            font.pixelSize: 12
+                                            font.family: root.font
+                                            font.weight: Font.DemiBold
                                         }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: Services.SystemService.micMuted ? "Muted" : Services.SystemService.micVolume + "%"
+                                            color: Services.SystemService.micMuted
+                                                ? root.theme.accentRed
+                                                : (Services.SystemService.micVolume > 100 ? root.theme.accentOrange : root.theme.textMuted)
+                                            font.pixelSize: 11
+                                            font.family: root.font
+                                            font.weight: (Services.SystemService.micMuted || Services.SystemService.micVolume > 100) ? Font.DemiBold : Font.Normal
 
-                                        MouseArea {
-                                            id: micExpBtnM
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                root.soundInputsOpen = !root.soundInputsOpen;
-                                                if (root.soundInputsOpen) Services.SystemService.rescanAudioSources();
+                                            ToolTip.visible: micVolLabelMouse.containsMouse && Services.SystemService.micVolume > 100
+                                            ToolTip.text: "Above 100% may distort"
+                                            ToolTip.delay: 300
+
+                                            MouseArea {
+                                                id: micVolLabelMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: Services.SystemService.micVolume > 100
                                             }
                                         }
                                     }
 
-                                    // Expandable Content: Mic Volume Slider & Sources List
-                                    ColumnLayout {
-                                        visible: root.soundInputsOpen
+                                    // Input (Mic) Slider Capsule (always visible, same height and style as Output slider)
+                                    Rectangle {
+                                        id: subMicBar
                                         Layout.fillWidth: true
-                                        spacing: 10
+                                        height: 32
+                                        radius: 16
+                                        color: Services.SystemService.micMuted ? Qt.rgba(root.theme.accentRed.r, root.theme.accentRed.g, root.theme.accentRed.b, 0.25) : Services.Aesthetic.sliderTrackBg
+                                        border.color: Services.SystemService.micMuted ? root.theme.accentRed : (subMicMouse.containsMouse ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.18) : Services.Aesthetic.innerCardBorder)
+                                        border.width: 1
+                                        clip: true
+                                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                        Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
-                                        Rectangle {
-                                            Layout.fillWidth: true
-                                            height: 1
-                                            color: Qt.rgba(1, 1, 1, 0.08)
+                                        Text {
+                                            x: 10
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
+                                            color: Services.SystemService.micMuted ? root.theme.accentRed : root.theme.textMuted
+                                            font.pixelSize: 15
+                                            font.family: root.font
                                         }
 
-                                        // Mic Volume Slider
                                         Rectangle {
-                                            id: subMicBar
-                                            Layout.fillWidth: true
-                                            height: 32
+                                            id: subMicFill
+                                            width: (Services.SystemService.micMuted || Services.SystemService.micVolume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.micVolume) / 100)))
+                                            height: parent.height
                                             radius: 16
-                                            color: Services.SystemService.micMuted ? Qt.rgba(0.35, 0.12, 0.15, 0.4) : Services.Aesthetic.sliderTrackBg
-                                            border.color: Services.SystemService.micMuted ? Qt.rgba(1, 0.25, 0.3, 0.35) : (subMicMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
-                                            border.width: 1
+                                            color: Services.SystemService.micMuted ? root.theme.accentRed : (Services.SystemService.micInUse ? root.theme.accentOrange : root.theme.accent)
                                             clip: true
-                                            Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                                            Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                            Behavior on width {
+                                                enabled: !subMicMouse.pressed
+                                                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                            }
+                                            Behavior on color { ColorAnimation { duration: 140 } }
 
                                             Text {
                                                 x: 10
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
-                                                color: Services.SystemService.micMuted ? root.theme.accentRed : Qt.rgba(1, 1, 1, 0.45)
+                                                color: (Services.SystemService.micMuted || Services.SystemService.micInUse) ? root.theme.textPrimary : root.theme.onPrimary
                                                 font.pixelSize: 15
                                                 font.family: root.font
                                             }
+                                        }
 
-                                             Rectangle {
-                                                id: subMicFill
-                                                width: (Services.SystemService.micMuted || Services.SystemService.micVolume <= 0) ? 0 : Math.max(0, Math.min(parent.width, parent.width * (Math.min(100, Services.SystemService.micVolume) / 100)))
-                                                height: parent.height
-                                                radius: 16
-                                                color: Services.SystemService.micMuted ? root.theme.accentRed : (Services.SystemService.micInUse ? "#ff9f0a" : root.theme.accent)
-                                                clip: true
-                                                Behavior on width {
-                                                    enabled: !subMicMouse.pressed
-                                                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                                }
-                                                Behavior on color { ColorAnimation { duration: 140 } }
+                                        MouseArea {
+                                            id: subMicMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            property real startX: 0
+                                            property real startY: 0
+                                            property bool isDragging: false
+                                            property bool startedInIcon: false
 
-                                                Text {
-                                                    x: 10
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    text: Services.SystemService.micMuted ? "󰍭" : "󰍬"
-                                                    color: (Services.SystemService.micMuted || Services.SystemService.micInUse) ? "#ffffff" : root.theme.onPrimary
-                                                    font.pixelSize: 15
-                                                    font.family: root.font
+                                            function applyMicVolume(mouseX) {
+                                                const rawPct = (mouseX / subMicBar.width) * 100;
+                                                const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
+                                                Services.SystemService.setMicVolumePercent(pct);
+                                            }
+
+                                            onPressed: (mouse) => {
+                                                startX = mouse.x;
+                                                startY = mouse.y;
+                                                isDragging = false;
+                                                startedInIcon = (mouse.x <= 36);
+                                                if (!startedInIcon) {
+                                                    isDragging = true;
+                                                    Services.SystemService.isMicDragging = true;
+                                                    applyMicVolume(mouse.x);
                                                 }
                                             }
 
-                                            MouseArea {
-                                                id: subMicMouse
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                property real startX: 0
-                                                property real startY: 0
-                                                property bool isDragging: false
-                                                property bool startedInIcon: false
-
-                                                function applyMicVolume(mouseX) {
-                                                    const rawPct = (mouseX / subMicBar.width) * 100;
-                                                    const pct = rawPct <= 3 ? 0 : Math.max(0, Math.min(100, Math.round(rawPct)));
-                                                    Services.SystemService.setMicVolumePercent(pct);
-                                                }
-
-                                                onPressed: (mouse) => {
-                                                    startX = mouse.x;
-                                                    startY = mouse.y;
-                                                    isDragging = false;
-                                                    startedInIcon = (mouse.x <= 36);
-                                                    if (!startedInIcon) {
+                                            onPositionChanged: (mouse) => {
+                                                if (pressed) {
+                                                    const dx = Math.abs(mouse.x - startX);
+                                                    if (!isDragging && (dx > 4 || mouse.x > 36)) {
                                                         isDragging = true;
+                                                        startedInIcon = false;
                                                         Services.SystemService.isMicDragging = true;
-                                                        applyMicVolume(mouse.x);
                                                     }
-                                                }
-
-                                                onPositionChanged: (mouse) => {
-                                                    if (pressed) {
-                                                        const dx = Math.abs(mouse.x - startX);
-                                                        if (!isDragging && (dx > 4 || mouse.x > 36)) {
-                                                            isDragging = true;
-                                                            startedInIcon = false;
-                                                            Services.SystemService.isMicDragging = true;
-                                                        }
-                                                        if (isDragging) {
-                                                            applyMicVolume(mouse.x);
-                                                        }
-                                                    }
-                                                }
-
-                                                onReleased: (mouse) => {
                                                     if (isDragging) {
                                                         applyMicVolume(mouse.x);
-                                                        Services.SystemService.flushMicVolume();
-                                                        Services.SystemService.isMicDragging = false;
-                                                        isDragging = false;
-                                                    } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
-                                                        Services.SystemService.toggleMicMute();
                                                     }
-                                                    startedInIcon = false;
                                                 }
+                                            }
 
-                                                onCanceled: {
-                                                    isDragging = false;
-                                                    startedInIcon = false;
+                                            onReleased: (mouse) => {
+                                                if (isDragging) {
+                                                    applyMicVolume(mouse.x);
                                                     Services.SystemService.flushMicVolume();
                                                     Services.SystemService.isMicDragging = false;
+                                                    isDragging = false;
+                                                } else if (startedInIcon && Math.abs(mouse.x - startX) <= 4) {
+                                                    Services.SystemService.toggleMicMute();
                                                 }
+                                                startedInIcon = false;
+                                            }
 
-                                                onWheel: (wheel) => {
-                                                    wheel.accepted = true;
-                                                    const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                                    Services.SystemService.adjustMicVolume(delta);
+                                            onCanceled: {
+                                                isDragging = false;
+                                                startedInIcon = false;
+                                                Services.SystemService.flushMicVolume();
+                                                Services.SystemService.isMicDragging = false;
+                                            }
+
+                                            onWheel: (wheel) => {
+                                                wheel.accepted = true;
+                                                const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
+                                                Services.SystemService.adjustMicVolume(delta);
+                                            }
+                                        }
+                                    }
+
+                                    // Compact Device Row (Default View)
+                                    Rectangle {
+                                        id: compactMicRow
+                                        Layout.fillWidth: true
+                                        height: 36
+                                        radius: 10
+                                        color: compactMicMouse.pressed ? Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.12) : ((compactMicMouse.containsMouse || compactMicRow.activeFocus) ? Services.Aesthetic.innerCardHover : "transparent")
+                                        Behavior on color { ColorAnimation { duration: 120 } }
+                                        focus: audioDetailsView.canToggleSources
+                                        activeFocusOnTab: audioDetailsView.canToggleSources
+                                        Keys.onReturnPressed: if (audioDetailsView.canToggleSources) audioDetailsView.toggleInputs()
+                                        Keys.onSpacePressed: if (audioDetailsView.canToggleSources) audioDetailsView.toggleInputs()
+
+                                        MouseArea {
+                                            id: compactMicMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: audioDetailsView.canToggleSources
+                                            cursorShape: audioDetailsView.canToggleSources ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                            onClicked: {
+                                                if (audioDetailsView.canToggleSources) {
+                                                    audioDetailsView.toggleInputs();
                                                 }
                                             }
                                         }
 
-                                        // Input Sources List
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 4
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 8
+                                            anchors.rightMargin: 8
+                                            spacing: 8
 
                                             Text {
-                                                text: "Input Devices"
-                                                color: root.theme.textMuted
-                                                font.pixelSize: 10
+                                                text: audioDetailsView.getMicIcon(audioDetailsView.activeSource ? audioDetailsView.activeSource.name : "")
+                                                color: root.theme.accent
+                                                font.pixelSize: 14
                                                 font.family: root.font
-                                                font.weight: Font.Medium
-                                                anchors.leftMargin: 4
                                             }
 
-                                            Repeater {
-                                                model: Services.SystemService.audioSources
-                                                Rectangle {
-                                                    required property var modelData
-                                                    Layout.fillWidth: true
-                                                    implicitHeight: 32
-                                                    radius: 8
-                                                    color: modelData.active ? Qt.rgba(0, 0.48, 1, 0.25) : (sourceRowSubM.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
-                                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                            Text {
+                                                text: audioDetailsView.formatSourceName(audioDetailsView.activeSource ? audioDetailsView.activeSource.name : "Default Input")
+                                                color: root.theme.textPrimary
+                                                font.pixelSize: 11
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                                elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                            }
 
-                                                    RowLayout {
-                                                        anchors.fill: parent
-                                                        anchors.leftMargin: 8
-                                                        anchors.rightMargin: 8
-                                                        spacing: 8
+                                            Text {
+                                                text: "⌄"
+                                                color: root.soundInputsOpen ? root.theme.accent : root.theme.textMuted
+                                                font.pixelSize: 13
+                                                font.family: root.font
+                                                font.weight: Font.Medium
+                                                visible: audioDetailsView.canToggleSources
+                                                rotation: root.soundInputsOpen ? 180 : 0
+                                                transformOrigin: Item.Center
+                                                Behavior on rotation { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                                Behavior on color { ColorAnimation { duration: 120 } }
+                                            }
+                                        }
 
-                                                        Text {
-                                                            text: modelData.name.toLowerCase().includes("headset") || modelData.name.toLowerCase().includes("headphone") ? "󰋎" : "󰍬"
-                                                            color: modelData.active ? root.theme.accent : root.theme.textPrimary
-                                                            font.pixelSize: 13
-                                                            font.family: root.font
-                                                        }
+                                        ToolTip.visible: compactMicMouse.containsMouse && Boolean(audioDetailsView.activeSource) && Boolean(audioDetailsView.activeSource.name)
+                                        ToolTip.text: audioDetailsView.activeSource ? audioDetailsView.activeSource.name : ""
+                                        ToolTip.delay: 400
+                                    }
 
-                                                        Text {
-                                                            text: modelData.name.replace("Alder Lake PCH-P High Definition Audio Controller ", "")
-                                                            color: modelData.active ? "#ffffff" : root.theme.textPrimary
-                                                            font.pixelSize: 11
-                                                            font.family: root.font
-                                                            font.weight: modelData.active ? Font.DemiBold : Font.Normal
-                                                            elide: Text.ElideRight
+                                    // Hairline divider before expanded list
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 1
+                                        color: Services.Aesthetic.innerCardBorder
+                                        visible: root.soundInputsOpen || sourcesExpandItem.Layout.preferredHeight > 0
+                                        opacity: root.soundInputsOpen ? 1.0 : 0.0
+                                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                                    }
+
+                                    // Expandable Animated Sources List
+                                    Item {
+                                        id: sourcesExpandItem
+                                        Layout.fillWidth: true
+                                        clip: true
+                                        Layout.preferredHeight: root.soundInputsOpen ? Math.min(170, sourcesInnerCol.implicitHeight) : 0
+                                        implicitHeight: Layout.preferredHeight
+                                        visible: root.soundInputsOpen || Layout.preferredHeight > 0
+                                        opacity: root.soundInputsOpen ? 1.0 : 0.0
+                                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                                        Behavior on Layout.preferredHeight { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                                        Flickable {
+                                            anchors.fill: parent
+                                            contentWidth: width
+                                            contentHeight: sourcesInnerCol.implicitHeight
+                                            clip: true
+                                            boundsBehavior: Flickable.StopAtBounds
+
+                                            ColumnLayout {
+                                                id: sourcesInnerCol
+                                                width: parent.width
+                                                spacing: 0
+
+                                                Repeater {
+                                                    model: audioDetailsView.sortedSources
+                                                    delegate: ColumnLayout {
+                                                        required property var modelData
+                                                        required property int index
+                                                        Layout.fillWidth: true
+                                                        spacing: 0
+
+                                                        Rectangle {
                                                             Layout.fillWidth: true
+                                                            height: 1
+                                                            color: Services.Aesthetic.innerCardBorder
+                                                            visible: index > 0
                                                         }
 
-                                                        Text {
-                                                            text: "✓"
-                                                            color: root.theme.accent
-                                                            font.pixelSize: 12
-                                                            font.weight: Font.Bold
-                                                            visible: modelData.active
-                                                        }
-                                                    }
+                                                        Rectangle {
+                                                            id: sourceRowItem
+                                                            Layout.fillWidth: true
+                                                            height: 34
+                                                            radius: 8
+                                                            focus: true
+                                                            activeFocusOnTab: true
+                                                            Keys.onReturnPressed: {
+                                                                if (!modelData.active) {
+                                                                    Services.SystemService.setAudioSource(modelData.id);
+                                                                }
+                                                                root.soundInputsOpen = false;
+                                                            }
+                                                            Keys.onSpacePressed: {
+                                                                if (!modelData.active) {
+                                                                    Services.SystemService.setAudioSource(modelData.id);
+                                                                }
+                                                                root.soundInputsOpen = false;
+                                                            }
+                                                            color: modelData.active
+                                                                ? (sourceRowMouse.containsMouse ? Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.16) : Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.09))
+                                                                : ((sourceRowMouse.containsMouse || sourceRowItem.activeFocus) ? Services.Aesthetic.innerCardHover : "transparent")
+                                                            Behavior on color { ColorAnimation { duration: 100 } }
 
-                                                    MouseArea {
-                                                        id: sourceRowSubM
-                                                        anchors.fill: parent
-                                                        hoverEnabled: true
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: Services.SystemService.setAudioSource(modelData.id)
+                                                            RowLayout {
+                                                                anchors.fill: parent
+                                                                anchors.leftMargin: 8
+                                                                anchors.rightMargin: 8
+                                                                spacing: 8
+
+                                                                Text {
+                                                                    text: audioDetailsView.getMicIcon(modelData.name)
+                                                                    color: modelData.active ? root.theme.accent : root.theme.textMuted
+                                                                    font.pixelSize: 13
+                                                                    font.family: root.font
+                                                                }
+
+                                                                Text {
+                                                                    text: audioDetailsView.formatSourceName(modelData.name)
+                                                                    color: root.theme.textPrimary
+                                                                    font.pixelSize: 11
+                                                                    font.family: root.font
+                                                                    font.weight: modelData.active ? Font.DemiBold : Font.Normal
+                                                                    elide: Text.ElideRight
+                                                                    Layout.fillWidth: true
+                                                                }
+
+                                                                Text {
+                                                                    text: "✓"
+                                                                    color: root.theme.accent
+                                                                    font.pixelSize: 12
+                                                                    font.weight: Font.Bold
+                                                                    visible: modelData.active
+                                                                }
+                                                            }
+
+                                                            ToolTip.visible: sourceRowMouse.containsMouse && Boolean(modelData.name)
+                                                            ToolTip.text: modelData.name || ""
+                                                            ToolTip.delay: 400
+
+                                                            MouseArea {
+                                                                id: sourceRowMouse
+                                                                anchors.fill: parent
+                                                                hoverEnabled: true
+                                                                cursorShape: Qt.PointingHandCursor
+                                                                onClicked: {
+                                                                    if (!modelData.active) {
+                                                                        Services.SystemService.setAudioSource(modelData.id);
+                                                                    }
+                                                                    root.soundInputsOpen = false;
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -5262,11 +5523,17 @@ Scope {
 
                             // Footer: Sound Settings shortcut
                             Rectangle {
+                                id: openAudioRect
                                 Layout.fillWidth: true
+                                Layout.bottomMargin: 6
                                 height: 36
                                 radius: 10
-                                color: openAudioSM.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+                                color: (openAudioSM.containsMouse || openAudioRect.activeFocus) ? Services.Aesthetic.innerCardHover : "transparent"
                                 Behavior on color { ColorAnimation { duration: 120 } }
+                                focus: true
+                                activeFocusOnTab: true
+                                Keys.onReturnPressed: openAudioSM.trigger()
+                                Keys.onSpacePressed: openAudioSM.trigger()
 
                                 Row {
                                     anchors.centerIn: parent
@@ -5279,7 +5546,7 @@ Scope {
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
                                     Text {
-                                        text: "Sound Settings..."
+                                        text: "Sound Settings…"
                                         color: root.theme.textPrimary
                                         font.pixelSize: 11
                                         font.family: root.font
@@ -5292,10 +5559,11 @@ Scope {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
+                                    function trigger() {
                                         Services.SystemService.runCmd("pavucontrol || systemsettings kcm_pulseaudio");
                                         Services.SystemService.controlCenterOpen = false;
                                     }
+                                    onClicked: trigger()
                                 }
                             }
                         }
@@ -6577,169 +6845,6 @@ Scope {
                     }
                 }
 
-                // ═══════════════════════════════════════════
-                // VIEW 4: WALLPAPER GALLERY & CONTROLS
-                // ═══════════════════════════════════════════
-                ColumnLayout {
-                    visible: root.activeView === "wallpaper"
-                    anchors.fill: parent
-                    anchors.margins: 16
-                    spacing: 12
-
-                    // Back & Title Header
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Rectangle {
-                            width: 30
-                            height: 30
-                            radius: 15
-                            color: backWallM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
-                            Text {
-                                anchors.centerIn: parent
-                                text: "‹"
-                                color: root.theme.textPrimary
-                                font.pixelSize: 18
-                                font.family: root.font
-                            }
-                            MouseArea {
-                                id: backWallM
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: Services.SystemService.controlCenterSubView = "main"
-                            }
-                        }
-
-                        Text {
-                            text: "Wallpapers"
-                            color: root.theme.textPrimary
-                            font.pixelSize: 16
-                            font.family: root.font
-                            font.weight: Font.DemiBold
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        // Shuffle Button
-                        Rectangle {
-                            width: 30
-                            height: 30
-                            radius: 15
-                            color: randWallM.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08)
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰘚"
-                                color: root.theme.textPrimary
-                                font.pixelSize: 15
-                                font.family: root.font
-                            }
-                            MouseArea {
-                                id: randWallM
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: Services.WallpaperService.randomWallpaper()
-                            }
-                        }
-                    }
-
-                    // Wallpapers Grid View
-                    GridView {
-                        id: wallGrid
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-                        cellWidth: width / 2
-                        cellHeight: 110
-                        model: Services.WallpaperService.wallpapers
-
-                        delegate: Item {
-                            required property string modelData
-                            width: wallGrid.cellWidth
-                            height: wallGrid.cellHeight
-
-                            readonly property bool isCurrent: {
-                                const clean = Services.WallpaperService.currentWallpaper.replace(/^file:\/\//, "");
-                                return clean === modelData;
-                            }
-
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 4
-                                radius: 10
-                                clip: true
-                                color: Qt.rgba(0, 0, 0, 0.3)
-                                border.color: isCurrent ? root.theme.accent : (gridTileM.containsMouse ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(1, 1, 1, 0.08))
-                                border.width: isCurrent ? 2 : 1
-                                Behavior on border.color { ColorAnimation { duration: 120 } }
-
-                                Image {
-                                    anchors.fill: parent
-                                    source: "file://" + modelData
-                                    fillMode: Image.PreserveAspectCrop
-                                    asynchronous: true
-                                    cache: true
-                                    sourceSize.width: 180
-                                    sourceSize.height: 110
-                                }
-
-                                // Gradient overlay at bottom for title
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.bottom: parent.bottom
-                                    height: 26
-                                    gradient: Gradient {
-                                        GradientStop { position: 0.0; color: "transparent" }
-                                        GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.8) }
-                                    }
-
-                                    Text {
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.bottom: parent.bottom
-                                        anchors.margins: 4
-                                        text: Services.WallpaperService.extractName(modelData)
-                                        color: "#ffffff"
-                                        font.pixelSize: 10
-                                        font.family: root.font
-                                        font.weight: Font.Medium
-                                        elide: Text.ElideRight
-                                    }
-                                }
-
-                                // Active checkmark badge
-                                Rectangle {
-                                    visible: isCurrent
-                                    anchors.top: parent.top
-                                    anchors.right: parent.right
-                                    anchors.margins: 4
-                                    width: 18
-                                    height: 18
-                                    radius: 9
-                                    color: root.theme.accent
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "✓"
-                                        color: "#ffffff"
-                                        font.pixelSize: 11
-                                        font.weight: Font.Bold
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: gridTileM
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: Services.WallpaperService.setWallpaper(modelData)
-                                }
-                            }
-                        }
-                    }
-                }
 
                 // ═══════════════════════════════════════════
                 // VIEW 6: NOW PLAYING / MEDIA DETAILS (1:1 DYNAMIC ISLAND)

@@ -88,18 +88,6 @@ Scope {
                 Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
                 Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
-                // Top specular glass highlight
-                Rectangle {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: Services.Aesthetic.cardRadius
-                    anchors.rightMargin: Services.Aesthetic.cardRadius
-                    height: 1
-                    color: Qt.rgba(1, 1, 1, 0.12)
-                    z: 10
-                }
-
                 // Prevent backdrop clicks from closing inside the card
                 MouseArea {
                     anchors.fill: parent

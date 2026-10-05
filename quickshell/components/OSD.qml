@@ -159,18 +159,6 @@ Scope {
                 border.width: Services.Aesthetic.borderWidth
                 clip: true
 
-                // Top specular highlight line (macOS glass edge)
-                Rectangle {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 22
-                    anchors.rightMargin: 22
-                    height: 1
-                    color: Qt.rgba(1, 1, 1, Services.Aesthetic.preset === "oled" ? 0.06 : (Services.Aesthetic.preset === "crystal" ? 0.20 : 0.12))
-                    visible: Services.Aesthetic.preset !== "solid"
-                }
-
                 opacity: Services.OsdService.visible ? 1 : 0
                 scale: Services.OsdService.visible ? 1 : 0.92
 

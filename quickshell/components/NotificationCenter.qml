@@ -100,18 +100,6 @@ Scope {
                 Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
-                // Top specular glass highlight
-                Rectangle {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: Services.Aesthetic.cardRadius
-                    anchors.rightMargin: Services.Aesthetic.cardRadius
-                    height: 1
-                    color: Qt.rgba(1, 1, 1, 0.12)
-                    z: 10
-                }
-
                 // Prevent click dismissal inside card
                 MouseArea {
                     anchors.fill: parent
