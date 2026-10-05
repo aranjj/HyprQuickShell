@@ -1347,6 +1347,7 @@ Singleton {
     property string wifiConnectingSsid: ""
     property string wifiConnectError: ""
     property bool wifiConnecting: false
+    property bool _wifiConnectFailed: false
 
     // Live Wi-Fi Download / Upload Speeds
     property real wifiRxSpeed: 0
@@ -1386,14 +1387,16 @@ Singleton {
                         root.networkType = "ethernet";
                         root.networkInfo = "Ethernet";
                     } else if (type === "wifi") {
-                        const wasDisconnected = !root.wifiConnected;
-                        root.networkType = "wifi";
-                        root.networkInfo = info || "Connected";
-                        root.wifiConnected = true;
-                        root.wifiEnabled = true;
-                        root.wifiSsid = info;
-                        if (wasDisconnected && !root.controlCenterOpen) {
-                            wifiStatusProc.running = true;
+                        if (!root.wifiConnecting && !root._wifiConnectFailed) {
+                            const wasDisconnected = !root.wifiConnected;
+                            root.networkType = "wifi";
+                            root.networkInfo = info || "Connected";
+                            root.wifiConnected = true;
+                            root.wifiEnabled = true;
+                            root.wifiSsid = info;
+                            if (wasDisconnected && !root.controlCenterOpen) {
+                                wifiStatusProc.running = true;
+                            }
                         }
                     } else if (type === "off") {
                         root.networkType = "disconnected";
@@ -1415,6 +1418,19 @@ Singleton {
         }
     }
 
+    function networksEqual(a, b) {
+        if (!a && !b) return true;
+        if (!a || !b) return false;
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+            if (a[i].ssid !== b[i].ssid) return false;
+            if (a[i].is_locked !== b[i].is_locked) return false;
+            if (a[i].band !== b[i].band) return false;
+            if (Math.abs((a[i].signal || 0) - (b[i].signal || 0)) > 8) return false;
+        }
+        return true;
+    }
+
     Process {
         id: wifiStatusProc
         command: ["/home/aran/.config/quickshell/scripts/wifi.sh", "status"]
@@ -1429,9 +1445,19 @@ Singleton {
                     root.wifiInterface = data.interface || "wlan0";
                     root.wifiActiveNetwork = data.active || null;
                     root.wifiSsid = (data.active && data.active.ssid) ? data.active.ssid : "";
-                    root.wifiKnownNetworks = data.known_networks || [];
-                    root.wifiOtherNetworks = data.other_networks || [];
-                    root.wifiNetworks = data.all_networks || [];
+                    
+                    const newKnown = data.known_networks || [];
+                    if (!root.networksEqual(root.wifiKnownNetworks, newKnown)) {
+                        root.wifiKnownNetworks = newKnown;
+                    }
+                    const newOther = data.other_networks || [];
+                    if (!root.networksEqual(root.wifiOtherNetworks, newOther)) {
+                        root.wifiOtherNetworks = newOther;
+                    }
+                    const newAll = data.all_networks || [];
+                    if (!root.networksEqual(root.wifiNetworks, newAll)) {
+                        root.wifiNetworks = newAll;
+                    }
                     root.wifiSavedProfiles = data.saved_profiles || [];
 
                     if (root.networkType !== "ethernet") {
@@ -1462,16 +1488,21 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 root.wifiConnecting = false;
+                root.wifiConnectingSsid = "";
                 try {
                     const res = JSON.parse(text.trim());
                     if (res.success) {
-                        root.wifiConnectingSsid = "";
+                        root._wifiConnectFailed = false;
                         root.wifiConnectError = "";
                     } else {
+                        root._wifiConnectFailed = true;
                         root.wifiConnectError = res.error || "Failed to connect";
+                        wifiFailClearTimer.start();
                     }
                 } catch(e) {
+                    root._wifiConnectFailed = true;
                     root.wifiConnectError = text.trim() || "Connection failed";
+                    wifiFailClearTimer.start();
                 }
                 wifiRefreshTimer.start();
             }
@@ -1488,11 +1519,18 @@ Singleton {
         }
     }
 
+    Timer {
+        id: wifiFailClearTimer
+        interval: 5000
+        repeat: false
+        onTriggered: root._wifiConnectFailed = false
+    }
+
     // Faster polling when wifi view is open
     Timer {
         id: wifiScanPollTimer
-        interval: 3000
-        running: root.controlCenterOpen && root.controlCenterSubView === "wifi"
+        interval: 6000
+        running: root.controlCenterOpen && root.controlCenterSubView === "wifi" && !root.wifiConnecting
         repeat: true
         onTriggered: wifiStatusProc.running = true
     }
@@ -1578,6 +1616,7 @@ Singleton {
 
     function connectWifi(ssid) {
         if (!ssid) return;
+        _wifiConnectFailed = false;
         wifiConnecting = true;
         wifiConnectingSsid = ssid;
         wifiConnectError = "";
@@ -1587,6 +1626,7 @@ Singleton {
 
     function connectWifiWithPassword(ssid, password) {
         if (!ssid) return;
+        _wifiConnectFailed = false;
         wifiConnecting = true;
         wifiConnectingSsid = ssid;
         wifiConnectError = "";
@@ -1596,6 +1636,7 @@ Singleton {
 
     function connectHiddenWifi(ssid, password) {
         if (!ssid) return;
+        _wifiConnectFailed = false;
         wifiConnecting = true;
         wifiConnectingSsid = ssid;
         wifiConnectError = "";
