@@ -541,12 +541,11 @@ Scope {
                                                  color: Services.SystemService.wifiEnabled ? root.theme.accent : Qt.rgba(1, 1, 1, 0.09)
                                                  Behavior on color { ColorAnimation { duration: 120 } }
 
-                                                 Text {
+                                                 WifiSignalIcon {
                                                      anchors.centerIn: parent
-                                                     text: ""
+                                                     size: 15
+                                                     signal: (Services.SystemService.wifiConnected && Services.SystemService.wifiActiveNetwork) ? Services.SystemService.wifiActiveNetwork.signal : 0
                                                      color: Services.SystemService.wifiEnabled ? "#ffffff" : root.theme.textMuted
-                                                     font.pixelSize: 14
-                                                     font.family: root.font
                                                  }
 
                                                  MouseArea {
@@ -2002,12 +2001,11 @@ Scope {
                                             radius: 18
                                             color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.22)
 
-                                            Text {
+                                            WifiSignalIcon {
                                                 anchors.centerIn: parent
-                                                text: ""
+                                                size: 18
+                                                signal: Services.SystemService.wifiActiveNetwork ? Services.SystemService.wifiActiveNetwork.signal : 100
                                                 color: root.theme.accent
-                                                font.pixelSize: 16
-                                                font.family: root.font
                                             }
                                         }
 
@@ -2312,12 +2310,11 @@ Scope {
                                                             radius: 14
                                                             color: Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.08)
 
-                                                            Text {
+                                                            WifiSignalIcon {
                                                                 anchors.centerIn: parent
-                                                                text: ""
+                                                                size: 14
+                                                                signal: modelData.signal
                                                                 color: root.theme.textMuted
-                                                                font.pixelSize: 12
-                                                                font.family: root.font
                                                             }
                                                         }
 
@@ -2418,14 +2415,6 @@ Scope {
                                                                 cursorShape: Qt.PointingHandCursor
                                                                 onClicked: Services.SystemService.connectWifi(modelData.ssid)
                                                             }
-                                                        }
-
-                                                        // Signal icon
-                                                        Text {
-                                                            text: root.getWifiSignalIcon(modelData.signal)
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 13
-                                                            font.family: root.font
                                                         }
                                                     }
                                                 }
@@ -2533,12 +2522,11 @@ Scope {
                                                             radius: 14
                                                             color: Qt.rgba(root.theme.textPrimary.r, root.theme.textPrimary.g, root.theme.textPrimary.b, 0.08)
 
-                                                            Text {
+                                                            WifiSignalIcon {
                                                                 anchors.centerIn: parent
-                                                                text: ""
+                                                                size: 14
+                                                                signal: modelData.signal
                                                                 color: root.theme.textMuted
-                                                                font.pixelSize: 12
-                                                                font.family: root.font
                                                             }
                                                         }
 
@@ -2599,14 +2587,6 @@ Scope {
                                                                     font.weight: Font.Medium
                                                                 }
                                                             }
-                                                        }
-
-                                                        // Signal icon
-                                                        Text {
-                                                            text: root.getWifiSignalIcon(modelData.signal)
-                                                            color: root.theme.textMuted
-                                                            font.pixelSize: 13
-                                                            font.family: root.font
                                                         }
                                                     }
                                                 }
@@ -2721,12 +2701,11 @@ Scope {
                                     border.color: Qt.rgba(root.theme.accent.r, root.theme.accent.g, root.theme.accent.b, 0.3)
                                     border.width: 1
 
-                                    Text {
+                                    WifiSignalIcon {
                                         anchors.centerIn: parent
-                                        text: root.getWifiSignalIcon(root.targetPromptNetwork ? root.targetPromptNetwork.signal : 70)
+                                        size: 22
+                                        signal: root.targetPromptNetwork ? root.targetPromptNetwork.signal : 70
                                         color: root.theme.accent
-                                        font.pixelSize: 20
-                                        font.family: root.font
                                     }
                                 }
 

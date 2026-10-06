@@ -8,6 +8,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import "../services" as Services
+import "../components" as Components
 
 Scope {
     id: root
@@ -924,13 +925,24 @@ Scope {
                         color: (Services.SystemService.controlCenterOpen && Services.SystemService.controlCenterSubView === "wifi") || wifiIconMouse.containsMouse ? root.barPillHover : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
 
+                        // Non-WiFi fallback (Ethernet or Wi-Fi disabled)
                         Text {
                             anchors.centerIn: parent
+                            visible: Services.SystemService.networkType === "ethernet" || !Services.SystemService.wifiEnabled
                             text: Services.SystemService.wifiBarIcon
                             color: (Services.SystemService.networkType === "disconnected" && !Services.SystemService.wifiConnected) ? root.barFgMuted : root.barFgPrimary
                             font.pixelSize: 18
                             font.family: root.font
                             font.weight: Font.Bold
+                        }
+
+                        // Active 3-bar dynamic Wi-Fi signal icon
+                        Components.WifiSignalIcon {
+                            anchors.centerIn: parent
+                            visible: Services.SystemService.networkType !== "ethernet" && Services.SystemService.wifiEnabled
+                            size: 18
+                            signal: (Services.SystemService.wifiConnected && Services.SystemService.wifiActiveNetwork) ? Services.SystemService.wifiActiveNetwork.signal : 0
+                            color: (Services.SystemService.networkType === "disconnected" && !Services.SystemService.wifiConnected) ? root.barFgMuted : root.barFgPrimary
                         }
 
                         MouseArea {
