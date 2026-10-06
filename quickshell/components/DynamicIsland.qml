@@ -203,10 +203,16 @@ Scope {
             onRead: (data) => {
                 const parts = data.trim().split(";");
                 if (parts.length >= 4) {
-                    root.cavaBar0 = Math.max(0, Math.min(1.0, (parseInt(parts[0]) || 0) / 100.0));
-                    root.cavaBar1 = Math.max(0, Math.min(1.0, (parseInt(parts[1]) || 0) / 100.0));
-                    root.cavaBar2 = Math.max(0, Math.min(1.0, (parseInt(parts[2]) || 0) / 100.0));
-                    root.cavaBar3 = Math.max(0, Math.min(1.0, (parseInt(parts[3]) || 0) / 100.0));
+                    const raw0 = Math.max(0, Math.min(1.0, (parseInt(parts[0]) || 0) / 100.0));
+                    const raw1 = Math.max(0, Math.min(1.0, (parseInt(parts[1]) || 0) / 100.0));
+                    const raw2 = Math.max(0, Math.min(1.0, (parseInt(parts[2]) || 0) / 100.0));
+                    const raw3 = Math.max(0, Math.min(1.0, (parseInt(parts[3]) || 0) / 100.0));
+
+                    // Dual-rate asymmetric filter: quick attack, smooth fluid release
+                    root.cavaBar0 = raw0 > root.cavaBar0 ? (root.cavaBar0 * 0.35 + raw0 * 0.65) : (root.cavaBar0 * 0.72 + raw0 * 0.28);
+                    root.cavaBar1 = raw1 > root.cavaBar1 ? (root.cavaBar1 * 0.35 + raw1 * 0.65) : (root.cavaBar1 * 0.72 + raw1 * 0.28);
+                    root.cavaBar2 = raw2 > root.cavaBar2 ? (root.cavaBar2 * 0.35 + raw2 * 0.65) : (root.cavaBar2 * 0.72 + raw2 * 0.28);
+                    root.cavaBar3 = raw3 > root.cavaBar3 ? (root.cavaBar3 * 0.35 + raw3 * 0.65) : (root.cavaBar3 * 0.72 + raw3 * 0.28);
                 }
             }
         }
@@ -458,7 +464,7 @@ Scope {
 
                     width: {
                         if (root.islandMode === "notification") return 410;
-                        if (root.islandMode === "mediaExpanded") return 410;
+                        if (root.islandMode === "mediaExpanded") return 380;
                         if (root.islandMode === "osd") return 340;
                         if (root.islandMode === "mediaCompact") return Math.max(200, Math.min(350, compactContent.implicitWidth + 24));
                         return 0;
@@ -466,7 +472,7 @@ Scope {
 
                     height: {
                         if (root.islandMode === "notification") return 74;
-                        if (root.islandMode === "mediaExpanded") return 190;
+                        if (root.islandMode === "mediaExpanded") return 160;
                         if (root.islandMode === "osd") return 50;
                         if (root.islandMode === "mediaCompact") return 28;
                         return 0;
@@ -474,7 +480,7 @@ Scope {
 
                     radius: {
                         if (root.islandMode === "notification") return 24;
-                        if (root.islandMode === "mediaExpanded") return 24;
+                        if (root.islandMode === "mediaExpanded") return 32;
                         if (root.islandMode === "osd") return 22;
                         if (root.islandMode === "mediaCompact") return 14;
                         return 0;
@@ -730,128 +736,38 @@ Scope {
                     Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
                     Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
+                    // Dismiss if clicking empty background of expanded island
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        onClicked: {
+                            root.resetInactivityTimer();
+                            root.isMediaExpanded = false;
+                        }
+                    }
+
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 16
-                        anchors.rightMargin: 16
-                        anchors.topMargin: 12
-                        anchors.bottomMargin: 12
-                        spacing: 10
+                        anchors.leftMargin: 20
+                        anchors.rightMargin: 20
+                        anchors.topMargin: 16
+                        anchors.bottomMargin: 16
+                        spacing: 12
 
-                        // ╭────┤  ●  Spotify       ˅  ├────╮
-                        // Top Header (Anchored Capsule Pill with Left & Right Shoulder Lines)
+                        // Row 1: Album Art + Track Info + Live Audio Waveform
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 10
+                            Layout.preferredHeight: 48
+                            spacing: 12
 
-                            // Left shoulder line
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 1
-                                color: Qt.rgba(1, 1, 1, 0.12)
-                            }
-
-                            // Centered Header Capsule Pill
-                            Rectangle {
-                                id: headerPill
-                                implicitWidth: headerPillRow.implicitWidth + 24
-                                implicitHeight: 26
-                                radius: 13
-                                color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.07)
-                                border.color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.16)
-                                border.width: 1
-
-                                Behavior on color { ColorAnimation { duration: 150 } }
-                                Behavior on border.color { ColorAnimation { duration: 150 } }
-
-                                RowLayout {
-                                    id: headerPillRow
-                                    anchors.centerIn: parent
-                                    spacing: 8
-
-                                    // Status Dot (Accent)
-                                    Rectangle {
-                                        width: 6
-                                        height: 6
-                                        radius: 3
-                                        color: root.isMediaPlaying ? root.playerAccent : root.theme.textMuted
-                                    }
-
-                                    // Source / Player Identity
-                                    Text {
-                                        text: root.activePlayer?.identity ?? "Spotify"
-                                        color: "#ffffff"
-                                        font.pixelSize: 11
-                                        font.weight: Font.DemiBold
-                                        font.family: root.font
-                                    }
-
-                                    // Subtle live cava waveform
-                                    Row {
-                                        spacing: 2
-                                        Layout.alignment: Qt.AlignVCenter
-                                        height: 11
-
-                                        Repeater {
-                                            model: [root.cavaBar0, root.cavaBar1, root.cavaBar2, root.cavaBar3]
-
-                                            Rectangle {
-                                                required property real modelData
-                                                width: 2
-                                                height: Math.max(2, modelData * 9)
-                                                radius: 1
-                                                color: root.isMediaPlaying ? root.playerAccent : root.theme.textMuted
-                                                anchors.bottom: parent.bottom
-
-                                                Behavior on height {
-                                                    NumberAnimation { duration: 60; easing.type: Easing.Linear }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // Chevron / Collapse Icon
-                                    Text {
-                                        text: "▾"
-                                        color: pillMouse.containsMouse ? "#ffffff" : root.theme.textSecondary
-                                        font.pixelSize: 11
-                                        font.weight: Font.Bold
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: pillMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        root.resetInactivityTimer();
-                                        root.isMediaExpanded = false;
-                                    }
-                                }
-                            }
-
-                            // Right shoulder line
-                            Rectangle {
-                                Layout.fillWidth: true
-                                height: 1
-                                color: Qt.rgba(1, 1, 1, 0.12)
-                            }
-                        }
-
-                        // Middle: Big Album Art + Title & Artist
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 14
-
-                            // Album Art
+                            // Rounded Album Art (Squircle 48x48, radius 12)
                             Rectangle {
                                 id: expandedArtBox
-                                width: 52
-                                height: 52
-                                radius: 10
-                                color: Qt.rgba(0, 0, 0, 0.35)
-                                border.color: Qt.rgba(1, 1, 1, 0.14)
+                                width: 48
+                                height: 48
+                                radius: 12
+                                color: Qt.rgba(0, 0, 0, 0.4)
+                                border.color: Qt.rgba(1, 1, 1, 0.12)
                                 border.width: 1
 
                                 Image {
@@ -867,7 +783,7 @@ Scope {
                                 Rectangle {
                                     id: expandedArtMask
                                     anchors.fill: parent
-                                    radius: 10
+                                    radius: 12
                                     color: "#ffffff"
                                     antialiasing: true
                                     visible: false
@@ -885,7 +801,7 @@ Scope {
 
                                 Rectangle {
                                     anchors.fill: parent
-                                    radius: 10
+                                    radius: 12
                                     color: "transparent"
                                     border.color: expandedArtBox.border.color
                                     border.width: expandedArtBox.border.width
@@ -896,23 +812,33 @@ Scope {
                                 Text {
                                     anchors.centerIn: parent
                                     text: "󰝚"
-                                    color: root.playerAccent
-                                    font.pixelSize: 24
+                                    color: Qt.rgba(1, 1, 1, 0.6)
+                                    font.pixelSize: 22
                                     font.family: root.font
                                     visible: !expandedArtEffect.visible
                                 }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.resetInactivityTimer();
+                                        root.isMediaExpanded = false;
+                                    }
+                                }
                             }
 
-                            // Title & Artist stack
+                            // Track Title & Artist
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: 4
+                                Layout.alignment: Qt.AlignVCenter
+                                spacing: 3
 
                                 Text {
-                                    text: root.activePlayer?.trackTitle ?? "Unknown Title"
+                                    text: root.activePlayer?.trackTitle ?? "Not Playing"
                                     color: "#ffffff"
                                     font.pixelSize: 14
-                                    font.weight: Font.Bold
+                                    font.weight: Font.DemiBold
                                     font.family: root.font
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
@@ -920,20 +846,105 @@ Scope {
 
                                 Text {
                                     text: root.activePlayer?.trackArtist ?? "Unknown Artist"
-                                    color: root.theme.textMuted
+                                    color: Qt.rgba(1, 1, 1, 0.6)
                                     font.pixelSize: 12
                                     font.family: root.font
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
                             }
+
+                            // Live Waveform Visualizer (Top Right, White Monochrome, Stationary Container)
+                            Item {
+                                id: visualizerBox
+                                Layout.preferredWidth: 27
+                                Layout.preferredHeight: 22
+                                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 3
+                                    height: parent.height
+
+                                    // Bar 1
+                                    Item {
+                                        width: 3
+                                        height: parent.height
+                                        Rectangle {
+                                            anchors.centerIn: parent
+                                            width: 3
+                                            height: root.isMediaPlaying ? Math.max(3, Math.min(20, root.cavaBar0 * 20)) : 3
+                                            radius: 1.5
+                                            color: "#ffffff"
+                                            Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+                                        }
+                                    }
+
+                                    // Bar 2
+                                    Item {
+                                        width: 3
+                                        height: parent.height
+                                        Rectangle {
+                                            anchors.centerIn: parent
+                                            width: 3
+                                            height: root.isMediaPlaying ? Math.max(3, Math.min(20, root.cavaBar2 * 20)) : 3
+                                            radius: 1.5
+                                            color: "#ffffff"
+                                            Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+                                        }
+                                    }
+
+                                    // Bar 3
+                                    Item {
+                                        width: 3
+                                        height: parent.height
+                                        Rectangle {
+                                            anchors.centerIn: parent
+                                            width: 3
+                                            height: root.isMediaPlaying ? Math.max(3, Math.min(20, root.cavaBar1 * 20)) : 3
+                                            radius: 1.5
+                                            color: "#ffffff"
+                                            Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+                                        }
+                                    }
+
+                                    // Bar 4
+                                    Item {
+                                        width: 3
+                                        height: parent.height
+                                        Rectangle {
+                                            anchors.centerIn: parent
+                                            width: 3
+                                            height: root.isMediaPlaying ? Math.max(3, Math.min(20, root.cavaBar3 * 20)) : 3
+                                            radius: 1.5
+                                            color: "#ffffff"
+                                            Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+                                        }
+                                    }
+
+                                    // Bar 5
+                                    Item {
+                                        width: 3
+                                        height: parent.height
+                                        Rectangle {
+                                            anchors.centerIn: parent
+                                            width: 3
+                                            height: root.isMediaPlaying ? Math.max(3, Math.min(20, root.cavaBar0 * 20)) : 3
+                                            radius: 1.5
+                                            color: "#ffffff"
+                                            Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuad } }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
-                        // Bottom: Full-Width Timeline Scrubber (1:14 ━━━━━●━━━━━━ 3:45)
+                        // Row 2: Timeline Scrubber (2:57 ━━━━━●━━━━━━ -1:32)
                         RowLayout {
                             id: timelineRow
                             Layout.fillWidth: true
-                            spacing: 8
+                            Layout.preferredHeight: 18
+                            spacing: 10
 
                             property real scrubPos: -1
                             readonly property real livePos: {
@@ -944,56 +955,55 @@ Scope {
                             readonly property real totalLen: root.activePlayer?.length ?? 0
                             readonly property real progressRatio: totalLen > 0 ? Math.max(0, Math.min(1.0, displayPos / totalLen)) : 0
 
+                            // Elapsed time
                             Text {
                                 text: root.formatTime(timelineRow.displayPos)
-                                color: timelineRow.scrubPos >= 0 ? root.playerAccent : root.theme.textMuted
-                                font.pixelSize: 10
+                                color: Qt.rgba(1, 1, 1, 0.55)
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
                                 font.family: root.font
-                                font.weight: timelineRow.scrubPos >= 0 ? Font.Bold : Font.Normal
+                                Layout.minimumWidth: 32
                             }
 
+                            // Interactive Bar
                             Item {
                                 id: trackBarContainer
                                 Layout.fillWidth: true
                                 height: 18
 
-                                // Track background bar
                                 Rectangle {
                                     id: trackBg
                                     anchors.left: parent.left
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
-                                    height: scrubArea.containsMouse || scrubArea.pressed ? 6 : 4
+                                    height: scrubArea.pressed || scrubArea.containsMouse ? 7 : 5
                                     radius: height / 2
-                                    color: Qt.rgba(1, 1, 1, 0.16)
+                                    color: Qt.rgba(1, 1, 1, 0.22)
                                     Behavior on height { NumberAnimation { duration: 100 } }
 
-                                    // Filled progress bar
+                                    // Pure White Monochrome Fill
                                     Rectangle {
                                         anchors.left: parent.left
                                         anchors.top: parent.top
                                         anchors.bottom: parent.bottom
                                         radius: parent.radius
-                                        color: scrubArea.pressed ? Qt.darker(root.playerAccent, 1.2) : (scrubArea.containsMouse ? Qt.lighter(root.playerAccent, 1.15) : root.playerAccent)
+                                        color: "#ffffff"
                                         width: parent.width * timelineRow.progressRatio
 
                                         Behavior on width {
                                             enabled: !scrubArea.pressed
                                             NumberAnimation { duration: 200; easing.type: Easing.Linear }
                                         }
-                                        Behavior on color { ColorAnimation { duration: 120 } }
                                     }
 
-                                    // Circular scrubber thumb handle
+                                    // Scrubber Handle (Expands smoothly on scrub/hover)
                                     Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         x: Math.max(0, Math.min(parent.width - width, (parent.width * timelineRow.progressRatio) - (width / 2)))
-                                        width: scrubArea.containsMouse || scrubArea.pressed ? 12 : 0
+                                        width: scrubArea.containsMouse || scrubArea.pressed ? 10 : 0
                                         height: width
                                         radius: width / 2
                                         color: "#ffffff"
-                                        border.color: root.playerAccent
-                                        border.width: 2
                                         visible: width > 0
 
                                         Behavior on x {
@@ -1046,33 +1056,40 @@ Scope {
                                 }
                             }
 
+                            // Remaining time with minus sign (e.g. -1:32)
                             Text {
-                                text: root.formatTime(timelineRow.totalLen)
-                                color: root.theme.textMuted
-                                font.pixelSize: 10
+                                text: "-" + root.formatTime(Math.max(0, timelineRow.totalLen - timelineRow.displayPos))
+                                color: Qt.rgba(1, 1, 1, 0.55)
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
                                 font.family: root.font
+                                horizontalAlignment: Text.AlignRight
+                                Layout.minimumWidth: 32
                             }
                         }
 
-                        // Centered Playback Controls (⏮  ⏯  ⏭)
+                        // Row 3: iOS 1:1 Playback Controls ( ◀◀   ❚❚ / ▶   ▶▶ )
                         Row {
                             Layout.alignment: Qt.AlignHCenter
+                            Layout.preferredHeight: 38
                             spacing: 24
 
-                            // Previous Track
-                            Rectangle {
-                                width: 32
-                                height: 32
-                                radius: 16
-                                color: prevMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                            // Previous / Rewind
+                            Item {
+                                width: 38
+                                height: 38
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "󰒮"
-                                    color: prevMouse.containsMouse ? "#ffffff" : root.theme.textSecondary
-                                    font.pixelSize: 16
+                                    text: "󰑟"
+                                    color: "#ffffff"
+                                    font.bold: true
+                                    font.weight: Font.Bold
+                                    opacity: prevMouse.pressed ? 0.45 : (prevMouse.containsMouse ? 0.75 : 1.0)
+                                    font.pixelSize: 26
                                     font.family: root.font
+                                    Behavior on opacity { NumberAnimation { duration: 100 } }
                                 }
 
                                 MouseArea {
@@ -1087,22 +1104,22 @@ Scope {
                                 }
                             }
 
-                            // Play / Pause Circle Button
-                            Rectangle {
-                                width: 36
-                                height: 36
-                                radius: 18
-                                color: playMouse.containsMouse ? Qt.lighter(root.playerAccent, 1.15) : root.playerAccent
+                            // Play / Pause (Bare pure white bold icon directly on background)
+                            Item {
+                                width: 46
+                                height: 46
                                 anchors.verticalCenter: parent.verticalCenter
-
-                                Behavior on color { ColorAnimation { duration: 120 } }
 
                                 Text {
                                     anchors.centerIn: parent
                                     text: root.isMediaPlaying ? "󰏤" : "󰐊"
                                     color: "#ffffff"
-                                    font.pixelSize: 16
+                                    font.bold: true
+                                    font.weight: Font.Bold
+                                    opacity: playMouse.pressed ? 0.45 : (playMouse.containsMouse ? 0.75 : 1.0)
+                                    font.pixelSize: 36
                                     font.family: root.font
+                                    Behavior on opacity { NumberAnimation { duration: 100 } }
                                 }
 
                                 MouseArea {
@@ -1117,20 +1134,22 @@ Scope {
                                 }
                             }
 
-                            // Next Track
-                            Rectangle {
-                                width: 32
-                                height: 32
-                                radius: 16
-                                color: nextMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                            // Next / Fast Forward
+                            Item {
+                                width: 38
+                                height: 38
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "󰒭"
-                                    color: nextMouse.containsMouse ? "#ffffff" : root.theme.textSecondary
-                                    font.pixelSize: 16
+                                    text: "󰈑"
+                                    color: "#ffffff"
+                                    font.bold: true
+                                    font.weight: Font.Bold
+                                    opacity: nextMouse.pressed ? 0.45 : (nextMouse.containsMouse ? 0.75 : 1.0)
+                                    font.pixelSize: 26
                                     font.family: root.font
+                                    Behavior on opacity { NumberAnimation { duration: 100 } }
                                 }
 
                                 MouseArea {
