@@ -11,18 +11,28 @@ Item {
     property real to: 100.0
     property real stepSize: 1.0
 
-    // "large" (~32px) | "medium" (~22px) | "thin" (4->8px track)
+    // "large" (28px row, 5px track) | "medium" (24px row, 4px track) | "thin" (18px row, 4px track)
     property string size: "large"
+
+    // Icons
+    property string leftIcon: icon
     property string icon: ""
+    property string rightIcon: ""
+
     property bool muted: false
     property bool enabled: true
-    property bool iconClickable: false
-
+    property bool accentFill: false
     property color accentColor: Services.ThemeService.accent
-    property color onAccentColor: Services.ThemeService.colOnPrimary
+
+    property bool iconClickable: false
+    property bool leftIconClickable: iconClickable
+    property bool rightIconClickable: false
+
     property string font: "Inter, MesloLGM Nerd Font, sans-serif"
 
     signal iconClicked()
+    signal leftIconClicked()
+    signal rightIconClicked()
     signal moved(real value)
     signal committed(real value)
     signal wheeled(real value)
@@ -31,8 +41,6 @@ Item {
     property bool isDragging: false
     property real dragValue: value
     property bool hasPendingMoved: false
-    property bool startedInIcon: false
-    property real pressStartX: 0
 
     readonly property real displayValue: isDragging ? dragValue : value
 
@@ -43,11 +51,18 @@ Item {
         return Math.max(0.0, Math.min(1.0, (v - from) / span));
     }
 
+    // Follow external changes with 100ms OutCubic animation; disable during drag for 0 lag
+    property real visualNorm: norm
+    Behavior on visualNorm {
+        enabled: !root.isDragging && !trackMouseArea.pressed
+        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+    }
+
     implicitWidth: 200
     implicitHeight: {
-        if (size === "medium") return 22;
+        if (size === "medium") return 24;
         if (size === "thin") return 18;
-        return 32; // "large"
+        return 28; // "large"
     }
 
     opacity: enabled ? 1.0 : 0.4
@@ -55,11 +70,38 @@ Item {
 
     activeFocusOnTab: enabled
 
+    // Sizing tokens by variant
+    readonly property real trackHeight: size === "large" ? 5 : 4
+    readonly property real handleWidth: {
+        if (size === "medium") return 26;
+        if (size === "thin") return 18;
+        return 32; // "large"
+    }
+    readonly property real handleHeight: {
+        if (size === "medium") return 16;
+        if (size === "thin") return 12;
+        return 20; // "large"
+    }
+    readonly property real handleRadius: handleHeight / 2
+
+    // Icon definitions
+    readonly property bool hasLeftIcon: (size !== "thin") && (leftIcon !== "")
+    readonly property bool hasRightIcon: (size === "large") && (rightIcon !== "")
+
+    readonly property real leftIconWidth: hasLeftIcon ? 18 : 0
+    readonly property real rightIconWidth: hasRightIcon ? 20 : 0
+    readonly property real iconGap: 10
+
+    // Handle center and fill bounds
+    readonly property real trackAvail: Math.max(0, track.width - handleWidth)
+    readonly property real handleCenterX: (handleWidth / 2) + visualNorm * trackAvail
+    readonly property bool handleActive: (trackMouseArea.containsMouse || isDragging) && enabled
+
     // Helpers
     function valueFromX(mouseX) {
         const span = to - from;
-        if (width <= 0 || span <= 0) return from;
-        const ratio = Math.max(0.0, Math.min(1.0, mouseX / width));
+        if (track.width <= 0 || span <= 0) return from;
+        const ratio = Math.max(0.0, Math.min(1.0, mouseX / track.width));
         let v = from + ratio * span;
         if (stepSize > 0) {
             v = Math.round((v - from) / stepSize) * stepSize + from;
@@ -131,158 +173,165 @@ Item {
     }
 
     // ═══════════════════════════════════════════
-    // LARGE & MEDIUM SLIDER VISUALS
+    // LEFT ICON (Small icon at left end)
     // ═══════════════════════════════════════════
-    Rectangle {
-        id: pillTrack
-        visible: root.size !== "thin"
-        anchors.fill: parent
-        radius: height / 2
-        color: Services.Aesthetic.sliderTrackBg
-        border.color: mouseArea.containsMouse ? Services.Aesthetic.innerCardHover : Services.Aesthetic.innerCardBorder
-        border.width: Services.Aesthetic.borderWidth
-        clip: true
+    Item {
+        id: leftIconBox
+        visible: root.hasLeftIcon
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        width: root.leftIconWidth
+        height: parent.height
 
-        Behavior on border.color { ColorAnimation { duration: 120 } }
-
-        // Dynamic Fill Capsule (Pill)
-        Rectangle {
-            id: pillFill
-            height: parent.height
-            radius: parent.radius
-            width: {
-                if (parent.width <= 0) return 0;
-                return Math.max(parent.height, Math.min(parent.width, parent.width * root.norm));
-            }
-            color: {
-                if (root.muted) return Services.Aesthetic.innerCardHover;
-                if (mouseArea.containsMouse || root.isDragging) return Qt.lighter(root.accentColor, 1.08);
-                return root.accentColor;
-            }
-            clip: true
-
-            Behavior on width {
-                enabled: !root.isDragging && !mouseArea.pressed
-                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-            }
+        Text {
+            anchors.centerIn: parent
+            text: root.leftIcon
+            color: root.muted ? Services.ThemeService.textMuted : Services.ThemeService.textSecondary
+            font.pixelSize: 12
+            font.family: root.font
             Behavior on color { ColorAnimation { duration: 140 } }
+        }
 
-            // Icon sits inside the left end of the fill
-            Item {
-                id: iconContainer
-                width: parent.height
-                height: parent.height
-                anchors.left: parent.left
-                anchors.top: parent.top
-                visible: root.icon !== ""
+        MouseArea {
+            id: leftIconMouse
+            anchors.fill: parent
+            enabled: root.enabled && root.leftIconClickable
+            hoverEnabled: enabled
+            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: {
+                root.leftIconClicked();
+                root.iconClicked();
+            }
+        }
+    }
 
-                Text {
-                    anchors.centerIn: parent
-                    text: root.icon
-                    color: root.muted ? Services.ThemeService.textMuted : root.onAccentColor
-                    font.pixelSize: root.size === "medium" ? 11 : 15
-                    font.family: root.font
-                    Behavior on color { ColorAnimation { duration: 140 } }
+    // ═══════════════════════════════════════════
+    // RIGHT ICON (Larger icon at right end)
+    // ═══════════════════════════════════════════
+    Item {
+        id: rightIconBox
+        visible: root.hasRightIcon
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        width: root.rightIconWidth
+        height: parent.height
+
+        Text {
+            anchors.centerIn: parent
+            text: root.rightIcon
+            color: Services.ThemeService.textSecondary
+            font.pixelSize: 16
+            font.family: root.font
+            Behavior on color { ColorAnimation { duration: 140 } }
+        }
+
+        MouseArea {
+            id: rightIconMouse
+            anchors.fill: parent
+            enabled: root.enabled && root.rightIconClickable
+            hoverEnabled: enabled
+            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: root.rightIconClicked()
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // SLIDER TRACK & FILL
+    // ═══════════════════════════════════════════
+    Item {
+        id: track
+        anchors.left: root.hasLeftIcon ? leftIconBox.right : parent.left
+        anchors.leftMargin: root.hasLeftIcon ? root.iconGap : 0
+        anchors.right: root.hasRightIcon ? rightIconBox.left : parent.right
+        anchors.rightMargin: root.hasRightIcon ? root.iconGap : 0
+        anchors.verticalCenter: parent.verticalCenter
+        height: root.trackHeight
+
+        // Unfilled background track (18% alpha textPrimary)
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.height / 2
+            color: Services.ThemeService.textPrimary
+            opacity: 0.18
+        }
+
+        // Filled track (full strength textPrimary or accentFill; 40% opacity when muted)
+        Rectangle {
+            id: fillRect
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            radius: parent.height / 2
+            width: {
+                if (track.width <= 0 || root.visualNorm <= 0) return 0;
+                if (root.visualNorm >= 1.0) return track.width;
+                return root.handleCenterX;
+            }
+            color: root.accentFill ? root.accentColor : Services.ThemeService.textPrimary
+            opacity: root.muted ? 0.40 : 1.0
+            Behavior on opacity { NumberAnimation { duration: 150 } }
+        }
+
+        // ═══════════════════════════════════════════
+        // CAPSULE HANDLE (Visible on hover / drag)
+        // ═══════════════════════════════════════════
+        Rectangle {
+            id: handle
+            width: root.handleWidth
+            height: root.handleHeight
+            radius: root.handleRadius
+            anchors.verticalCenter: parent.verticalCenter
+            x: Math.max(0, Math.min(track.width - width, root.visualNorm * root.trackAvail))
+
+            color: root.accentColor
+            border.color: Services.Aesthetic.innerCardBorder
+            border.width: Services.Aesthetic.borderWidth
+
+            opacity: root.handleActive ? 1.0 : 0.0
+            scale: (root.isDragging || trackMouseArea.pressed) ? 1.06 : (root.handleActive ? 1.0 : 0.7)
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.handleActive ? 120 : 150
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 120
+                    easing.type: Easing.OutCubic
                 }
             }
         }
     }
 
     // ═══════════════════════════════════════════
-    // THIN SLIDER VISUALS (MEDIA PROGRESS / SEEK)
-    // ═══════════════════════════════════════════
-    Rectangle {
-        id: thinTrack
-        visible: root.size === "thin"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        height: (mouseArea.containsMouse || root.isDragging) ? 8 : 4
-        radius: height / 2
-        color: Services.Aesthetic.sliderTrackBg
-        border.color: Services.Aesthetic.innerCardBorder
-        border.width: Services.Aesthetic.borderWidth
-        clip: true
-
-        Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-
-        // Filled progress bar
-        Rectangle {
-            id: thinFill
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            radius: parent.radius
-            width: Math.max(0, Math.min(parent.width, parent.width * root.norm))
-            color: (mouseArea.containsMouse || root.isDragging) ? Qt.lighter(root.accentColor, 1.08) : root.accentColor
-
-            Behavior on width {
-                enabled: !root.isDragging && !mouseArea.pressed
-                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-            }
-            Behavior on color { ColorAnimation { duration: 120 } }
-        }
-    }
-
-    // Knob for Thin Slider (Circular thumb handle)
-    Rectangle {
-        id: thinKnob
-        visible: root.size === "thin"
-        anchors.verticalCenter: parent.verticalCenter
-        width: 12
-        height: 12
-        radius: 6
-        color: root.accentColor
-        border.color: Services.Aesthetic.innerCardBorder
-        border.width: 1
-        x: Math.max(0, Math.min(parent.width - width, (parent.width * root.norm) - (width / 2)))
-        opacity: (mouseArea.containsMouse || root.isDragging) ? 1.0 : 0.0
-
-        Behavior on opacity { NumberAnimation { duration: 150 } }
-        Behavior on x {
-            enabled: !root.isDragging && !mouseArea.pressed
-            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-        }
-    }
-
-    // ═══════════════════════════════════════════
-    // MOUSE INTERACTION (ALL VARIANTS)
+    // MOUSE INTERACTION (Full row height hit area)
     // ═══════════════════════════════════════════
     MouseArea {
-        id: mouseArea
-        anchors.fill: parent
+        id: trackMouseArea
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: track.left
+        anchors.right: track.right
+
         hoverEnabled: root.enabled
         enabled: root.enabled
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
 
         onPressed: (mouse) => {
-            root.pressStartX = mouse.x;
-            const iconHitWidth = (root.size === "large" ? 36 : 26);
-            root.startedInIcon = root.iconClickable && (mouse.x <= iconHitWidth);
-            if (!root.startedInIcon) {
-                root.isDragging = true;
+            root.isDragging = true;
+            root.applyDrag(mouse.x);
+        }
+
+        onPositionChanged: (mouse) => {
+            if (pressed || root.isDragging) {
                 root.applyDrag(mouse.x);
             }
         }
 
-        onPositionChanged: (mouse) => {
-            if (pressed) {
-                const iconHitWidth = (root.size === "large" ? 36 : 26);
-                const dx = Math.abs(mouse.x - root.pressStartX);
-                if (root.startedInIcon && (dx > 4 || mouse.x > iconHitWidth)) {
-                    root.startedInIcon = false;
-                    root.isDragging = true;
-                }
-                if (root.isDragging) {
-                    root.applyDrag(mouse.x);
-                }
-            }
-        }
-
         onReleased: (mouse) => {
-            if (root.startedInIcon && Math.abs(mouse.x - root.pressStartX) <= 4) {
-                root.iconClicked();
-            } else if (root.isDragging) {
+            if (root.isDragging) {
                 throttleTimer.stop();
                 root.hasPendingMoved = false;
                 root.isDragging = false;
@@ -290,15 +339,12 @@ Item {
                 root.dragValue = finalVal;
                 root.committed(finalVal);
             }
-            root.startedInIcon = false;
-            root.isDragging = false;
         }
 
         onCanceled: {
             throttleTimer.stop();
             root.hasPendingMoved = false;
             root.isDragging = false;
-            root.startedInIcon = false;
         }
 
         onWheel: (wheel) => {

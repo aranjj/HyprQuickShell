@@ -1307,7 +1307,7 @@ Scope {
                         // ═══════════════════════════════════════════
                         Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: card.isCompact ? 72 : 82
+                            implicitHeight: card.isCompact ? 62 : 70
                             radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
@@ -1315,8 +1315,11 @@ Scope {
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: card.isCompact ? 8 : 12
-                                spacing: card.isCompact ? 6 : 8
+                                anchors.leftMargin: card.isCompact ? 8 : 12
+                                anchors.rightMargin: card.isCompact ? 8 : 12
+                                anchors.topMargin: card.isCompact ? 5 : 7
+                                anchors.bottomMargin: card.isCompact ? 5 : 7
+                                spacing: card.isCompact ? 4 : 6
 
                                 RowLayout {
                                     Layout.fillWidth: true
@@ -1372,8 +1375,8 @@ Scope {
                                     value: Services.SystemService.brightness
                                     from: 0
                                     to: 100
-                                    icon: Services.SystemService.brightness <= 33 ? "󰃞" : (Services.SystemService.brightness <= 66 ? "󰃟" : "󰃠")
-                                    accentColor: root.theme.accent
+                                    leftIcon: "󰃞"
+                                    rightIcon: "󰃠"
                                     onMoved: (val) => {
                                         Services.SystemService.isBrightnessDragging = true;
                                         Services.SystemService.setBrightnessPercent(val);
@@ -1395,7 +1398,7 @@ Scope {
                         // ═══════════════════════════════════════════
                         Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: card.isCompact ? 72 : 82
+                            implicitHeight: card.isCompact ? 62 : 70
                             radius: 16
                             color: Services.Aesthetic.innerCardBg
                             border.color: Services.Aesthetic.innerCardBorder
@@ -1404,8 +1407,11 @@ Scope {
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: card.isCompact ? 8 : 12
-                                spacing: card.isCompact ? 6 : 8
+                                anchors.leftMargin: card.isCompact ? 8 : 12
+                                anchors.rightMargin: card.isCompact ? 8 : 12
+                                anchors.topMargin: card.isCompact ? 5 : 7
+                                anchors.bottomMargin: card.isCompact ? 5 : 7
+                                spacing: card.isCompact ? 4 : 6
 
                                 // ── Sound Output Header ──
                                 RowLayout {
@@ -1465,8 +1471,8 @@ Scope {
                                     from: 0
                                     to: 100
                                     muted: Services.SystemService.volumeMuted
-                                    icon: Services.SystemService.volumeIcon
-                                    accentColor: root.theme.accent
+                                    leftIcon: Services.SystemService.volumeMuted ? "󰖁" : "󰕿"
+                                    rightIcon: "󰕾"
                                     iconClickable: true
                                     onIconClicked: Services.SystemService.toggleMute()
                                     onMoved: (val) => {
@@ -4382,7 +4388,7 @@ Scope {
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.topMargin: 4
-                                implicitHeight: outputCol.implicitHeight + 24
+                                implicitHeight: outputCol.implicitHeight + (card.isCompact ? 10 : 16)
                                 radius: 16
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -4391,8 +4397,11 @@ Scope {
                                 ColumnLayout {
                                     id: outputCol
                                     anchors.fill: parent
-                                    anchors.margins: 12
-                                    spacing: 10
+                                    anchors.leftMargin: card.isCompact ? 8 : 12
+                                    anchors.rightMargin: card.isCompact ? 8 : 12
+                                    anchors.topMargin: card.isCompact ? 5 : 8
+                                    anchors.bottomMargin: card.isCompact ? 5 : 8
+                                    spacing: card.isCompact ? 6 : 8
 
                                     // Header
                                     RowLayout {
@@ -4435,8 +4444,8 @@ Scope {
                                         from: 0
                                         to: 100
                                         muted: Services.SystemService.volumeMuted
-                                        icon: Services.SystemService.volumeIcon
-                                        accentColor: root.theme.accent
+                                        leftIcon: Services.SystemService.volumeMuted ? "󰖁" : "󰕿"
+                                        rightIcon: "󰕾"
                                         iconClickable: true
                                         onIconClicked: Services.SystemService.toggleMute()
                                         onMoved: (val) => {
@@ -4654,7 +4663,7 @@ Scope {
                             Rectangle {
                                 id: appMixerCard
                                 Layout.fillWidth: true
-                                implicitHeight: appMixerCol.implicitHeight + 24
+                                implicitHeight: appMixerCol.implicitHeight + (card.isCompact ? 10 : 16)
                                 radius: 16
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -4663,8 +4672,11 @@ Scope {
                                 ColumnLayout {
                                     id: appMixerCol
                                     anchors.fill: parent
-                                    anchors.margins: 12
-                                    spacing: 10
+                                    anchors.leftMargin: card.isCompact ? 8 : 12
+                                    anchors.rightMargin: card.isCompact ? 8 : 12
+                                    anchors.topMargin: card.isCompact ? 5 : 8
+                                    anchors.bottomMargin: card.isCompact ? 5 : 8
+                                    spacing: card.isCompact ? 6 : 8
 
                                     // Header
                                     RowLayout {
@@ -4838,8 +4850,7 @@ Scope {
                                                     from: 0
                                                     to: 100
                                                     muted: streamRow.currentMuted
-                                                    icon: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
-                                                    accentColor: root.theme.accent
+                                                    leftIcon: streamRow.currentMuted ? "󰖁" : (streamRow.currentVol > 50 ? "󰕾" : (streamRow.currentVol > 0 ? "󰖀" : "󰖁"))
                                                     iconClickable: true
                                                     onIconClicked: {
                                                         streamRow.currentMuted = !streamRow.currentMuted;
@@ -4871,7 +4882,7 @@ Scope {
                             Rectangle {
                                 id: micCard
                                 Layout.fillWidth: true
-                                implicitHeight: inputCol.implicitHeight + 24
+                                implicitHeight: inputCol.implicitHeight + (card.isCompact ? 10 : 16)
                                 radius: 16
                                 color: Services.Aesthetic.innerCardBg
                                 border.color: Services.Aesthetic.innerCardBorder
@@ -4880,8 +4891,11 @@ Scope {
                                 ColumnLayout {
                                     id: inputCol
                                     anchors.fill: parent
-                                    anchors.margins: 12
-                                    spacing: 10
+                                    anchors.leftMargin: card.isCompact ? 8 : 12
+                                    anchors.rightMargin: card.isCompact ? 8 : 12
+                                    anchors.topMargin: card.isCompact ? 5 : 8
+                                    anchors.bottomMargin: card.isCompact ? 5 : 8
+                                    spacing: card.isCompact ? 6 : 8
 
                                     // Header: "Input" on left, percentage on right
                                     RowLayout {
@@ -4924,7 +4938,8 @@ Scope {
                                         from: 0
                                         to: 100
                                         muted: Services.SystemService.micMuted
-                                        icon: Services.SystemService.micMuted ? "󰍭" : "󰍬"
+                                        leftIcon: Services.SystemService.micMuted ? "󰍭" : "󰍬"
+                                        rightIcon: "󰍬"
                                         accentColor: Services.SystemService.micInUse ? root.theme.accentOrange : root.theme.accent
                                         iconClickable: true
                                         onIconClicked: Services.SystemService.toggleMicMute()
@@ -6710,123 +6725,48 @@ Scope {
                                 }
                             }
 
-                            // Row 2: Timeline Scrubber (2:57 ━━━━━●━━━━━━ -1:32)
+                            // Row 2: Timeline Scrubber (Elapsed ━━━●━━━ Remaining)
                             RowLayout {
                                 id: ccTimelineRow
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 18
                                 spacing: 10
 
-                                property real scrubPos: -1
-                                readonly property real livePos: {
-                                    const _ = root.clockTick;
-                                    return root.activePlayer?.position ?? 0;
-                                }
-                                readonly property real displayPos: scrubPos >= 0 ? scrubPos : livePos
-                                readonly property real totalLen: root.activePlayer?.length ?? 0
-                                readonly property real progressRatio: totalLen > 0 ? Math.max(0, Math.min(1.0, displayPos / totalLen)) : 0
-
                                 // Elapsed time
                                 Text {
-                                    text: root.formatTime(ccTimelineRow.displayPos)
-                                    color: Qt.rgba(1, 1, 1, 0.55)
+                                    text: root.formatTime(ccMediaScrubber.displayValue)
+                                    color: root.theme.textMuted
                                     font.pixelSize: 11
                                     font.weight: Font.Medium
                                     font.family: root.font
                                     Layout.minimumWidth: 32
                                 }
 
-                                // Interactive Bar
-                                Item {
-                                    id: ccTrackBarContainer
+                                MacSlider {
+                                    id: ccMediaScrubber
                                     Layout.fillWidth: true
-                                    height: 18
+                                    size: "thin"
+                                    from: 0
+                                    to: Math.max(1, root.activePlayer?.length ?? 1)
+                                    value: root.isUserScrubbing ? dragValue : (root.clockTick >= 0 ? (root.activePlayer?.position ?? 0) : 0)
+                                    enabled: (root.activePlayer?.canSeek ?? true) && (root.activePlayer?.length ?? 0) > 0
 
-                                    Rectangle {
-                                        id: ccTrackBg
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        height: ccScrubArea.pressed || ccScrubArea.containsMouse ? 7 : 5
-                                        radius: height / 2
-                                        color: Qt.rgba(1, 1, 1, 0.22)
-                                        Behavior on height { NumberAnimation { duration: 100 } }
-
-                                        // Pure White Monochrome Fill
-                                        Rectangle {
-                                            anchors.left: parent.left
-                                            anchors.top: parent.top
-                                            anchors.bottom: parent.bottom
-                                            radius: parent.radius
-                                            color: "#ffffff"
-                                            width: parent.width * ccTimelineRow.progressRatio
-
-                                            Behavior on width {
-                                                enabled: !ccScrubArea.pressed
-                                                NumberAnimation { duration: 200; easing.type: Easing.Linear }
-                                            }
-                                        }
-
-                                        // Scrubber Handle (Expands smoothly on scrub/hover)
-                                        Rectangle {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            x: Math.max(0, Math.min(parent.width - width, (parent.width * ccTimelineRow.progressRatio) - (width / 2)))
-                                            width: ccScrubArea.containsMouse || ccScrubArea.pressed ? 10 : 0
-                                            height: width
-                                            radius: width / 2
-                                            color: "#ffffff"
-                                            visible: width > 0
-
-                                            Behavior on x {
-                                                enabled: !ccScrubArea.pressed
-                                                NumberAnimation { duration: 200; easing.type: Easing.Linear }
-                                            }
-                                            Behavior on width { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-                                        }
+                                    onMoved: (val) => {
+                                        root.isUserScrubbing = true;
                                     }
-
-                                    MouseArea {
-                                        id: ccScrubArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-
-                                        function updateFromMouse(mouseX) {
-                                            const ratio = Math.max(0, Math.min(1.0, mouseX / width));
-                                            ccTimelineRow.scrubPos = ratio * ccTimelineRow.totalLen;
-                                        }
-
-                                        onPressed: (mouse) => {
-                                            root.isUserScrubbing = true;
-                                            updateFromMouse(mouse.x);
-                                        }
-
-                                        onPositionChanged: (mouse) => {
-                                            if (pressed) {
-                                                updateFromMouse(mouse.x);
-                                            }
-                                        }
-
-                                        onReleased: (mouse) => {
-                                            root.isUserScrubbing = false;
-                                            if (ccTimelineRow.scrubPos >= 0) {
-                                                root.seekTo(ccTimelineRow.scrubPos);
-                                                ccTimelineRow.scrubPos = -1;
-                                            }
-                                        }
-
-                                        onWheel: (wheel) => {
-                                            wheel.accepted = true;
-                                            const delta = wheel.angleDelta.y !== 0 ? (wheel.angleDelta.y > 0 ? 5 : -5) : (wheel.angleDelta.x > 0 ? 5 : -5);
-                                            root.seekRelative(delta);
-                                        }
+                                    onCommitted: (val) => {
+                                        root.isUserScrubbing = false;
+                                        root.seekTo(val);
+                                    }
+                                    onWheeled: (val) => {
+                                        root.seekTo(val);
                                     }
                                 }
 
                                 // Remaining time with minus sign (e.g. -1:32)
                                 Text {
-                                    text: "-" + root.formatTime(Math.max(0, ccTimelineRow.totalLen - ccTimelineRow.displayPos))
-                                    color: Qt.rgba(1, 1, 1, 0.55)
+                                    text: "-" + root.formatTime(Math.max(0, ccMediaScrubber.to - ccMediaScrubber.displayValue))
+                                    color: root.theme.textMuted
                                     font.pixelSize: 11
                                     font.weight: Font.Medium
                                     font.family: root.font
@@ -6928,7 +6868,7 @@ Scope {
                     // Media Volume Slider Card
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: 82
+                        implicitHeight: card.isCompact ? 62 : 70
                         radius: 16
                         color: Services.Aesthetic.innerCardBg
                         border.color: Services.Aesthetic.innerCardBorder
@@ -6940,8 +6880,11 @@ Scope {
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 8
+                            anchors.leftMargin: card.isCompact ? 8 : 12
+                            anchors.rightMargin: card.isCompact ? 8 : 12
+                            anchors.topMargin: card.isCompact ? 5 : 7
+                            anchors.bottomMargin: card.isCompact ? 5 : 7
+                            spacing: card.isCompact ? 4 : 6
 
                             RowLayout {
                                 Layout.fillWidth: true
@@ -6971,10 +6914,11 @@ Scope {
                                 from: 0
                                 to: 100
                                 muted: Services.SystemService.volumeMuted
-                                icon: Services.SystemService.volumeIcon
+                                leftIcon: Services.SystemService.volumeMuted ? "󰖁" : "󰕿"
+                                rightIcon: "󰕾"
                                 accentColor: root.playerAccent || root.theme.accent
-                                iconClickable: true
-                                onIconClicked: Services.SystemService.toggleMute()
+                                leftIconClickable: true
+                                onLeftIconClicked: Services.SystemService.toggleMute()
                                 onMoved: (val) => {
                                     Services.SystemService.setVolumePercent(val);
                                 }
